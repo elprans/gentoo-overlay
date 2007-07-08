@@ -1,0 +1,71 @@
+--- 915resolution.c	2006-12-24 02:21:47.000000000 -0500
++++ 915resolution.c	2006-12-24 02:27:08.000000000 -0500
+@@ -55,10 +55,10 @@
+ typedef unsigned int cardinal;
+ 
+ typedef enum {
+-    CT_UNKWN, CT_845G, CT_855GM, CT_865G, CT_915G, CT_915GM, CT_945G, CT_945GM 
++    CT_UNKWN, CT_845G, CT_855GM, CT_865G, CT_915G, CT_915GM, CT_945G, CT_945GM, CT_965G, CT_965Q, CT_946GZ
+ } chipset_type;
+ 
+-char * chipset_type_names[] = {"UNKNOWN", "845G", "855GM", "865G", "915G", "915GM", "945G", "945GM"};
++char * chipset_type_names[] = {"UNKNOWN", "845G", "855GM", "865G", "915G", "915GM", "945G", "945GM", "965G", "965Q", "946GZ"};
+ 
+ typedef enum {
+     BT_UNKWN, BT_1, BT_2, BT_3
+@@ -205,6 +205,19 @@
+         type = CT_945GM;
+         break;
+ 
++    case 0x29808086:
++    case 0x29a08086:
++        type = CT_965G;
++        break;
++
++    case 0x29908086:
++        type = CT_965Q;
++        break;
++
++    case 0x29708086:
++        type = CT_946GZ;
++        break;
++
+     default:
+         type = CT_UNKWN;
+         break;
+@@ -488,6 +501,9 @@
+         case CT_915GM:
+         case CT_945G:
+         case CT_945GM:
++        case CT_965G:
++        case CT_965Q:
++        case CT_946GZ:
+             outl(0x80000090, 0xcf8);
+             map->b1 = inb(0xcfd);
+             map->b2 = inb(0xcfe);
+@@ -535,6 +551,9 @@
+         case CT_915GM:
+         case CT_945G:
+         case CT_945GM:
++        case CT_965G:
++        case CT_965Q:
++        case CT_946GZ:
+             outl(0x80000090, 0xcf8);
+             outb(map->b1, 0xcfd);
+             outb(map->b2, 0xcfe);
+@@ -773,6 +792,15 @@
+         else if (!strcmp(argv[index], "945GM")) {
+             *forced_chipset = CT_945GM;
+         }
++        else if (!strcmp(argv[index], "965G")) {
++            *forced_chipset = CT_965G;
++        }
++        else if (!strcmp(argv[index], "965Q")) {
++            *forced_chipset = CT_965Q;
++        }
++        else if (!strcmp(argv[index], "946GZ")) {
++            *forced_chipset = CT_946GZ;
++        }
+         else {
+             *forced_chipset = CT_UNKWN;
+         }
