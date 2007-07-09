@@ -1,4 +1,4 @@
-DIST findcruft-1.0.4.tar.bz2 11480 RMD160 452ce0cfc114d2da1a614ca6e35cbb738c7a3b4b SHA1 1847f0086cc83c77881dc0b66cb83e6cda615da2 SHA256 4e9d18e758029e0399a6197cb601ac58eb35a0c9c9d13af7a1a47d36b82e0c62
+DIST findcruft-1.0.4.tar.bz2 11030 RMD160 d30727d9cdc962e53a8ca1df2eccaa82fca484f8 SHA1 bdeb220e6ad858c7417549c3d1c207923309ee10 SHA256 01d4e2f5a12bcb701788cda853779c2b0b814b981c15a7fc9cd2a9c9cfc9cdc6
 EBUILD findcruft-1.0.4-r1.ebuild 629 RMD160 2cf121f5d2ae7b6fb8eff26b8627e876473e1f3e SHA1 bc3ff5b82497ffe26dd0469197a479c216d5bf32 SHA256 254b86df5c68a85d1ff234a2a42b44c068658fea31e3cfdb18965862f673ba93
 MD5 403672b56f808f34f5d4f4a83f43dba4 findcruft-1.0.4-r1.ebuild 629
 RMD160 2cf121f5d2ae7b6fb8eff26b8627e876473e1f3e findcruft-1.0.4-r1.ebuild 629
@@ -11,12 +11,12 @@ EBUILD findcruft-1.0.4.ebuild 590 RMD160 b5eb9eeb16eb0e870eafdd6d93832a28287bf74
 MD5 b29bcb5ba6b894896da48f13cde560ff findcruft-1.0.4.ebuild 590
 RMD160 b5eb9eeb16eb0e870eafdd6d93832a28287bf742 findcruft-1.0.4.ebuild 590
 SHA256 6bf046d7f1de100427d962f8292fe6ed8a3a50bb171e3cba3f1265ba81610a2d findcruft-1.0.4.ebuild 590
-MD5 d9600a3042493b5bb33d4fac802bfbf4 files/digest-findcruft-1.0.4 247
-RMD160 d6547c43d99c5a6540b7b88b509c83010a42fa7a files/digest-findcruft-1.0.4 247
-SHA256 1af052defef7c074f5c923c275dec59ccd2f542bdc1b3bb87ba33646f4bb3eac files/digest-findcruft-1.0.4 247
-MD5 d9600a3042493b5bb33d4fac802bfbf4 files/digest-findcruft-1.0.4-r1 247
-RMD160 d6547c43d99c5a6540b7b88b509c83010a42fa7a files/digest-findcruft-1.0.4-r1 247
-SHA256 1af052defef7c074f5c923c275dec59ccd2f542bdc1b3bb87ba33646f4bb3eac files/digest-findcruft-1.0.4-r1 247
-MD5 d9600a3042493b5bb33d4fac802bfbf4 files/digest-findcruft-1.0.4-r2 247
-RMD160 d6547c43d99c5a6540b7b88b509c83010a42fa7a files/digest-findcruft-1.0.4-r2 247
-SHA256 1af052defef7c074f5c923c275dec59ccd2f542bdc1b3bb87ba33646f4bb3eac files/digest-findcruft-1.0.4-r2 247
+MD5 da0b830db1e2a546399b09ee20753d80 files/digest-findcruft-1.0.4 247
+RMD160 a751ccf82362448c7efe84d2fa8421711d061bb2 files/digest-findcruft-1.0.4 247
+SHA256 d52dd857c4c1e075bdae2c1e23a7d5b46f2684e9ad0a6614987047c370f58f04 files/digest-findcruft-1.0.4 247
+MD5 da0b830db1e2a546399b09ee20753d80 files/digest-findcruft-1.0.4-r1 247
+RMD160 a751ccf82362448c7efe84d2fa8421711d061bb2 files/digest-findcruft-1.0.4-r1 247
+SHA256 d52dd857c4c1e075bdae2c1e23a7d5b46f2684e9ad0a6614987047c370f58f04 files/digest-findcruft-1.0.4-r1 247
+MD5 da0b830db1e2a546399b09ee20753d80 files/digest-findcruft-1.0.4-r2 247
+RMD160 a751ccf82362448c7efe84d2fa8421711d061bb2 files/digest-findcruft-1.0.4-r2 247
+SHA256 d52dd857c4c1e075bdae2c1e23a7d5b46f2684e9ad0a6614987047c370f58f04 files/digest-findcruft-1.0.4-r2 247
