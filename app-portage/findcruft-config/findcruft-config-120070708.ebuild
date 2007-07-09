@@ -17,7 +17,7 @@ SLOT="0"
 SRC_URI="http://gentoo.coderazor.org/${P}.tar.bz2"
 
 src_install() {
-	mkdir -p "${D}/usr/lib" && mv "${S}/${P}" "${D}/usr/lib/findcruft"
+	mkdir -p "${D}/usr/lib" && mv "${S}" "${D}/usr/lib/findcruft"
 	insinto /usr
 	echo "CONFIG_PROTECT=\"/usr/lib/findcruft\"" > "${T}"/10findcruft
 	doenvd "${T}"/10findcruft
