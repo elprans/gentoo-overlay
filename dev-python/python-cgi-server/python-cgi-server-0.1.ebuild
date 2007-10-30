@@ -17,8 +17,8 @@ RDEPEND="${DEPEND}"
 
 src_install() {
 	cd "${S}"
-	dobin python-cgi-server
+	dobin python-cgi-server || die
 	cd "${S}/init-scripts/gentoo"
-	newinitd python-cgi-server.initd python-cgi-server
-	newconfd python-cgi-server.confd python-cgi-server
+	newinitd python-cgi-server.initd python-cgi-server || die
+	newconfd python-cgi-server.confd python-cgi-server || die
 }

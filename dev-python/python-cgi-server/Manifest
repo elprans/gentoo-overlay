@@ -1,8 +1,8 @@
-DIST python-cgi-server-0.1.tar.bz2 185 RMD160 a881ceebc42528f3f2c3752cf102878325084a5e SHA1 96739d837448abedbc1f94636607c9c54ca91727 SHA256 c4d0117413e980d6b25485c6dbdd75a69f2704ea812e0991a2e275c3d00c7ee2
-EBUILD python-cgi-server-0.1.ebuild 581 RMD160 095e1e77694630e313a9855a52f81ef00c2def15 SHA1 acac5c357e765414169cc755f137f39279fbbe7b SHA256 0c18c4493d22dfc4db2314c164d3e8f753b185b6fc2803832f4e1e68948d3635
-MD5 55fdbcfc54972112dfec14ef8d3fe0c1 python-cgi-server-0.1.ebuild 581
-RMD160 095e1e77694630e313a9855a52f81ef00c2def15 python-cgi-server-0.1.ebuild 581
-SHA256 0c18c4493d22dfc4db2314c164d3e8f753b185b6fc2803832f4e1e68948d3635 python-cgi-server-0.1.ebuild 581
-MD5 4b9cb36320da6b794b0499bbbdfd2f7e files/digest-python-cgi-server-0.1 259
-RMD160 afff037c31a9fd94f6bf194ba85b54f757d558f6 files/digest-python-cgi-server-0.1 259
-SHA256 1c911c6c34cf6f048d4a0d1a8230763aea1b06862afffdae98568e31249d5106 files/digest-python-cgi-server-0.1 259
+DIST python-cgi-server-0.1.tar.bz2 2702 RMD160 484bfba254b9b81e6a7ca856ced977e0f03497d2 SHA1 4a169e2647f5d497296371d1a66b171cf9ca9975 SHA256 9de06b0f88a45d36cd14cf4b1e6508dc4c67d883dbabd9003ad243149597c0d7
+EBUILD python-cgi-server-0.1.ebuild 602 RMD160 5be936876bed5c49fbe3472460f6fd72b97803fa SHA1 852c054016c5427617ff89da48bc3caea5817800 SHA256 38bef39242bc89fdc10d2b09832cf90d4c1e633cc8aaa38d42413daf5a9a110a
+MD5 f1b57c3e2a95ff40651d3e754fd0b120 python-cgi-server-0.1.ebuild 602
+RMD160 5be936876bed5c49fbe3472460f6fd72b97803fa python-cgi-server-0.1.ebuild 602
+SHA256 38bef39242bc89fdc10d2b09832cf90d4c1e633cc8aaa38d42413daf5a9a110a python-cgi-server-0.1.ebuild 602
+MD5 5254d521a4c21bc1ab33507617d17447 files/digest-python-cgi-server-0.1 262
+RMD160 7f44d27527cb2befc6991a01523f2484915873af files/digest-python-cgi-server-0.1 262
+SHA256 c5e8a9a1d574441f4b7bb17d20b39fbcc1d451c4d542ec98f67f8cf035e9e916 files/digest-python-cgi-server-0.1 262
