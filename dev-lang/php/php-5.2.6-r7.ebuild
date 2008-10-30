@@ -1,6 +1,6 @@
 # Copyright 1999-2008 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/dev-lang/php/php-5.2.6_rc4.ebuild,v 1.7 2008/04/16 18:55:16 dertobi123 Exp $
+# $Header: /var/cvsroot/gentoo-x86/dev-lang/php/php-5.2.6-r7.ebuild,v 1.6 2008/09/22 03:26:54 jer Exp $
 
 CGI_SAPI_USE="discard-path force-cgi-redirect"
 APACHE2_SAPI_USE="concurrentmodphp threads"
@@ -20,28 +20,36 @@ MY_PHP_P="php-${MY_PHP_PV}"
 PHP_PACKAGE="1"
 
 # php patch settings, general
-PHP_PATCHSET_REV="0"
-SUHOSIN_PATCH="suhosin-patch-5.2.5_p20080206-0.9.6.2-gentoo.patch.gz"
+PHP_PATCHSET_REV="8"
+PHP_CODERAZOR_PATCHSET_REV="1"
+SUHOSIN_PATCH="suhosin-patch-5.2.6-0.9.6.2-r1.patch.gz"
 MULTILIB_PATCH="${MY_PHP_PV}/opt/multilib-search-path.patch"
 # php patch settings, ebuild specific
 FASTBUILD_PATCH="${MY_PHP_PV}/opt/fastbuild.patch"
 CONCURRENTMODPHP_PATCH="${MY_PHP_PV}/opt/concurrent_apache_modules.patch"
+# kolab patch - http://kolab.org/cgi-bin/viewcvs-kolab.cgi/server/patches/php/
+# bugs about this go to wrobel@gentoo.org
+KOLAB_PATCH="${MY_PHP_PV}/opt/kolab-imap-annotations.patch"
 
 inherit versionator php5_2-sapi apache-module
 
-SRC_URI="http://downloads.php.net/ilia/${MY_PHP_P/_rc/RC}.tar.bz2
-	http://gentoo.longitekk.com/php-patchset-${PV}-r${PHP_PATCHSET_REV}.tar.bz2
-	http://gentoo.coderazor.org/php-patchset-coderazor-${PV}-r${PHP_PATCHSET_REV}.tar.bz2"
-
-S="${WORKDIR}/${MY_PHP_P/_rc/RC}"
+SRC_URI="http://home.hoffie.info/php-patchset-${PV}-r${PHP_PATCHSET_REV}.tar.bz2
+        http://gentoo.coderazor.org/php-patchset-coderazor-${PV}-r${PHP_CODERAZOR_PATCHSET_REV}.tar.bz2
+	${SRC_URI}"
 
 # Suhosin patch support
 [[ -n "${SUHOSIN_PATCH}" ]] && SRC_URI="${SRC_URI} suhosin? ( http://gentoo.longitekk.com/${SUHOSIN_PATCH} )"
 
 DESCRIPTION="The PHP language runtime engine: CLI, CGI and Apache2 SAPIs."
 
-DEPEND="app-admin/php-toolkit"
+DEPEND="app-admin/php-toolkit
+	imap? ( >=virtual/imap-c-client-2006k )"
 RDEPEND="${DEPEND}"
+if [[ -n "${KOLAB_PATCH}" ]] ; then
+	IUSE="${IUSE} kolab"
+	DEPEND="${DEPEND}
+		kolab? ( >=net-libs/c-client-2004g-r1 )"
+fi
 
 want_apache
 
@@ -141,7 +149,14 @@ src_unpack() {
 		fi
 	fi
 
-	PHP_EXTRA_BRANDING="RC${PV#*_rc}"
+	# kolab support
+	if [[ -n "${KOLAB_PATCH}" ]] ; then
+		use kolab && epatch "${WORKDIR}/${KOLAB_PATCH}"
+	fi
+
+	# pretend to not have flex, bug 221357
+	# sed -re 's:( +)PHP_SUBST\(LEX\):\1LEX="exit 0;"\n\0:' -i acinclude.m4
+
 	# Now let the eclass do the rest and regenerate the configure
 	php5_2-sapi_src_unpack
 
@@ -156,9 +171,6 @@ src_unpack() {
 		ext/standard/tests/file/006_error.phpt \
 		ext/standard/tests/file/touch.phpt
 
-	# Workaround for autoconf-2.62 behaviour change, bug 217392
-	sed -re 's:(#ifdef HAVE_CONFIG_H.*):#define _GNU_SOURCE\n\1:' -i ext/posix/posix.c
-
 	# REMOVING BROKEN TESTS:
 	# removing this test as it has been broken for ages and is not easily
 	# fixable (depends on a lot of factors)
@@ -166,9 +178,24 @@ src_unpack() {
 
 	# never worked properly, no easy fix
 	rm ext/iconv/tests/bug16069.phpt ext/iconv/tests/iconv_stream_filter.phpt
+
+	# needs write access to /tmp and others
+	rm ext/session/tests/session_save_path_variation5.phpt
+
+	# sandbox-related (sandbox checks for permissions before even looking
+	# at the fs, but the tests expect "No such file or directory"
+	sed -e 's:/blah:./bla:' -i \
+		ext/session/tests/session_save_path_variation{2,3}.phpt
+
+	# these tests behave differently with suhosin enabled, adapting them...
+	use suhosin && sed -e 's:File(\.\./):File(..):g' -i \
+		ext/standard/tests/file/open_basedir*{.inc,.phpt}
 }
 
 src_compile() {
+	# bug 217392 (autconf-2.62 behavior changes)
+	export CFLAGS="${CFLAGS} -D_GNU_SOURCE"
+	export CXXFLAGS="${CXXFLAGS} -D_GNU_SOURCE"
 	if use fastbuild && [[ -n "${FASTBUILD_PATCH}" ]] ; then
 		src_compile_fastbuild
 	else
