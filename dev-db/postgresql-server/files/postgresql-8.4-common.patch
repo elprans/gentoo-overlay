@@ -1,0 +1,67 @@
+From 29720ff8485b4f36d96912a9a7a514137078d412 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@alfheim.prans.org>
+Date: Mon, 20 Oct 2008 13:04:05 -0400
+Subject: [PATCH] [gentoo] Common patch
+
+---
+ src/include/storage/s_lock.h  |   23 +++++++++++++++++++++++
+ src/makefiles/Makefile.darwin |    8 ++++++++
+ 2 files changed, 31 insertions(+), 0 deletions(-)
+
+diff --git a/src/include/storage/s_lock.h b/src/include/storage/s_lock.h
+index b06bd1b..80523c2 100644
+--- a/src/include/storage/s_lock.h
++++ b/src/include/storage/s_lock.h
+@@ -298,6 +298,29 @@ tas(volatile slock_t *lock)
+ 
+ #endif	 /* __s390__ || __s390x__ */
+ 
++#if defined(__sh__)
++#define HAS_TEST_AND_SET
++
++typedef unsigned char slock_t;
++
++#define TAS(lock) tas(lock)
++
++static __inline__ int
++tas(volatile slock_t *lock)
++{
++	register int _res = 1;
++
++	__asm__ __volatile__(
++		"tas.b	@%1\n\t"
++		"movt	%0\n\t"
++		"xor	#1,%0"
++:		"=z"(_res)
++:		"r"(lock)
++:		"t","memory");
++	return _res;
++}
++
++#endif	 /* __sh__ */
+ 
+ #if defined(__sparc__)		/* Sparc */
+ #define HAS_TEST_AND_SET
+diff --git a/src/makefiles/Makefile.darwin b/src/makefiles/Makefile.darwin
+index 9f761d4..83b2974 100644
+--- a/src/makefiles/Makefile.darwin
++++ b/src/makefiles/Makefile.darwin
+@@ -5,7 +5,15 @@ DLSUFFIX = .so
+ CFLAGS_SL =
+ 
+ ifdef PGXS
++ifdef PGXS_IN_SERVER
++ifndef PGXS_WITH_SERVER
++BE_DLLLIBS= -bundle_loader $(top_builddir)/src/backend/postgres
++else
++BE_DLLLIBS= -bundle_loader ${PGXS_WITH_SERVER}
++endif
++else
+ BE_DLLLIBS= -bundle_loader $(bindir)/postgres
++endif
+ else
+ BE_DLLLIBS= -bundle_loader $(top_builddir)/src/backend/postgres
+ endif
+-- 
+1.6.0.2
+
