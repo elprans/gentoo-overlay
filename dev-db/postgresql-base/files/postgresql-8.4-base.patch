@@ -1,25 +1,29 @@
-From a82e0c4a042002cd0537a17a5d461717e55b7a8e Mon Sep 17 00:00:00 2001
+From 7e07ff09bd3ffc925e1da58dc488a9fdac9d5875 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
-Date: Mon, 20 Oct 2008 13:23:29 -0400
+Date: Tue, 6 Jan 2009 14:33:27 -0500
 Subject: [PATCH] [gentoo] Base patch
 
+Conflicts:
+
+	contrib/Makefile
 ---
- contrib/Makefile               |   33 ---------------------------------
+ contrib/Makefile               |   35 -----------------------------------
  src/Makefile                   |    5 -----
  src/backend/Makefile           |   23 +++--------------------
  src/bin/Makefile               |    3 +--
  src/include/pg_config_manual.h |    2 +-
- 5 files changed, 5 insertions(+), 61 deletions(-)
+ 5 files changed, 5 insertions(+), 63 deletions(-)
 
 diff --git a/contrib/Makefile b/contrib/Makefile
-index 30f75c7..e7206fc 100644
+index 122143f..e7206fc 100644
 --- a/contrib/Makefile
 +++ b/contrib/Makefile
-@@ -5,43 +5,10 @@ top_builddir = ..
+@@ -5,45 +5,10 @@ top_builddir = ..
  include $(top_builddir)/src/Makefile.global
  
  WANTED_DIRS = \
 -		adminpack	\
+-		auto_explain	\
 -		btree_gist	\
 -		chkpass		\
 -		citext		\
@@ -40,6 +44,7 @@ index 30f75c7..e7206fc 100644
 -		pg_buffercache	\
 -		pg_freespacemap \
 -		pg_standby	\
+-		pg_stat_statements \
 -		pg_trgm		\
  		pgbench		\
 -		pgcrypto	\
@@ -60,10 +65,10 @@ index 30f75c7..e7206fc 100644
  WANTED_DIRS += uuid-ossp
  endif
 diff --git a/src/Makefile b/src/Makefile
-index acefa75..36394c6 100644
+index 33493a5..cf15fee 100644
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -15,16 +15,11 @@ include Makefile.global
+@@ -15,17 +15,12 @@ include Makefile.global
  
  all install installdirs uninstall distprep:
  	$(MAKE) -C port $@
@@ -71,6 +76,7 @@ index acefa75..36394c6 100644
  	$(MAKE) -C backend $@
 -	$(MAKE) -C backend/utils/mb/conversion_procs $@
 -	$(MAKE) -C backend/snowball $@
+ 	$(MAKE) -C backend/foreign $@-fdw
  	$(MAKE) -C include $@
  	$(MAKE) -C interfaces $@
  	$(MAKE) -C bin $@
@@ -81,7 +87,7 @@ index acefa75..36394c6 100644
  install: install-local
  
 diff --git a/src/backend/Makefile b/src/backend/Makefile
-index b8ac4d1..3958322 100644
+index a9023d4..69b7f92 100644
 --- a/src/backend/Makefile
 +++ b/src/backend/Makefile
 @@ -36,7 +36,7 @@ LIBS := $(filter-out -lz -lreadline -ledit -ltermcap -lncurses -lcurses, $(LIBS)
@@ -129,7 +135,7 @@ index b8ac4d1..3958322 100644
  install-bin: postgres $(POSTGRES_IMP) installdirs
  	$(INSTALL_PROGRAM) postgres$(X) '$(DESTDIR)$(bindir)/postgres$(X)'
 diff --git a/src/bin/Makefile b/src/bin/Makefile
-index 6451f8f..7fc5acb 100644
+index ec82494..bdbd775 100644
 --- a/src/bin/Makefile
 +++ b/src/bin/Makefile
 @@ -13,8 +13,7 @@ subdir = src/bin
@@ -156,5 +162,5 @@ index 6ebb433..693b0d3 100644
  /*
   * The random() function is expected to yield values between 0 and
 -- 
-1.6.0.2
+1.6.0.6
 
