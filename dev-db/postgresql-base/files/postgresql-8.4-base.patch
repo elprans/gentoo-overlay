@@ -1,0 +1,160 @@
+From a82e0c4a042002cd0537a17a5d461717e55b7a8e Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@alfheim.prans.org>
+Date: Mon, 20 Oct 2008 13:23:29 -0400
+Subject: [PATCH] [gentoo] Base patch
+
+---
+ contrib/Makefile               |   33 ---------------------------------
+ src/Makefile                   |    5 -----
+ src/backend/Makefile           |   23 +++--------------------
+ src/bin/Makefile               |    3 +--
+ src/include/pg_config_manual.h |    2 +-
+ 5 files changed, 5 insertions(+), 61 deletions(-)
+
+diff --git a/contrib/Makefile b/contrib/Makefile
+index 30f75c7..e7206fc 100644
+--- a/contrib/Makefile
++++ b/contrib/Makefile
+@@ -5,43 +5,10 @@ top_builddir = ..
+ include $(top_builddir)/src/Makefile.global
+ 
+ WANTED_DIRS = \
+-		adminpack	\
+-		btree_gist	\
+-		chkpass		\
+-		citext		\
+-		cube		\
+-		dblink		\
+-		dict_int	\
+-		dict_xsyn	\
+-		earthdistance	\
+-		fuzzystrmatch	\
+-		hstore		\
+-		intagg		\
+-		intarray	\
+-		isn		\
+-		lo		\
+-		ltree		\
+ 		oid2name	\
+-		pageinspect	\
+-		pg_buffercache	\
+-		pg_freespacemap \
+-		pg_standby	\
+-		pg_trgm		\
+ 		pgbench		\
+-		pgcrypto	\
+-		pgrowlocks	\
+-		pgstattuple	\
+-		seg		\
+-		spi		\
+-		tablefunc	\
+-		test_parser	\
+-		tsearch2	\
+ 		vacuumlo
+ 
+-ifeq ($(with_openssl),yes)
+-WANTED_DIRS += sslinfo
+-endif
+-
+ ifeq ($(with_ossp_uuid),yes)
+ WANTED_DIRS += uuid-ossp
+ endif
+diff --git a/src/Makefile b/src/Makefile
+index acefa75..36394c6 100644
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -15,16 +15,11 @@ include Makefile.global
+ 
+ all install installdirs uninstall distprep:
+ 	$(MAKE) -C port $@
+-	$(MAKE) -C timezone $@
+ 	$(MAKE) -C backend $@
+-	$(MAKE) -C backend/utils/mb/conversion_procs $@
+-	$(MAKE) -C backend/snowball $@
+ 	$(MAKE) -C include $@
+ 	$(MAKE) -C interfaces $@
+ 	$(MAKE) -C bin $@
+-	$(MAKE) -C pl $@
+ 	$(MAKE) -C makefiles $@
+-	$(MAKE) -C test/regress $@
+ 
+ install: install-local
+ 
+diff --git a/src/backend/Makefile b/src/backend/Makefile
+index b8ac4d1..3958322 100644
+--- a/src/backend/Makefile
++++ b/src/backend/Makefile
+@@ -36,7 +36,7 @@ LIBS := $(filter-out -lz -lreadline -ledit -ltermcap -lncurses -lcurses, $(LIBS)
+ 
+ ##########################################################################
+ 
+-all: submake-libpgport postgres $(POSTGRES_IMP)
++all: someheaders
+ 
+ ifneq ($(PORTNAME), cygwin)
+ ifneq ($(PORTNAME), win32)
+@@ -105,8 +105,7 @@ endif
+ endif # aix
+ 
+ # Update the commonly used headers before building the subdirectories
+-$(SUBDIRS:%=%-recursive): $(top_builddir)/src/include/parser/gram.h $(top_builddir)/src/include/utils/fmgroids.h $(top_builddir)/src/include/utils/probes.h
+-
++someheaders $(DIRS:%=%-recursive): $(top_builddir)/src/include/parser/gram.h $(top_builddir)/src/include/utils/fmgroids.h $(top_builddir)/src/include/utils/probes.h
+ 
+ # The postgres.o target is needed by the rule in Makefile.global that
+ # creates the exports file when MAKE_EXPORTS = true.
+@@ -161,23 +160,7 @@ distprep:
+ 
+ ##########################################################################
+ 
+-install: all installdirs install-bin
+-ifeq ($(PORTNAME), cygwin)
+-ifeq ($(MAKE_DLL), true)
+-	$(INSTALL_DATA) libpostgres.a '$(DESTDIR)$(libdir)/libpostgres.a'
+-endif
+-endif
+-ifeq ($(PORTNAME), win32)
+-ifeq ($(MAKE_DLL), true)
+-	$(INSTALL_DATA) libpostgres.a '$(DESTDIR)$(libdir)/libpostgres.a'
+-endif
+-endif
+-	$(MAKE) -C catalog install-data
+-	$(MAKE) -C tsearch install-data
+-	$(INSTALL_DATA) $(srcdir)/libpq/pg_hba.conf.sample '$(DESTDIR)$(datadir)/pg_hba.conf.sample'
+-	$(INSTALL_DATA) $(srcdir)/libpq/pg_ident.conf.sample '$(DESTDIR)$(datadir)/pg_ident.conf.sample'
+-	$(INSTALL_DATA) $(srcdir)/utils/misc/postgresql.conf.sample '$(DESTDIR)$(datadir)/postgresql.conf.sample'
+-	$(INSTALL_DATA) $(srcdir)/access/transam/recovery.conf.sample '$(DESTDIR)$(datadir)/recovery.conf.sample'
++install:
+ 
+ install-bin: postgres $(POSTGRES_IMP) installdirs
+ 	$(INSTALL_PROGRAM) postgres$(X) '$(DESTDIR)$(bindir)/postgres$(X)'
+diff --git a/src/bin/Makefile b/src/bin/Makefile
+index 6451f8f..7fc5acb 100644
+--- a/src/bin/Makefile
++++ b/src/bin/Makefile
+@@ -13,8 +13,7 @@ subdir = src/bin
+ top_builddir = ../..
+ include $(top_builddir)/src/Makefile.global
+ 
+-DIRS = initdb pg_ctl pg_dump \
+-	psql scripts pg_config pg_controldata pg_resetxlog
++DIRS = pg_dump psql scripts pg_config
+ ifeq ($(PORTNAME), win32)
+ DIRS+=pgevent
+ endif
+diff --git a/src/include/pg_config_manual.h b/src/include/pg_config_manual.h
+index 6ebb433..693b0d3 100644
+--- a/src/include/pg_config_manual.h
++++ b/src/include/pg_config_manual.h
+@@ -133,7 +133,7 @@
+  * here's where to twiddle it.  You can also override this at runtime
+  * with the postmaster's -k switch.
+  */
+-#define DEFAULT_PGSOCKET_DIR  "/tmp"
++#define DEFAULT_PGSOCKET_DIR  "/var/run/postgresql"
+ 
+ /*
+  * The random() function is expected to yield values between 0 and
+-- 
+1.6.0.2
+

@@ -1,0 +1,260 @@
+From 8e52cd429b499ba7dc9ff6c30b914b4ef473e9ab Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@alfheim.prans.org>
+Date: Mon, 20 Oct 2008 13:13:16 -0400
+Subject: [PATCH] [gentoo] Server patch
+
+---
+ GNUmakefile.in                 |    3 ---
+ contrib/Makefile               |    5 +----
+ contrib/adminpack/Makefile     |    2 +-
+ contrib/uuid-ossp/Makefile     |    4 +++-
+ contrib/xml2/Makefile          |    3 ++-
+ src/Makefile                   |    5 +----
+ src/Makefile.global.in         |    4 ++--
+ src/bin/Makefile               |    3 +--
+ src/bin/initdb/Makefile        |    2 +-
+ src/include/pg_config_manual.h |    2 +-
+ src/port/Makefile              |    5 ++---
+ src/test/regress/GNUmakefile   |    2 +-
+ src/test/regress/pg_regress.c  |    5 +----
+ 13 files changed, 17 insertions(+), 28 deletions(-)
+
+diff --git a/GNUmakefile.in b/GNUmakefile.in
+index 74bb088..2e39714 100644
+--- a/GNUmakefile.in
++++ b/GNUmakefile.in
+@@ -11,19 +11,16 @@ include $(top_builddir)/src/Makefile.global
+ all:
+ 	$(MAKE) -C doc all
+ 	$(MAKE) -C src all
+-	$(MAKE) -C config all
+ 	@echo "All of PostgreSQL successfully made. Ready to install."
+ 
+ install:
+ 	$(MAKE) -C doc $@
+ 	$(MAKE) -C src $@
+-	$(MAKE) -C config $@
+ 	@echo "PostgreSQL installation complete."
+ 
+ installdirs uninstall:
+ 	$(MAKE) -C doc $@
+ 	$(MAKE) -C src $@
+-	$(MAKE) -C config $@
+ 
+ distprep:
+ 	$(MAKE) -C doc $@
+diff --git a/contrib/Makefile b/contrib/Makefile
+index 30f75c7..843ca05 100644
+--- a/contrib/Makefile
++++ b/contrib/Makefile
+@@ -21,22 +21,19 @@ WANTED_DIRS = \
+ 		isn		\
+ 		lo		\
+ 		ltree		\
+-		oid2name	\
+ 		pageinspect	\
+ 		pg_buffercache	\
+ 		pg_freespacemap \
+ 		pg_standby	\
+ 		pg_trgm		\
+-		pgbench		\
+ 		pgcrypto	\
+ 		pgrowlocks	\
+ 		pgstattuple	\
+ 		seg		\
+ 		spi		\
+ 		tablefunc	\
+-		test_parser	\
+ 		tsearch2	\
+-		vacuumlo
++		test_parser
+ 
+ ifeq ($(with_openssl),yes)
+ WANTED_DIRS += sslinfo
+diff --git a/contrib/adminpack/Makefile b/contrib/adminpack/Makefile
+index 3492d27..0857f7c 100644
+--- a/contrib/adminpack/Makefile
++++ b/contrib/adminpack/Makefile
+@@ -1,7 +1,7 @@
+ # $PostgreSQL$
+ 
+ MODULE_big = adminpack
+-PG_CPPFLAGS = -I$(libpq_srcdir)
++PG_CPPFLAGS = -I$(libpq_srcdir) -I../../src/include/
+ DATA_built = adminpack.sql
+ DATA = uninstall_adminpack.sql
+ OBJS = adminpack.o
+diff --git a/contrib/uuid-ossp/Makefile b/contrib/uuid-ossp/Makefile
+index 0eb2705..a25706d 100644
+--- a/contrib/uuid-ossp/Makefile
++++ b/contrib/uuid-ossp/Makefile
+@@ -1,11 +1,13 @@
+ # $PostgreSQL$
+ 
++PG_CPPFLAGS += "-DHAVE_OSSP_UUID_H"
++
+ MODULE_big = uuid-ossp
+ OBJS = uuid-ossp.o
+ DATA_built = uuid-ossp.sql
+ DATA = uninstall_uuid-ossp.sql
+ 
+-SHLIB_LINK += $(OSSP_UUID_LIBS)
++SHLIB_LINK += -lossp-uuid
+ 
+ ifdef USE_PGXS
+ PG_CONFIG = pg_config
+diff --git a/contrib/xml2/Makefile b/contrib/xml2/Makefile
+index ea8636a..2e4e131 100644
+--- a/contrib/xml2/Makefile
++++ b/contrib/xml2/Makefile
+@@ -4,7 +4,8 @@ MODULE_big = pgxml
+ 
+ OBJS = $(if $(filter -lxslt, $(LIBS)), xpath.o xslt_proc.o, xpath.o)
+ 
+-SHLIB_LINK += $(filter -lxslt, $(LIBS)) $(filter -lxml2, $(LIBS))
++PG_CPPFLAGS = $(shell xml2-config --cflags)
++SHLIB_LINK += $(shell xml2-config --libs) $(shell xslt-config --libs)
+ 
+ DATA_built = pgxml.sql
+ DATA = uninstall_pgxml.sql
+diff --git a/src/Makefile b/src/Makefile
+index acefa75..de0ca00 100644
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -19,14 +19,11 @@ all install installdirs uninstall distprep:
+ 	$(MAKE) -C backend $@
+ 	$(MAKE) -C backend/utils/mb/conversion_procs $@
+ 	$(MAKE) -C backend/snowball $@
+-	$(MAKE) -C include $@
+-	$(MAKE) -C interfaces $@
+ 	$(MAKE) -C bin $@
+ 	$(MAKE) -C pl $@
+-	$(MAKE) -C makefiles $@
+ 	$(MAKE) -C test/regress $@
+ 
+-install: install-local
++install:
+ 
+ install-local: installdirs-local
+ 	$(INSTALL_DATA) Makefile.global '$(DESTDIR)$(pgxsdir)/$(subdir)/Makefile.global'
+diff --git a/src/Makefile.global.in b/src/Makefile.global.in
+index 805c60c..cf522f1 100644
+--- a/src/Makefile.global.in
++++ b/src/Makefile.global.in
+@@ -385,10 +385,8 @@ endif
+ 
+ 
+ submake-libpq:
+-	$(MAKE) -C $(libpq_builddir) all
+ 
+ submake-libpgport:
+-	$(MAKE) -C $(top_builddir)/src/port all
+ 
+ .PHONY: submake-libpq submake-libpgport
+ 
+@@ -431,6 +429,8 @@ ifdef PROFILE
+    LDFLAGS += $(PROFILE)
+ endif
+ 
++CFLAGS += -I${top_srcdir}/src/include
++
+ 
+ ##########################################################################
+ #
+diff --git a/src/bin/Makefile b/src/bin/Makefile
+index 6451f8f..496b398 100644
+--- a/src/bin/Makefile
++++ b/src/bin/Makefile
+@@ -13,8 +13,7 @@ subdir = src/bin
+ top_builddir = ../..
+ include $(top_builddir)/src/Makefile.global
+ 
+-DIRS = initdb pg_ctl pg_dump \
+-	psql scripts pg_config pg_controldata pg_resetxlog
++DIRS = initdb pg_ctl pg_controldata pg_resetxlog
+ ifeq ($(PORTNAME), win32)
+ DIRS+=pgevent
+ endif
+diff --git a/src/bin/initdb/Makefile b/src/bin/initdb/Makefile
+index e9abd80..4c4f9c8 100644
+--- a/src/bin/initdb/Makefile
++++ b/src/bin/initdb/Makefile
+@@ -14,7 +14,7 @@ subdir = src/bin/initdb
+ top_builddir = ../../..
+ include $(top_builddir)/src/Makefile.global
+ 
+-override CPPFLAGS := -DFRONTEND -I$(libpq_srcdir) $(CPPFLAGS)
++override CPPFLAGS := -DFRONTEND -I$(top_srcdir)/src/interfaces/libpq $(CPPFLAGS)
+ 
+ OBJS=	initdb.o encnames.o pqsignal.o $(WIN32RES)
+ 
+diff --git a/src/include/pg_config_manual.h b/src/include/pg_config_manual.h
+index 6ebb433..693b0d3 100644
+--- a/src/include/pg_config_manual.h
++++ b/src/include/pg_config_manual.h
+@@ -133,7 +133,7 @@
+  * here's where to twiddle it.  You can also override this at runtime
+  * with the postmaster's -k switch.
+  */
+-#define DEFAULT_PGSOCKET_DIR  "/tmp"
++#define DEFAULT_PGSOCKET_DIR  "/var/run/postgresql"
+ 
+ /*
+  * The random() function is expected to yield values between 0 and
+diff --git a/src/port/Makefile b/src/port/Makefile
+index 94707c4..875630e 100644
+--- a/src/port/Makefile
++++ b/src/port/Makefile
+@@ -35,11 +35,10 @@ OBJS = $(LIBOBJS) chklocale.o copydir.o dirmod.o exec.o noblock.o path.o pipe.o
+ # foo_srv.o and foo.o are both built from foo.c, but only foo.o has -DFRONTEND
+ OBJS_SRV = $(OBJS:%.o=%_srv.o)
+ 
+-all: libpgport.a libpgport_srv.a
++all: libpgport_srv.a
+ 
+ # libpgport is needed by some contrib
+-install: all installdirs
+-	$(INSTALL_STLIB) libpgport.a '$(DESTDIR)$(libdir)/libpgport.a'
++install:
+ 
+ installdirs:
+ 	$(mkinstalldirs) '$(DESTDIR)$(libdir)'
+diff --git a/src/test/regress/GNUmakefile b/src/test/regress/GNUmakefile
+index ced6901..dfc6998 100644
+--- a/src/test/regress/GNUmakefile
++++ b/src/test/regress/GNUmakefile
+@@ -144,7 +144,7 @@ tablespace-setup:
+ pg_regress_call = ./pg_regress --inputdir=$(srcdir) --dlpath=. --multibyte=$(MULTIBYTE) --load-language=plpgsql $(NOLOCALE)
+ 
+ check: all
+-	$(pg_regress_call) --temp-install=./tmp_check --top-builddir=$(top_builddir) --temp-port=$(TEMP_PORT) --schedule=$(srcdir)/parallel_schedule $(MAXCONNOPT) $(TEMP_CONF)
++	$(pg_regress_call) --temp-install=./tmp_check --top-builddir=$(top_builddir) --temp-port=$(TEMP_PORT) --schedule=$(srcdir)/parallel_schedule $(MAXCONNOPT) $(TEMP_CONF) --psqldir=/usr/lib/postgresql-${SLOT}/bin/
+ 
+ installcheck: all
+ 	$(pg_regress_call) --psqldir=$(PSQLDIR) --schedule=$(srcdir)/serial_schedule
+diff --git a/src/test/regress/pg_regress.c b/src/test/regress/pg_regress.c
+index 324c3c0..2453b67 100644
+--- a/src/test/regress/pg_regress.c
++++ b/src/test/regress/pg_regress.c
+@@ -754,9 +754,6 @@ initialize_environment(void)
+ 		sprintf(tmp, "%s/install/%s", temp_install, datadir);
+ 		datadir = tmp;
+ 
+-		/* psql will be installed into temp-install bindir */
+-		psqldir = bindir;
+-
+ 		/*
+ 		 * Set up shared library paths to include the temp install.
+ 		 *
+@@ -2106,7 +2103,7 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
+ 		 */
+ 		snprintf(buf, sizeof(buf),
+ 				 SYSTEMQUOTE "\"%s/psql\" -X postgres <%s 2>%s" SYSTEMQUOTE,
+-				 bindir, DEVNULL, DEVNULL);
++				 psqldir, DEVNULL, DEVNULL);
+ 		for (i = 0; i < 60; i++)
+ 		{
+ 			/* Done if psql succeeds */
+-- 
+1.6.0.2
+
