@@ -123,6 +123,7 @@ S="${WORKDIR}/${PF/-r*/}"
 src_unpack() {
 	git_src_unpack
 	cd "${S}"
+	epatch "${FILESDIR}/dell-backlight.patch"
 	eautoreconf
 }
 
