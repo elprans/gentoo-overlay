@@ -1,0 +1,13 @@
+#@@xpcom/io/nsAppFileLocationProvider.cpp
+
+/else if (nsCRT::strcmp(prop, NS_USER_PLUGINS_DIR) == 0)/ i\
+    else if (nsCRT::strcmp(prop, GENTOO_NSPLUGINS_DIR) == 0) \
+    { \
+        rv = NS_NewNativeLocalFile(nsDependentCString(GENTOO_NSPLUGINS_DIR), PR_TRUE, getter_AddRefs(localFile)); \
+    } \
+    else if (nsCRT::strcmp(prop, GENTOO_NSBROWSER_PLUGINS_DIR) == 0) \
+    { \
+        rv = NS_NewNativeLocalFile(nsDependentCString(GENTOO_NSBROWSER_PLUGINS_DIR), PR_TRUE, getter_AddRefs(localFile)); \
+    }
+
+s/nsnull, NS_USER_PLUGINS_DIR, NS_APP_PLUGINS_DIR, nsnull/nsnull, GENTOO_NSPLUGINS_DIR, GENTOO_NSBROWSER_PLUGINS_DIR, NS_USER_PLUGINS_DIR, NS_APP_PLUGINS_DIR, nsnull/

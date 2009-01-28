@@ -1,0 +1,9 @@
+#@@config/config.mk
+
+/^DEFINES[[:space:]]*+=[[:space:]]*-DOSARCH/ a\
+DEFINES += -DGENTOO_LIB_DIR=\\"$(libdir)\\"
+
+#--8<---------------------------------
+#@@xpcom/io/SpecialSystemDirectory.cpp
+
+s|"/usr/local/lib/netscape/"|GENTOO_LIB_DIR|
