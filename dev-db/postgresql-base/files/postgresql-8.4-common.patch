@@ -1,13 +1,29 @@
-From 0f63502eb4dcbb795930f3f0e9f58d0370dad71c Mon Sep 17 00:00:00 2001
+From dc2a3f7c4dac83f0e1d770aea6512de4d1521100 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Tue, 6 Jan 2009 14:43:14 -0500
 Subject: [PATCH] [gentoo] Common patch
 
 ---
+ configure.in                  |    4 ----
  src/include/storage/s_lock.h  |   23 +++++++++++++++++++++++
  src/makefiles/Makefile.darwin |    8 ++++++++
- 2 files changed, 31 insertions(+), 0 deletions(-)
+ 3 files changed, 31 insertions(+), 4 deletions(-)
 
+diff --git a/configure.in b/configure.in
+index e22d570..d632e0e 100644
+--- a/configure.in
++++ b/configure.in
+@@ -19,10 +19,6 @@ m4_pattern_forbid(^PGAC_)dnl to catch undefined macros
+ 
+ AC_INIT([PostgreSQL], [8.4devel], [pgsql-bugs@postgresql.org])
+ 
+-m4_if(m4_defn([m4_PACKAGE_VERSION]), [2.61], [], [m4_fatal([Autoconf version 2.61 is required.
+-Untested combinations of 'autoconf' and PostgreSQL versions are not
+-recommended.  You can remove the check from 'configure.in' but it is then
+-your responsibility whether the result works or not.])])
+ AC_COPYRIGHT([Copyright (c) 1996-2009, PostgreSQL Global Development Group])
+ AC_CONFIG_SRCDIR([src/backend/access/common/heaptuple.c])
+ AC_CONFIG_AUX_DIR(config)
 diff --git a/src/include/storage/s_lock.h b/src/include/storage/s_lock.h
 index dceceba..7697483 100644
 --- a/src/include/storage/s_lock.h
