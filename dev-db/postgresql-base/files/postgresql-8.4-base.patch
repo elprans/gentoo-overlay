@@ -1,4 +1,4 @@
-From 7e07ff09bd3ffc925e1da58dc488a9fdac9d5875 Mon Sep 17 00:00:00 2001
+From 406183cf65114a84ccff73ed53733ac9bd419665 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Tue, 6 Jan 2009 14:33:27 -0500
 Subject: [PATCH] [gentoo] Base patch
@@ -149,10 +149,10 @@ index ec82494..bdbd775 100644
  DIRS+=pgevent
  endif
 diff --git a/src/include/pg_config_manual.h b/src/include/pg_config_manual.h
-index 6ebb433..693b0d3 100644
+index b68bfe2..808de12 100644
 --- a/src/include/pg_config_manual.h
 +++ b/src/include/pg_config_manual.h
-@@ -133,7 +133,7 @@
+@@ -152,7 +152,7 @@
   * here's where to twiddle it.  You can also override this at runtime
   * with the postmaster's -k switch.
   */

@@ -1,4 +1,4 @@
-From be9c05ec77bdf7175acef7cfef693db453dcd6ad Mon Sep 17 00:00:00 2001
+From 10498bb571c395d2bc458b9a7fc4e34e8e792bbe Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Sat, 20 Dec 2008 14:49:38 -0500
 Subject: [PATCH] [gentoo] Server patch
@@ -20,7 +20,7 @@ Subject: [PATCH] [gentoo] Server patch
  13 files changed, 16 insertions(+), 28 deletions(-)
 
 diff --git a/GNUmakefile.in b/GNUmakefile.in
-index b00fe27..4667c74 100644
+index 3045a4e..f42facd 100644
 --- a/GNUmakefile.in
 +++ b/GNUmakefile.in
 @@ -11,19 +11,16 @@ include $(top_builddir)/src/Makefile.global
@@ -140,7 +140,7 @@ index 33493a5..de0ca00 100644
  install-local: installdirs-local
  	$(INSTALL_DATA) Makefile.global '$(DESTDIR)$(pgxsdir)/$(subdir)/Makefile.global'
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index 38f1285..4ec5b65 100644
+index ff27dd9..c546581 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
 @@ -393,10 +393,8 @@ endif
@@ -191,10 +191,10 @@ index f8ff594..52ac206 100644
  OBJS=	initdb.o encnames.o pqsignal.o $(WIN32RES)
  
 diff --git a/src/include/pg_config_manual.h b/src/include/pg_config_manual.h
-index 6ebb433..693b0d3 100644
+index b68bfe2..808de12 100644
 --- a/src/include/pg_config_manual.h
 +++ b/src/include/pg_config_manual.h
-@@ -133,7 +133,7 @@
+@@ -152,7 +152,7 @@
   * here's where to twiddle it.  You can also override this at runtime
   * with the postmaster's -k switch.
   */
@@ -235,10 +235,10 @@ index 8ce5d25..c6b36d8 100644
  installcheck: all
  	$(pg_regress_call) --psqldir=$(PSQLDIR) --schedule=$(srcdir)/serial_schedule
 diff --git a/src/test/regress/pg_regress.c b/src/test/regress/pg_regress.c
-index 2087241..921148a 100644
+index 1cd804a..af897f9 100644
 --- a/src/test/regress/pg_regress.c
 +++ b/src/test/regress/pg_regress.c
-@@ -779,9 +779,6 @@ initialize_environment(void)
+@@ -789,9 +789,6 @@ initialize_environment(void)
  		sprintf(tmp, "%s/install/%s", temp_install, datadir);
  		datadir = tmp;
  

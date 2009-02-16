@@ -1,6 +1,6 @@
-From 29720ff8485b4f36d96912a9a7a514137078d412 Mon Sep 17 00:00:00 2001
+From 0f63502eb4dcbb795930f3f0e9f58d0370dad71c Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
-Date: Mon, 20 Oct 2008 13:04:05 -0400
+Date: Tue, 6 Jan 2009 14:43:14 -0500
 Subject: [PATCH] [gentoo] Common patch
 
 ---
@@ -9,7 +9,7 @@ Subject: [PATCH] [gentoo] Common patch
  2 files changed, 31 insertions(+), 0 deletions(-)
 
 diff --git a/src/include/storage/s_lock.h b/src/include/storage/s_lock.h
-index b06bd1b..80523c2 100644
+index dceceba..7697483 100644
 --- a/src/include/storage/s_lock.h
 +++ b/src/include/storage/s_lock.h
 @@ -298,6 +298,29 @@ tas(volatile slock_t *lock)
@@ -43,7 +43,7 @@ index b06bd1b..80523c2 100644
  #if defined(__sparc__)		/* Sparc */
  #define HAS_TEST_AND_SET
 diff --git a/src/makefiles/Makefile.darwin b/src/makefiles/Makefile.darwin
-index 9f761d4..83b2974 100644
+index debad62..36aff56 100644
 --- a/src/makefiles/Makefile.darwin
 +++ b/src/makefiles/Makefile.darwin
 @@ -5,7 +5,15 @@ DLSUFFIX = .so
@@ -63,5 +63,5 @@ index 9f761d4..83b2974 100644
  BE_DLLLIBS= -bundle_loader $(top_builddir)/src/backend/postgres
  endif
 -- 
-1.6.0.2
+1.6.0.6
 
