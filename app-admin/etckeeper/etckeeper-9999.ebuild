@@ -46,7 +46,7 @@ src_install() {
 		./etckeeper-bzr/__init__.py install --root=${D} || die "Error: bzr support installation"
 	fi
 
-	#dodoc INSTALL TODO README || die "docs failed"
+	dodoc INSTALL TODO README || die "docs failed"
 }
 
 pkg_postinst() {
