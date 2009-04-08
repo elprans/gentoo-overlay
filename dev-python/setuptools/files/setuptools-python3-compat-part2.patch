@@ -1,0 +1,2221 @@
+--- setuptools-9999/_pkgutil.py (original)
++++ setuptools-9999/_pkgutil.py (refactored)
+@@ -140,7 +140,7 @@
+     if path is None:
+         importers = iter_importers()
+     else:
+-        importers = map(get_importer, path)
++        importers = list(map(get_importer, path))
+ 
+     yielded = {}
+     for i in importers:
+@@ -321,7 +321,7 @@
+     from zipimport import zipimporter
+ 
+     def iter_zipimport_modules(importer, prefix=''):
+-        dirlist = zipimport._zip_directory_cache[importer.archive].keys()
++        dirlist = list(zipimport._zip_directory_cache[importer.archive].keys())
+         dirlist.sort()
+         _prefix = importer.prefix
+         plen = len(_prefix)
+@@ -518,7 +518,7 @@
+     path = path[:] # Start with a copy of the existing path
+ 
+     for dir in sys.path:
+-        if not isinstance(dir, basestring) or not os.path.isdir(dir):
++        if not isinstance(dir, str) or not os.path.isdir(dir):
+             continue
+         subdir = os.path.join(dir, pname)
+         # XXX This may still add duplicate entries to path on
+@@ -532,7 +532,7 @@
+         if os.path.isfile(pkgfile):
+             try:
+                 f = open(pkgfile)
+-            except IOError, msg:
++            except IOError as msg:
+                 sys.stderr.write("Can't open %s: %s\n" %
+                                  (pkgfile, msg))
+             else:
+--- setuptools-9999/doctest23.py (original)
++++ setuptools-9999/doctest23.py (refactored)
+@@ -98,7 +98,7 @@
+ import sys, traceback, inspect, linecache, os, re, types
+ import unittest, difflib, pdb, tempfile
+ import warnings
+-from StringIO import StringIO
++from io import StringIO
+ 
+ # Don't whine about the deprecated is_private function in this
+ # module's tests.
+@@ -229,7 +229,7 @@
+     """
+     if inspect.ismodule(module):
+         return module
+-    elif isinstance(module, (str, unicode)):
++    elif isinstance(module, (str, str)):
+         return __import__(module, globals(), locals(), ["*"])
+     elif module is None:
+         return sys.modules[sys._getframe(depth).f_globals['__name__']]
+@@ -365,9 +365,9 @@
+ # [XX] Normalize with respect to os.path.pardir?
+ def _module_relative_path(module, path):
+     if not inspect.ismodule(module):
+-        raise TypeError, 'Expected a module: %r' % module
++        raise TypeError('Expected a module: %r' % module)
+     if path.startswith('/'):
+-        raise ValueError, 'Module-relative files may not have absolute paths'
++        raise ValueError('Module-relative files may not have absolute paths')
+ 
+     # Find the base directory for the path.
+     if hasattr(module, '__file__'):
+@@ -481,7 +481,7 @@
+         Create a new DocTest containing the given examples.  The
+         DocTest's globals are initialized with a copy of `globs`.
+         """
+-        assert not isinstance(examples, basestring), \
++        assert not isinstance(examples, str), \
+                "DocTest no longer accepts str; use DocTestParser instead"
+         self.examples = examples
+         self.docstring = docstring
+@@ -875,7 +875,7 @@
+         if module is None:
+             return True
+         elif inspect.isfunction(object):
+-            return module.__dict__ is object.func_globals
++            return module.__dict__ is object.__globals__
+         elif inspect.isclass(object):
+             return module.__name__ == object.__module__
+         elif inspect.getmodule(object) is not None:
+@@ -893,7 +893,7 @@
+         add them to `tests`.
+         """
+         if self._verbose:
+-            print 'Finding tests in %s' % name
++            print('Finding tests in %s' % name)
+ 
+         # If we've already processed this object, then ignore it.
+         if id(obj) in seen:
+@@ -907,7 +907,7 @@
+ 
+         # Look for tests in a module's contained objects.
+         if inspect.ismodule(obj) and self._recurse:
+-            for valname, val in obj.__dict__.items():
++            for valname, val in list(obj.__dict__.items()):
+                 # Check if this contained object should be ignored.
+                 if self._filter(val, name, valname):
+                     continue
+@@ -920,14 +920,14 @@
+ 
+         # Look for tests in a module's __test__ dictionary.
+         if inspect.ismodule(obj) and self._recurse:
+-            for valname, val in getattr(obj, '__test__', {}).items():
+-                if not isinstance(valname, basestring):
++            for valname, val in list(getattr(obj, '__test__', {}).items()):
++                if not isinstance(valname, str):
+                     raise ValueError("DocTestFinder.find: __test__ keys "
+                                      "must be strings: %r" %
+                                      (type(valname),))
+                 if not (inspect.isfunction(val) or inspect.isclass(val) or
+                         inspect.ismethod(val) or inspect.ismodule(val) or
+-                        isinstance(val, basestring)):
++                        isinstance(val, str)):
+                     raise ValueError("DocTestFinder.find: __test__ values "
+                                      "must be strings, functions, methods, "
+                                      "classes, or modules: %r" %
+@@ -938,7 +938,7 @@
+ 
+         # Look for tests in a class's contained objects.
+         if inspect.isclass(obj) and self._recurse:
+-            for valname, val in obj.__dict__.items():
++            for valname, val in list(obj.__dict__.items()):
+                 # Check if this contained object should be ignored.
+                 if self._filter(val, name, valname):
+                     continue
+@@ -946,7 +946,7 @@
+                 if isinstance(val, staticmethod):
+                     val = getattr(obj, valname)
+                 if isinstance(val, classmethod):
+-                    val = getattr(obj, valname).im_func
++                    val = getattr(obj, valname).__func__
+ 
+                 # Recurse to methods, properties, and nested classes.
+                 if ((inspect.isfunction(val) or inspect.isclass(val) or
+@@ -963,7 +963,7 @@
+         """
+         # Extract the object's docstring.  If it doesn't have one,
+         # then return None (no test for this object).
+-        if isinstance(obj, basestring):
++        if isinstance(obj, str):
+             docstring = obj
+         else:
+             try:
+@@ -971,7 +971,7 @@
+                     docstring = ''
+                 else:
+                     docstring = obj.__doc__
+-                    if not isinstance(docstring, basestring):
++                    if not isinstance(docstring, str):
+                         docstring = str(docstring)
+             except (TypeError, AttributeError):
+                 docstring = ''
+@@ -1018,8 +1018,8 @@
+                     break
+ 
+         # Find the line number for functions & methods.
+-        if inspect.ismethod(obj): obj = obj.im_func
+-        if inspect.isfunction(obj): obj = obj.func_code
++        if inspect.ismethod(obj): obj = obj.__func__
++        if inspect.isfunction(obj): obj = obj.__code__
+         if inspect.istraceback(obj): obj = obj.tb_frame
+         if inspect.isframe(obj): obj = obj.f_code
+         if inspect.iscode(obj):
+@@ -1212,7 +1212,7 @@
+         # to modify them).
+         original_optionflags = self.optionflags
+ 
+-        SUCCESS, FAILURE, BOOM = range(3) # `outcome` state
++        SUCCESS, FAILURE, BOOM = list(range(3)) # `outcome` state
+ 
+         check = self._checker.check_output
+ 
+@@ -1227,7 +1227,7 @@
+             # Merge in the example's options.
+             self.optionflags = original_optionflags
+             if example.options:
+-                for (optionflag, val) in example.options.items():
++                for (optionflag, val) in list(example.options.items()):
+                     if val:
+                         self.optionflags |= optionflag
+                     else:
+@@ -1248,8 +1248,8 @@
+             # keyboard interrupts.)
+             try:
+                 # Don't blink!  This is where the user's code gets run.
+-                exec compile(example.source, filename, "single",
+-                             compileflags, 1) in test.globs
++                exec(compile(example.source, filename, "single",
++                             compileflags, 1), test.globs)
+                 self.debugger.set_continue() # ==== Example Finished ====
+                 exception = None
+             except KeyboardInterrupt:
+@@ -1333,7 +1333,7 @@
+         if m and m.group('name') == self.test.name:
+             example = self.test.examples[int(m.group('examplenum'))]
+             return example.source.splitlines(True)
+-        elif self.save_linecache_getlines.func_code.co_argcount>1:
++        elif self.save_linecache_getlines.__code__.co_argcount>1:
+             return self.save_linecache_getlines(filename, module_globals)
+         else:
+             return self.save_linecache_getlines(filename)
+@@ -1412,7 +1412,7 @@
+         passed = []
+         failed = []
+         totalt = totalf = 0
+-        for x in self._name2ft.items():
++        for x in list(self._name2ft.items()):
+             name, (f, t) = x
+             assert f <= t
+             totalt += t
+@@ -1425,28 +1425,28 @@
+                 failed.append(x)
+         if verbose:
+             if notests:
+-                print len(notests), "items had no tests:"
++                print(len(notests), "items had no tests:")
+                 notests.sort()
+                 for thing in notests:
+-                    print "   ", thing
++                    print("   ", thing)
+             if passed:
+-                print len(passed), "items passed all tests:"
++                print(len(passed), "items passed all tests:")
+                 passed.sort()
+                 for thing, count in passed:
+-                    print " %3d tests in %s" % (count, thing)
++                    print(" %3d tests in %s" % (count, thing))
+         if failed:
+-            print self.DIVIDER
+-            print len(failed), "items had failures:"
++            print(self.DIVIDER)
++            print(len(failed), "items had failures:")
+             failed.sort()
+             for thing, (f, t) in failed:
+-                print " %3d of %3d in %s" % (f, t, thing)
++                print(" %3d of %3d in %s" % (f, t, thing))
+         if verbose:
+-            print totalt, "tests in", len(self._name2ft), "items."
+-            print totalt - totalf, "passed and", totalf, "failed."
++            print(totalt, "tests in", len(self._name2ft), "items.")
++            print(totalt - totalf, "passed and", totalf, "failed.")
+         if totalf:
+-            print "***Test Failed***", totalf, "failures."
++            print("***Test Failed***", totalf, "failures.")
+         elif verbose:
+-            print "Test passed."
++            print("Test passed.")
+         return totalf, totalt
+ 
+     #/////////////////////////////////////////////////////////////////
+@@ -1454,10 +1454,10 @@
+     #/////////////////////////////////////////////////////////////////
+     def merge(self, other):
+         d = self._name2ft
+-        for name, (f, t) in other._name2ft.items():
++        for name, (f, t) in list(other._name2ft.items()):
+             if name in d:
+-                print "*** DocTestRunner.merge: '" + name + "' in both" \
+-                    " testers; summing outcomes."
++                print("*** DocTestRunner.merge: '" + name + "' in both" \
++                    " testers; summing outcomes.")
+                 f2, t2 = d[name]
+                 f = f + f2
+                 t = t + t2
+@@ -2032,10 +2032,10 @@
+     def runstring(self, s, name):
+         test = DocTestParser().get_doctest(s, self.globs, name, None, None)
+         if self.verbose:
+-            print "Running string", name
++            print("Running string", name)
+         (f,t) = self.testrunner.run(test)
+         if self.verbose:
+-            print f, "of", t, "examples failed in string", name
++            print(f, "of", t, "examples failed in string", name)
+         return (f,t)
+ 
+     def rundoc(self, object, name=None, module=None):
+@@ -2549,9 +2549,9 @@
+ 
+         if pm:
+             try:
+-                execfile(srcfilename, globs, globs)
++                exec(open(srcfilename).read(), globs, globs)
+             except:
+-                print sys.exc_info()[1]
++                print(sys.exc_info()[1])
+                 pdb.post_mortem(sys.exc_info()[2])
+         else:
+             # Note that %r is vital here.  '%s' instead can, e.g., cause
+--- setuptools-9999/ez_setup.py (original)
++++ setuptools-9999/ez_setup.py (refactored)
+@@ -32,10 +32,10 @@
+     if egg_name in md5_data:
+         digest = md5(data).hexdigest()
+         if digest != md5_data[egg_name]:
+-            print >>sys.stderr, (
++            print((
+                 "md5 validation of %s failed!  (Possible download problem?)"
+                 % egg_name
+-            )
++            ), file=sys.stderr)
+             sys.exit(2)
+     return data
+ 
+@@ -65,14 +65,14 @@
+         return do_download()       
+     try:
+         pkg_resources.require("setuptools>="+version); return
+-    except pkg_resources.VersionConflict, e:
++    except pkg_resources.VersionConflict as e:
+         if was_imported:
+-            print >>sys.stderr, (
++            print((
+             "The required version of setuptools (>=%s) is not available, and\n"
+             "can't be installed while this script is running. Please install\n"
+             " a more recent version first, using 'easy_install -U setuptools'."
+             "\n\n(Currently using %r)"
+-            ) % (version, e.args[0])
++            ) % (version, e.args[0]), file=sys.stderr)
+             sys.exit(2)
+         else:
+             del pkg_resources, sys.modules['pkg_resources']    # reload ok
+@@ -91,7 +91,7 @@
+     with a '/'). `to_dir` is the directory where the egg will be downloaded.
+     `delay` is the number of seconds to pause before an actual download attempt.
+     """
+-    import urllib2, shutil
++    import urllib.request, urllib.error, shutil
+     egg_name = "setuptools-%s-py%s.egg" % (version,sys.version[:3])
+     url = download_base + egg_name
+     saveto = os.path.join(to_dir, egg_name)
+@@ -117,7 +117,7 @@
+                     version, download_base, delay, url
+                 ); from time import sleep; sleep(delay)
+             log.warn("Downloading %s", url)
+-            src = urllib2.urlopen(url)
++            src = urllib.request.urlopen(url)
+             # Read/write all in one block, so we don't create a corrupt file
+             # if the download is interrupted.
+             data = _validate_md5(egg_name, src.read())
+@@ -178,10 +178,10 @@
+                 os.unlink(egg)
+     else:
+         if setuptools.__version__ == '0.0.1':
+-            print >>sys.stderr, (
++            print((
+             "You have an obsolete version of setuptools installed.  Please\n"
+             "remove it from your system entirely before rerunning this script."
+-            )
++            ), file=sys.stderr)
+             sys.exit(2)
+ 
+     req = "setuptools>="+version
+@@ -200,8 +200,8 @@
+             from setuptools.command.easy_install import main
+             main(argv)
+         else:
+-            print "Setuptools version",version,"or greater has been installed."
+-            print '(Run "ez_setup.py -U setuptools" to reinstall or upgrade.)'
++            print("Setuptools version",version,"or greater has been installed.")
++            print('(Run "ez_setup.py -U setuptools" to reinstall or upgrade.)')
+ 
+ def update_md5(filenames):
+     """Update our built-in md5 registry"""
+@@ -214,7 +214,7 @@
+         md5_data[base] = md5(f.read()).hexdigest()
+         f.close()
+ 
+-    data = ["    %r: %r,\n" % it for it in md5_data.items()]
++    data = ["    %r: %r,\n" % it for it in list(md5_data.items())]
+     data.sort()
+     repl = "".join(data)
+ 
+@@ -224,7 +224,7 @@
+ 
+     match = re.search("\nmd5_data = {\n([^}]+)}", src)
+     if not match:
+-        print >>sys.stderr, "Internal error!"
++        print("Internal error!", file=sys.stderr)
+         sys.exit(2)
+ 
+     src = src[:match.start(1)] + repl + src[match.end(1):]
+--- setuptools-9999/pkg_resources.py (original)
++++ setuptools-9999/pkg_resources.py (refactored)
+@@ -25,7 +25,7 @@
+ from os import open as os_open
+ from os.path import isdir, split
+ 
+-def _bypass_ensure_directory(name, mode=0777):
++def _bypass_ensure_directory(name, mode=0o777):
+     # Sandbox-bypassing version of ensure_directory()
+     dirname, filename = split(name)
+     if dirname and filename and not isdir(dirname):
+@@ -173,7 +173,7 @@
+                 _cache.append(value.strip().split("."))
+                 break
+         else:
+-            raise ValueError, "What?!"
++            raise ValueError("What?!")
+     return _cache[0]
+ 
+ def _macosx_arch(machine):
+@@ -266,7 +266,7 @@
+ 
+ def get_distribution(dist):
+     """Return a current distribution object for a Requirement or string"""
+-    if isinstance(dist,basestring): dist = Requirement.parse(dist)
++    if isinstance(dist,str): dist = Requirement.parse(dist)
+     if isinstance(dist,Requirement): dist = get_provider(dist)
+     if not isinstance(dist,Distribution):
+         raise TypeError("Expected string, Requirement, or Distribution", dist)
+@@ -434,7 +434,7 @@
+         for dist in self:
+             entries = dist.get_entry_map(group)
+             if name is None:
+-                for ep in entries.values():
++                for ep in list(entries.values()):
+                     yield ep
+             elif name in entries:
+                 yield entries[name]
+@@ -579,7 +579,7 @@
+             env = full_env + plugin_env
+ 
+         shadow_set = self.__class__([])
+-        map(shadow_set.add, self)   # put all our entries in shadow_set
++        list(map(shadow_set.add, self))   # put all our entries in shadow_set
+ 
+         for project_name in plugin_projects:
+ 
+@@ -590,7 +590,7 @@
+                 try:
+                     resolvees = shadow_set.resolve(req, env, installer)
+ 
+-                except ResolutionError,v:
++                except ResolutionError as v:
+                     error_info[dist] = v    # save error info
+                     if fallback:
+                         continue    # try the next older version of project
+@@ -598,7 +598,7 @@
+                         break       # give up on this project, keep going
+ 
+                 else:
+-                    map(shadow_set.add, resolvees)
++                    list(map(shadow_set.add, resolvees))
+                     distributions.update(dict.fromkeys(resolvees))
+ 
+                     # success, no need to try any more versions of this project
+@@ -771,7 +771,7 @@
+ 
+     def __iter__(self):
+         """Yield the unique project names of the available distributions"""
+-        for key in self._distmap.keys():
++        for key in list(self._distmap.keys()):
+             if self[key]: yield key
+ 
+ 
+@@ -958,7 +958,7 @@
+ 
+         if os.name == 'posix':
+             # Make the resource executable
+-            mode = ((os.stat(tempname).st_mode) | 0555) & 07777
++            mode = ((os.stat(tempname).st_mode) | 0o555) & 0o7777
+             os.chmod(tempname, mode)
+ 
+ 
+@@ -1163,14 +1163,14 @@
+         script_filename = self._fn(self.egg_info,script)
+         namespace['__file__'] = script_filename
+         if os.path.exists(script_filename):
+-            execfile(script_filename, namespace, namespace)
++            exec(open(script_filename).read(), namespace, namespace)
+         else:
+             from linecache import cache
+             cache[script_filename] = (
+                 len(script_text), 0, script_text.split('\n'), script_filename
+             )
+             script_code = compile(script_text,script_filename,'exec')
+-            exec script_code in namespace, namespace
++            exec(script_code, namespace, namespace)
+ 
+     def _has(self, path):
+         raise NotImplementedError(
+@@ -1561,9 +1561,9 @@
+     """Thunk to load the real StringIO on demand"""
+     global StringIO
+     try:
+-        from cStringIO import StringIO
++        from io import StringIO
+     except ImportError:
+-        from StringIO import StringIO
++        from io import StringIO
+     return StringIO(*args,**kw)
+ 
+ def find_nothing(importer, path_item, only=False):
+@@ -1732,7 +1732,7 @@
+ 
+ def yield_lines(strs):
+     """Yield non-empty/non-comment lines of a ``basestring`` or sequence"""
+-    if isinstance(strs,basestring):
++    if isinstance(strs,str):
+         for s in strs.splitlines():
+             s = s.strip()
+             if s and not s.startswith('#'):     # skip blank lines/comments
+@@ -1849,8 +1849,8 @@
+     def require(self, env=None, installer=None):
+         if self.extras and not self.dist:
+             raise UnknownExtra("Can't require() without a distribution", self)
+-        map(working_set.add,
+-            working_set.resolve(self.dist.requires(self.extras),env,installer))
++        list(map(working_set.add,
++            working_set.resolve(self.dist.requires(self.extras),env,installer)))
+ 
+ 
+ 
+@@ -1914,7 +1914,7 @@
+     def parse_map(cls, data, dist=None):
+         """Parse a map of entry point groups"""
+         if isinstance(data,dict):
+-            data = data.items()
++            data = list(data.items())
+         else:
+             data = split_sections(data)
+         maps = {}
+@@ -2098,7 +2098,7 @@
+     def __getattr__(self,attr):
+         """Delegate all unrecognized public attributes to .metadata provider"""
+         if attr.startswith('_'):
+-            raise AttributeError,attr
++            raise AttributeError(attr)
+         return getattr(self._provider, attr)
+ 
+     #@classmethod
+@@ -2166,7 +2166,7 @@
+ 
+         nloc = _normalize_cached(loc)
+         bdir = os.path.dirname(nloc)
+-        npath= map(_normalize_cached, path)
++        npath= list(map(_normalize_cached, path))
+ 
+         bp = None
+         for p, item in enumerate(npath):
+@@ -2293,7 +2293,7 @@
+         while not TERMINATOR(line,p):
+             if CONTINUE(line,p):
+                 try:
+-                    line = lines.next(); p = 0
++                    line = next(lines); p = 0
+                 except StopIteration:
+                     raise ValueError(
+                         "\\ must not appear on the last nonblank line"
+@@ -2387,7 +2387,7 @@
+         if isinstance(item,Distribution):
+             if item.key != self.key: return False
+             if self.index: item = item.parsed_version  # only get if we need it
+-        elif isinstance(item,basestring):
++        elif isinstance(item,str):
+             item = parse_version(item)
+         last = None
+         for parsed,trans,op,ver in self.index:
+@@ -2521,5 +2521,5 @@
+ # all distributions added to the working set in the future (e.g. by
+ # calling ``require()``) will get activated as well.
+ add_activation_listener(lambda dist: dist.activate())
+-working_set.entries=[]; map(working_set.add_entry,sys.path) # match order
+-
++working_set.entries=[]; list(map(working_set.add_entry,sys.path)) # match order
++
+--- setuptools-9999/pydoc.py (original)
++++ setuptools-9999/pydoc.py (refactored)
+@@ -52,11 +52,11 @@
+ #     the current directory is changed with os.chdir(), an incorrect
+ #     path will be displayed.
+ 
+-import sys, imp, os, re, types, inspect, __builtin__, pkgutil
++import sys, imp, os, re, types, inspect, builtins, pkgutil
+ if not hasattr(pkgutil,'walk_packages'):
+     import _pkgutil as pkgutil
+ 
+-from repr import Repr
++from reprlib import Repr
+ from string import expandtabs, find, join, lower, split, strip, rfind, rstrip
+ try:
+     from collections import deque
+@@ -139,7 +139,7 @@
+         methods[key] = 1
+     for base in cl.__bases__:
+         methods.update(allmethods(base)) # all your base are belong to us
+-    for key in methods.keys():
++    for key in list(methods.keys()):
+         methods[key] = getattr(cl, key)
+     return methods
+ 
+@@ -175,11 +175,12 @@
+ 
+ def classify_class_attrs(object):
+     """Wrap inspect.classify_class_attrs, with fixup for data descriptors."""
+-    def fixup((name, kind, cls, value)):
++    def fixup(xxx_todo_changeme):
++        (name, kind, cls, value) = xxx_todo_changeme
+         if inspect.isdatadescriptor(value):
+             kind = 'data descriptor'
+         return name, kind, cls, value
+-    return map(fixup, inspect.classify_class_attrs(object))
++    return list(map(fixup, inspect.classify_class_attrs(object)))
+ 
+ # ----------------------------------------------------- module manipulation
+ 
+@@ -232,7 +233,8 @@
+ 
+ class ErrorDuringImport(Exception):
+     """Errors that occurred while trying to import something to document it."""
+-    def __init__(self, filename, (exc, value, tb)):
++    def __init__(self, filename, xxx_todo_changeme1):
++        (exc, value, tb) = xxx_todo_changeme1
+         self.filename = filename
+         self.exc = exc
+         self.value = value
+@@ -240,7 +242,7 @@
+ 
+     def __str__(self):
+         exc = self.exc
+-        if type(exc) is types.ClassType:
++        if type(exc) is type:
+             exc = exc.__name__
+         return 'problem in %s - %s: %s' % (self.filename, exc, self.value)
+ 
+@@ -334,7 +336,7 @@
+         """Raise an exception for unimplemented types."""
+         message = "don't know how to document object%s of type %s" % (
+             name and ' ' + repr(name), type(object).__name__)
+-        raise TypeError, message
++        raise TypeError(message)
+ 
+     docmodule = docclass = docroutine = docother = fail
+ 
+@@ -504,8 +506,9 @@
+         """Make a link for a module."""
+         return '<a href="%s.html">%s</a>' % (object.__name__, object.__name__)
+ 
+-    def modpkglink(self, (name, path, ispackage, shadowed)):
++    def modpkglink(self, xxx_todo_changeme2):
+         """Make a link for a module or package to display in an index."""
++        (name, path, ispackage, shadowed) = xxx_todo_changeme2
+         if shadowed:
+             return self.grey(name)
+         if path:
+@@ -669,7 +672,7 @@
+                 'Modules', '#fffff', '#aa55cc', contents)
+ 
+         if classes:
+-            classlist = map(lambda (key, value): value, classes)
++            classlist = [key_value[1] for key_value in classes]
+             contents = [
+                 self.formattree(inspect.getclasstree(classlist, 1), name)]
+             for key, value in classes:
+@@ -756,7 +759,7 @@
+                 push(msg)
+                 for name, kind, homecls, value in ok:
+                     base = self.docother(getattr(object, name), name, mod)
+-                    if callable(value) or inspect.isdatadescriptor(value):
++                    if hasattr(value, '__call__') or inspect.isdatadescriptor(value):
+                         doc = getattr(value, "__doc__", None)
+                     else:
+                         doc = None
+@@ -770,8 +773,7 @@
+                     push('\n')
+             return attrs
+ 
+-        attrs = filter(lambda (name, kind, cls, value): visiblename(name),
+-                       classify_class_attrs(object))
++        attrs = [name_kind_cls_value for name_kind_cls_value in classify_class_attrs(object) if visiblename(name_kind_cls_value[0])]
+         mdict = {}
+         for key, kind, homecls, value in attrs:
+             mdict[key] = anchor = '#' + name + '-' + key
+@@ -790,7 +792,7 @@
+                 thisclass = attrs[0][2]
+             attrs, inherited = _split_list(attrs, lambda t: t[2] is thisclass)
+ 
+-            if thisclass is __builtin__.object:
++            if thisclass is builtins.object:
+                 attrs = inherited
+                 continue
+             elif thisclass is object:
+@@ -851,17 +853,17 @@
+         note = ''
+         skipdocs = 0
+         if inspect.ismethod(object):
+-            imclass = object.im_class
++            imclass = object.__self__.__class__
+             if cl:
+                 if imclass is not cl:
+                     note = ' from ' + self.classlink(imclass, mod)
+             else:
+-                if object.im_self:
++                if object.__self__:
+                     note = ' method of %s instance' % self.classlink(
+-                        object.im_self.__class__, mod)
++                        object.__self__.__class__, mod)
+                 else:
+                     note = ' unbound %s method' % self.classlink(imclass,mod)
+-            object = object.im_func
++            object = object.__func__
+ 
+         if name == realname:
+             title = '<a name="%s"><strong>%s</strong></a>' % (anchor, realname)
+@@ -974,13 +976,13 @@
+ 
+     def bold(self, text):
+         """Format a string in bold by overstriking."""
+-        return join(map(lambda ch: ch + '\b' + ch, text), '')
++        return join([ch + '\b' + ch for ch in text], '')
+ 
+     def indent(self, text, prefix='    '):
+         """Indent text by prepending a given prefix to each line."""
+         if not text: return ''
+         lines = split(text, '\n')
+-        lines = map(lambda line, prefix=prefix: prefix + line, lines)
++        lines = list(map(lambda line, prefix=prefix: prefix + line, lines))
+         if lines: lines[-1] = rstrip(lines[-1])
+         return join(lines, '\n')
+ 
+@@ -998,7 +1000,7 @@
+                 c, bases = entry
+                 result = result + prefix + classname(c, modname)
+                 if bases and bases != (parent,):
+-                    parents = map(lambda c, m=modname: classname(c, m), bases)
++                    parents = list(map(lambda c, m=modname: classname(c, m), bases))
+                     result = result + '(%s)' % join(parents, ', ')
+                 result = result + '\n'
+             elif type(entry) is type([]):
+@@ -1062,7 +1064,7 @@
+                 'PACKAGE CONTENTS', join(modpkgs, '\n'))
+ 
+         if classes:
+-            classlist = map(lambda (key, value): value, classes)
++            classlist = [key_value3[1] for key_value3 in classes]
+             contents = [self.formattree(
+                 inspect.getclasstree(classlist, 1), name)]
+             for key, value in classes:
+@@ -1108,7 +1110,7 @@
+         else:
+             title = self.bold(name) + ' = class ' + realname
+         if bases:
+-            parents = map(makename, bases)
++            parents = list(map(makename, bases))
+             title = title + '(%s)' % join(parents, ', ')
+ 
+         doc = getdoc(object)
+@@ -1158,7 +1160,7 @@
+                 hr.maybe()
+                 push(msg)
+                 for name, kind, homecls, value in ok:
+-                    if callable(value) or inspect.isdatadescriptor(value):
++                    if hasattr(value, '__call__') or inspect.isdatadescriptor(value):
+                         doc = getdoc(value)
+                     else:
+                         doc = None
+@@ -1166,8 +1168,7 @@
+                                        name, mod, maxlen=70, doc=doc) + '\n')
+             return attrs
+ 
+-        attrs = filter(lambda (name, kind, cls, value): visiblename(name),
+-                       classify_class_attrs(object))
++        attrs = [name_kind_cls_value4 for name_kind_cls_value4 in classify_class_attrs(object) if visiblename(name_kind_cls_value4[0])]
+         while attrs:
+             if mro:
+                 thisclass = mro.popleft()
+@@ -1175,7 +1176,7 @@
+                 thisclass = attrs[0][2]
+             attrs, inherited = _split_list(attrs, lambda t: t[2] is thisclass)
+ 
+-            if thisclass is __builtin__.object:
++            if thisclass is builtins.object:
+                 attrs = inherited
+                 continue
+             elif thisclass is object:
+@@ -1183,7 +1184,7 @@
+             else:
+                 tag = "inherited from %s" % classname(thisclass,
+                                                       object.__module__)
+-            filter(lambda t: not t[0].startswith('_'), attrs)
++            [t for t in attrs if not t[0].startswith('_')]
+ 
+             # Sort attrs by name.
+             attrs.sort()
+@@ -1218,17 +1219,17 @@
+         note = ''
+         skipdocs = 0
+         if inspect.ismethod(object):
+-            imclass = object.im_class
++            imclass = object.__self__.__class__
+             if cl:
+                 if imclass is not cl:
+                     note = ' from ' + classname(imclass, mod)
+             else:
+-                if object.im_self:
++                if object.__self__:
+                     note = ' method of %s instance' % classname(
+-                        object.im_self.__class__, mod)
++                        object.__self__.__class__, mod)
+                 else:
+                     note = ' unbound %s method' % classname(imclass,mod)
+-            object = object.im_func
++            object = object.__func__
+ 
+         if name == realname:
+             title = self.bold(realname)
+@@ -1438,7 +1439,7 @@
+     if isinstance(thing, str):
+         object = locate(thing, forceload)
+         if not object:
+-            raise ImportError, 'no Python documentation found for %r' % thing
++            raise ImportError('no Python documentation found for %r' % thing)
+         return object, thing
+     else:
+         return thing, getattr(thing, '__name__', None)
+@@ -1462,8 +1463,8 @@
+             object = type(object)
+             desc += ' object'
+         pager(title % desc + '\n\n' + text.document(object, name))
+-    except (ImportError, ErrorDuringImport), value:
+-        print value
++    except (ImportError, ErrorDuringImport) as value:
++        print(value)
+ 
+ def writedoc(thing, forceload=0):
+     """Write HTML documentation to a file in the current directory."""
+@@ -1473,9 +1474,9 @@
+         file = open(name + '.html', 'w')
+         file.write(page)
+         file.close()
+-        print 'wrote', name + '.html'
+-    except (ImportError, ErrorDuringImport), value:
+-        print value
++        print('wrote', name + '.html')
++    except (ImportError, ErrorDuringImport) as value:
++        print(value)
+ 
+ def writedocs(dir, pkgpath='', done=None):
+     """Write out HTML documentation for all modules in a directory tree."""
+@@ -1648,7 +1649,7 @@
+     def getline(self, prompt):
+         """Read one line, using raw_input when available."""
+         if self.input is sys.stdin:
+-            return raw_input(prompt)
++            return input(prompt)
+         else:
+             self.output.write(prompt)
+             self.output.flush()
+@@ -1705,14 +1706,14 @@
+ Here is a list of the Python keywords.  Enter any keyword to get more help.
+ 
+ ''')
+-        self.list(self.keywords.keys())
++        self.list(list(self.keywords.keys()))
+ 
+     def listtopics(self):
+         self.output.write('''
+ Here is a list of available topics.  Enter any topic name to get more help.
+ 
+ ''')
+-        self.list(self.topics.keys())
++        self.list(list(self.topics.keys()))
+ 
+     def showtopic(self, topic):
+         if not self.docdir:
+@@ -1742,8 +1743,8 @@
+         document = re.sub(addrpat, '', re.sub(divpat, '', file.read()))
+         file.close()
+ 
+-        import htmllib, formatter, StringIO
+-        buffer = StringIO.StringIO()
++        import htmllib, formatter, io
++        buffer = io.StringIO()
+         parser = htmllib.HTMLParser(
+             formatter.AbstractFormatter(formatter.DumbWriter(buffer)))
+         parser.start_table = parser.do_p
+@@ -1754,7 +1755,7 @@
+         buffer = replace(buffer.getvalue(), '\xa0', ' ', '\n', '\n  ')
+         pager('  ' + strip(buffer) + '\n')
+         if xrefs:
+-            buffer = StringIO.StringIO()
++            buffer = io.StringIO()
+             formatter.DumbWriter(buffer).send_flowing_data(
+                 'Related help topics: ' + join(split(xrefs), ', ') + '\n')
+             self.output.write('\n%s\n' % buffer.getvalue())
+@@ -1778,7 +1779,7 @@
+                 if find(modname, '.') < 0:
+                     modules[modname] = 1
+             ModuleScanner().run(callback)
+-            self.list(modules.keys())
++            self.list(list(modules.keys()))
+             self.output.write('''
+ Enter any module name to get more help.  Or, type "modules spam" to search
+ for modules whose descriptions contain the word "spam".
+@@ -1794,7 +1795,7 @@
+         self.children = children
+         self.descendp = descendp
+ 
+-    def next(self):
++    def __next__(self):
+         if not self.state:
+             if not self.roots:
+                 return None
+@@ -1803,7 +1804,7 @@
+         node, children = self.state[-1]
+         if not children:
+             self.state.pop()
+-            return self.next()
++            return next(self)
+         child = children.pop(0)
+         if self.descendp(child):
+             self.state.append((child, self.children(child)))
+@@ -1836,9 +1837,9 @@
+             else:
+                 loader = importer.find_module(modname)
+                 if hasattr(loader,'get_source'):
+-                    import StringIO
++                    import io
+                     desc = source_synopsis(
+-                        StringIO.StringIO(loader.get_source(modname))
++                        io.StringIO(loader.get_source(modname))
+                     ) or ''
+                     if hasattr(loader,'get_filename'):
+                         path = loader.get_filename(modname)
+@@ -1859,7 +1860,7 @@
+     def callback(path, modname, desc):
+         if modname[-9:] == '.__init__':
+             modname = modname[:-9] + ' (package)'
+-        print modname, desc and '- ' + desc
++        print(modname, desc and '- ' + desc)
+     try: import warnings
+     except ImportError: pass
+     else: warnings.filterwarnings('ignore') # ignore problems during import
+@@ -1868,7 +1869,7 @@
+ # --------------------------------------------------- web browser interface
+ 
+ def serve(port, callback=None, completer=None):
+-    import BaseHTTPServer, mimetools, select
++    import http.server, mimetools, select
+ 
+     # Patch up mimetools.Message so it doesn't break if rfc822 is reloaded.
+     class Message(mimetools.Message):
+@@ -1880,7 +1881,7 @@
+             self.parsetype()
+             self.parseplist()
+ 
+-    class DocHandler(BaseHTTPServer.BaseHTTPRequestHandler):
++    class DocHandler(http.server.BaseHTTPRequestHandler):
+         def send_document(self, title, contents):
+             try:
+                 self.send_response(200)
+@@ -1896,7 +1897,7 @@
+             if path and path != '.':
+                 try:
+                     obj = locate(path, forceload=1)
+-                except ErrorDuringImport, value:
++                except ErrorDuringImport as value:
+                     self.send_document(path, html.escape(str(value)))
+                     return
+                 if obj:
+@@ -1910,8 +1911,7 @@
+ '#ffffff', '#7799ee')
+                 def bltinlink(name):
+                     return '<a href="%s.html">%s</a>' % (name, name)
+-                names = filter(lambda x: x != '__main__',
+-                               sys.builtin_module_names)
++                names = [x for x in sys.builtin_module_names if x != '__main__']
+                 contents = html.multicolumn(names, bltinlink)
+                 indices = ['<p>' + html.bigsection(
+                     'Built-in Modules', '#ffffff', '#ee77aa', contents)]
+@@ -1926,7 +1926,7 @@
+ 
+         def log_message(self, *args): pass
+ 
+-    class DocServer(BaseHTTPServer.HTTPServer):
++    class DocServer(http.server.HTTPServer):
+         def __init__(self, port, callback):
+             host = (sys.platform == 'mac') and '127.0.0.1' or 'localhost'
+             self.address = ('', port)
+@@ -1945,7 +1945,7 @@
+             self.base.server_activate(self)
+             if self.callback: self.callback(self)
+ 
+-    DocServer.base = BaseHTTPServer.HTTPServer
++    DocServer.base = http.server.HTTPServer
+     DocServer.handler = DocHandler
+     DocHandler.MessageClass = Message
+     try:
+@@ -1966,20 +1966,20 @@
+             self.server = None
+             self.scanner = None
+ 
+-            import Tkinter
+-            self.server_frm = Tkinter.Frame(window)
+-            self.title_lbl = Tkinter.Label(self.server_frm,
++            import tkinter
++            self.server_frm = tkinter.Frame(window)
++            self.title_lbl = tkinter.Label(self.server_frm,
+                 text='Starting server...\n ')
+-            self.open_btn = Tkinter.Button(self.server_frm,
++            self.open_btn = tkinter.Button(self.server_frm,
+                 text='open browser', command=self.open, state='disabled')
+-            self.quit_btn = Tkinter.Button(self.server_frm,
++            self.quit_btn = tkinter.Button(self.server_frm,
+                 text='quit serving', command=self.quit, state='disabled')
+ 
+-            self.search_frm = Tkinter.Frame(window)
+-            self.search_lbl = Tkinter.Label(self.search_frm, text='Search for')
+-            self.search_ent = Tkinter.Entry(self.search_frm)
++            self.search_frm = tkinter.Frame(window)
++            self.search_lbl = tkinter.Label(self.search_frm, text='Search for')
++            self.search_ent = tkinter.Entry(self.search_frm)
+             self.search_ent.bind('<Return>', self.search)
+-            self.stop_btn = Tkinter.Button(self.search_frm,
++            self.stop_btn = tkinter.Button(self.search_frm,
+                 text='stop', pady=0, command=self.stop, state='disabled')
+             if sys.platform == 'win32':
+                 # Trying to hide and show this button crashes under Windows.
+@@ -1998,17 +1998,17 @@
+             self.search_ent.focus_set()
+ 
+             font = ('helvetica', sys.platform == 'win32' and 8 or 10)
+-            self.result_lst = Tkinter.Listbox(window, font=font, height=6)
++            self.result_lst = tkinter.Listbox(window, font=font, height=6)
+             self.result_lst.bind('<Button-1>', self.select)
+             self.result_lst.bind('<Double-Button-1>', self.goto)
+-            self.result_scr = Tkinter.Scrollbar(window,
++            self.result_scr = tkinter.Scrollbar(window,
+                 orient='vertical', command=self.result_lst.yview)
+             self.result_lst.config(yscrollcommand=self.result_scr.set)
+ 
+-            self.result_frm = Tkinter.Frame(window)
+-            self.goto_btn = Tkinter.Button(self.result_frm,
++            self.result_frm = tkinter.Frame(window)
++            self.goto_btn = tkinter.Button(self.result_frm,
+                 text='go to selected', command=self.goto)
+-            self.hide_btn = Tkinter.Button(self.result_frm,
++            self.hide_btn = tkinter.Button(self.result_frm,
+                 text='hide results', command=self.hide)
+             self.goto_btn.pack(side='left', fill='x', expand=1)
+             self.hide_btn.pack(side='right', fill='x', expand=1)
+@@ -2128,9 +2128,9 @@
+             self.stop()
+             self.collapse()
+ 
+-    import Tkinter
++    import tkinter
+     try:
+-        root = Tkinter.Tk()
++        root = tkinter.Tk()
+         # Tk will crash if pythonw.exe has an XP .manifest
+         # file and the root has is not destroyed explicitly.
+         # If the problem is ever fixed in Tk, the explicit
+@@ -2176,9 +2176,9 @@
+                 except ValueError:
+                     raise BadUsage
+                 def ready(server):
+-                    print 'pydoc server ready at %s' % server.url
++                    print('pydoc server ready at %s' % server.url)
+                 def stopped():
+-                    print 'pydoc server stopped'
++                    print('pydoc server stopped')
+                 serve(port, ready, stopped)
+                 return
+             if opt == '-w':
+@@ -2187,7 +2187,7 @@
+         if not args: raise BadUsage
+         for arg in args:
+             if ispath(arg) and not os.path.exists(arg):
+-                print 'file %r does not exist' % arg
++                print('file %r does not exist' % arg)
+                 break
+             try:
+                 if ispath(arg) and os.path.isfile(arg):
+@@ -2199,12 +2199,12 @@
+                         writedoc(arg)
+                 else:
+                     help.help(arg)
+-            except ErrorDuringImport, value:
+-                print value
++            except ErrorDuringImport as value:
++                print(value)
+ 
+     except (getopt.error, BadUsage):
+         cmd = os.path.basename(sys.argv[0])
+-        print """pydoc - the Python documentation tool
++        print("""pydoc - the Python documentation tool
+ 
+ %s <name> ...
+     Show text documentation on something.  <name> may be the name of a
+@@ -2227,6 +2227,6 @@
+     Write out the HTML documentation for a module to a file in the current
+     directory.  If <name> contains a '%s', it is treated as a filename; if
+     it names a directory, documentation is written for all the contents.
+-""" % (cmd, os.sep, cmd, cmd, cmd, cmd, os.sep)
++""" % (cmd, os.sep, cmd, cmd, cmd, cmd, os.sep))
+ 
+ if __name__ == '__main__': cli()
+--- setuptools-9999/virtual-python.py (original)
++++ setuptools-9999/virtual-python.py (refactored)
+@@ -8,40 +8,40 @@
+ 
+ def mkdir(path):
+     if not os.path.exists(path):
+-        print 'Creating %s' % path
++        print('Creating %s' % path)
+         os.makedirs(path)
+     else:
+         if verbose:
+-            print 'Directory %s already exists'
++            print('Directory %s already exists')
+ 
+ def symlink(src, dest):
+     if not os.path.exists(dest):
+         if verbose:
+-            print 'Creating symlink %s' % dest
++            print('Creating symlink %s' % dest)
+         os.symlink(src, dest)
+     else:
+-        print 'Symlink %s already exists' % dest
++        print('Symlink %s already exists' % dest)
+ 
+ 
+ def rmtree(dir):
+     if os.path.exists(dir):
+-        print 'Deleting tree %s' % dir
++        print('Deleting tree %s' % dir)
+         shutil.rmtree(dir)
+     else:
+         if verbose:
+-            print 'Do not need to delete %s; already gone' % dir
++            print('Do not need to delete %s; already gone' % dir)
+ 
+ def make_exe(fn):
+     if os.name == 'posix':
+-        oldmode = os.stat(fn).st_mode & 07777
+-        newmode = (oldmode | 0555) & 07777
++        oldmode = os.stat(fn).st_mode & 0o7777
++        newmode = (oldmode | 0o555) & 0o7777
+         os.chmod(fn, newmode)
+         if verbose:
+-            print 'Changed mode of %s to %s' % (fn, oct(newmode))
++            print('Changed mode of %s to %s' % (fn, oct(newmode)))
+ 
+ def main():
+     if os.name != 'posix':
+-        print "This script only works on Unix-like platforms, sorry."
++        print("This script only works on Unix-like platforms, sorry.")
+         return
+ 
+     parser = optparse.OptionParser()
+@@ -69,7 +69,7 @@
+     bin_dir = join(home_dir, 'bin')
+ 
+     if sys.executable.startswith(bin_dir):
+-        print 'Please use the *system* python to run this script'
++        print('Please use the *system* python to run this script')
+         return
+ 
+     verbose = options.verbose
+@@ -78,7 +78,7 @@
+     if options.clear:
+         rmtree(lib_dir)
+         rmtree(inc_dir)
+-        print 'Not deleting', bin_dir
++        print('Not deleting', bin_dir)
+ 
+     prefix = sys.prefix
+     mkdir(lib_dir)
+@@ -104,7 +104,7 @@
+             symlink(join(exec_dir, fn), join(lib_dir, fn))
+ 
+     mkdir(bin_dir)
+-    print 'Copying %s to %s' % (sys.executable, bin_dir)
++    print('Copying %s to %s' % (sys.executable, bin_dir))
+     py_executable = join(bin_dir, 'python')
+     if sys.executable != py_executable:
+         shutil.copyfile(sys.executable, py_executable)
+@@ -112,11 +112,11 @@
+ 
+     pydistutils = os.path.expanduser('~/.pydistutils.cfg')
+     if os.path.exists(pydistutils):
+-        print 'Please make sure you remove any previous custom paths from'
+-        print "your", pydistutils, "file."
++        print('Please make sure you remove any previous custom paths from')
++        print("your", pydistutils, "file.")
+ 
+-    print "You're now ready to download ez_setup.py, and run"
+-    print py_executable, "ez_setup.py"
++    print("You're now ready to download ez_setup.py, and run")
++    print(py_executable, "ez_setup.py")
+       
+ if __name__ == '__main__':
+     main()
+--- setuptools-9999/setuptools/__init__.py (original)
++++ setuptools-9999/setuptools/__init__.py (refactored)
+@@ -51,12 +51,12 @@
+     def __init__(self, dist, **kw):
+         # Add support for keyword arguments
+         _Command.__init__(self,dist)
+-        for k,v in kw.items():
++        for k,v in list(kw.items()):
+             setattr(self,k,v)
+ 
+     def reinitialize_command(self, command, reinit_subcommands=0, **kw):
+         cmd = _Command.reinitialize_command(self, command, reinit_subcommands)
+-        for k,v in kw.items():
++        for k,v in list(kw.items()):
+             setattr(cmd,k,v)    # update command with keywords
+         return cmd
+ 
+@@ -73,7 +73,7 @@
+             base = base[2:]
+         if base:
+             files = [os.path.join(base, f) for f in files]
+-        all_files.extend(filter(os.path.isfile, files))
++        all_files.extend(list(filter(os.path.isfile, files)))
+     return all_files
+ 
+ import distutils.filelist
+--- setuptools-9999/setuptools/depends.py (original)
++++ setuptools-9999/setuptools/depends.py (refactored)
+@@ -1,4 +1,4 @@
+-from __future__ import generators
++
+ import sys, imp, marshal
+ from imp import PKG_DIRECTORY, PY_COMPILED, PY_SOURCE, PY_FROZEN
+ from distutils.version import StrictVersion, LooseVersion
+@@ -103,7 +103,7 @@
+             ptr += 3
+ 
+             if op==EXTENDED_ARG:
+-                extended_arg = arg * 65536L
++                extended_arg = arg * 65536
+                 continue
+ 
+         else:
+--- setuptools-9999/setuptools/dist.py (original)
++++ setuptools-9999/setuptools/dist.py (refactored)
+@@ -68,7 +68,7 @@
+ def check_extras(dist, attr, value):
+     """Verify that extras_require mapping is valid"""
+     try:
+-        for k,v in value.items():
++        for k,v in list(value.items()):
+             list(pkg_resources.parse_requirements(v))
+     except (TypeError,ValueError,AttributeError):
+         raise DistutilsSetupError(
+@@ -99,17 +99,17 @@
+     """Verify that entry_points map is parseable"""
+     try:
+         pkg_resources.EntryPoint.parse_map(value)
+-    except ValueError, e:
++    except ValueError as e:
+         raise DistutilsSetupError(e)
+ 
+ def check_test_suite(dist, attr, value):
+-    if not isinstance(value,basestring):
++    if not isinstance(value,str):
+         raise DistutilsSetupError("test_suite must be a string")
+ 
+ def check_package_data(dist, attr, value):
+     """Verify that value is a dictionary of package names to glob lists"""
+     if isinstance(value,dict):
+-        for k,v in value.items():
++        for k,v in list(value.items()):
+             if not isinstance(k,str): break
+             try: iter(v)
+             except TypeError:
+@@ -221,7 +221,7 @@
+             if not hasattr(self,ep.name):
+                 setattr(self,ep.name,None)
+         _Distribution.__init__(self,attrs)
+-        if isinstance(self.metadata.version, (int,long,float)):
++        if isinstance(self.metadata.version, (int,int,float)):
+             # Some people apparently take "version number" too literally :)
+             self.metadata.version = str(self.metadata.version)
+ 
+@@ -268,7 +268,7 @@
+                 'find_links', 'site_dirs', 'index_url', 'optimize',
+                 'site_dirs', 'allow_hosts'
+             )
+-            for key in opts.keys():
++            for key in list(opts.keys()):
+                 if key not in keep:
+                     del opts[key]   # don't use any other settings
+             if self.dependency_links:
+@@ -291,7 +291,7 @@
+         go = []
+         no = self.negative_opt.copy()
+ 
+-        for name,feature in self.features.items():
++        for name,feature in list(self.features.items()):
+             self._set_feature(name,None)
+             feature.validate(self)
+ 
+@@ -330,7 +330,7 @@
+         """Add/remove features and resolve dependencies between them"""
+ 
+         # First, flag all the enabled items (and thus their dependencies)
+-        for name,feature in self.features.items():
++        for name,feature in list(self.features.items()):
+             enabled = self.feature_is_included(name)
+             if enabled or (enabled is None and feature.include_by_default()):
+                 feature.include_in(self)
+@@ -338,7 +338,7 @@
+ 
+         # Then disable the rest, so that off-by-default features don't
+         # get flagged as errors when they're required by an enabled feature
+-        for name,feature in self.features.items():
++        for name,feature in list(self.features.items()):
+             if not self.feature_is_included(name):
+                 feature.exclude_from(self)
+                 self._set_feature(name,0)
+@@ -401,7 +401,7 @@
+         will try to call 'dist._include_foo({"bar":"baz"})', which can then
+         handle whatever special inclusion logic is needed.
+         """
+-        for k,v in attrs.items():
++        for k,v in list(attrs.items()):
+             include = getattr(self, '_include_'+k, None)
+             if include:
+                 include(v)
+@@ -506,7 +506,7 @@
+         will try to call 'dist._exclude_foo({"bar":"baz"})', which can then
+         handle whatever special exclusion logic is needed.
+         """
+-        for k,v in attrs.items():
++        for k,v in list(attrs.items()):
+             exclude = getattr(self, '_exclude_'+k, None)
+             if exclude:
+                 exclude(v)
+@@ -518,7 +518,7 @@
+             raise DistutilsSetupError(
+                 "packages: setting must be a list or tuple (%r)" % (packages,)
+             )
+-        map(self.exclude_package, packages)
++        list(map(self.exclude_package, packages))
+ 
+ 
+ 
+@@ -584,9 +584,9 @@
+ 
+         d = {}
+ 
+-        for cmd,opts in self.command_options.items():
+-
+-            for opt,(src,val) in opts.items():
++        for cmd,opts in list(self.command_options.items()):
++
++            for opt,(src,val) in list(opts.items()):
+ 
+                 if src != "command line":
+                     continue
+@@ -597,7 +597,7 @@
+                     cmdobj = self.get_command_obj(cmd)
+                     neg_opt = self.negative_opt.copy()
+                     neg_opt.update(getattr(cmdobj,'negative_opt',{}))
+-                    for neg,pos in neg_opt.items():
++                    for neg,pos in list(neg_opt.items()):
+                         if pos==opt:
+                             opt=neg
+                             val=None
+--- setuptools-9999/setuptools/extension.py (original)
++++ setuptools-9999/setuptools/extension.py (refactored)
+@@ -1,5 +1,5 @@
+ from distutils.core import Extension as _Extension
+-from dist import _get_unpatched
++from .dist import _get_unpatched
+ _Extension = _get_unpatched(_Extension)
+ 
+ try:
+--- setuptools-9999/setuptools/package_index.py (original)
++++ setuptools-9999/setuptools/package_index.py (refactored)
+@@ -1,6 +1,6 @@
+ """PyPI and direct package downloading"""
+-import sys, os.path, re, urlparse, urllib2, urllib, shutil, random, socket
+-import cStringIO
++import sys, os.path, re, urllib.parse, urllib.request, urllib.error, urllib, shutil, random, socket
++import io
+ from pkg_resources import *
+ from distutils import log
+ from distutils.errors import DistutilsError
+@@ -41,8 +41,8 @@
+     return base,py_ver
+ 
+ def egg_info_for_url(url):
+-    scheme, server, path, parameters, query, fragment = urlparse.urlparse(url)
+-    base = urllib.unquote(path.split('/')[-1])
++    scheme, server, path, parameters, query, fragment = urllib.parse.urlparse(url)
++    base = urllib.parse.unquote(path.split('/')[-1])
+     if '#' in base: base, fragment = base.split('#',1)
+     return base,fragment
+ 
+@@ -130,17 +130,17 @@
+ 
+     for match in REL.finditer(page):
+         tag, rel = match.groups()
+-        rels = map(str.strip, rel.lower().split(','))
++        rels = list(map(str.strip, rel.lower().split(',')))
+         if 'homepage' in rels or 'download' in rels:
+             for match in HREF.finditer(tag):
+-                yield urlparse.urljoin(url, htmldecode(match.group(1)))
++                yield urllib.parse.urljoin(url, htmldecode(match.group(1)))
+ 
+     for tag in ("<th>Home Page", "<th>Download URL"):
+         pos = page.find(tag)
+         if pos!=-1:
+             match = HREF.search(page,pos)
+             if match:
+-                yield urlparse.urljoin(url, htmldecode(match.group(1)))
++                yield urllib.parse.urljoin(url, htmldecode(match.group(1)))
+ 
+ try:
+     urllibversion = urllib2.__version__
+@@ -184,7 +184,7 @@
+                 self.debug("Found link: %s", url)
+ 
+         if dists or not retrieve or url in self.fetched_urls:
+-            map(self.add, dists)
++            list(map(self.add, dists))
+             return  # don't need the actual page
+ 
+         if not self.url_ok(url):
+@@ -206,7 +206,7 @@
+         if url.startswith(self.index_url) and getattr(f,'code',None)!=404:
+             page = self.process_index(url, page)
+         for match in HREF.finditer(page):
+-            link = urlparse.urljoin(base, htmldecode(match.group(1)))
++            link = urllib.parse.urljoin(base, htmldecode(match.group(1)))
+             self.process_url(link)
+ 
+     def process_filename(self, fn, nested=False):
+@@ -223,11 +223,11 @@
+         dists = distros_for_filename(fn)
+         if dists:
+             self.debug("Found: %s", fn)
+-            map(self.add, dists)
++            list(map(self.add, dists))
+ 
+     def url_ok(self, url, fatal=False):
+         s = URL_SCHEME(url)
+-        if (s and s.group(1).lower()=='file') or self.allows(urlparse.urlparse(url)[1]):
++        if (s and s.group(1).lower()=='file') or self.allows(urllib.parse.urlparse(url)[1]):
+             return True
+         msg = "\nLink to % s ***BLOCKED*** by --allow-hosts\n"
+         if fatal:
+@@ -243,7 +243,7 @@
+                         self.scan_egg_link(item, entry)
+ 
+     def scan_egg_link(self, path, entry):
+-        lines = filter(None, map(str.strip, file(os.path.join(path, entry))))
++        lines = [_f for _f in list(map(str.strip, file(os.path.join(path, entry)))) if _f]
+         if len(lines)==2:
+             for dist in find_distributions(os.path.join(path, lines[0])):
+                 dist.location = os.path.join(path, *lines)
+@@ -255,9 +255,9 @@
+         def scan(link):
+             # Process a URL to see if it's for a package page
+             if link.startswith(self.index_url):
+-                parts = map(
+-                    urllib.unquote, link[len(self.index_url):].split('/')
+-                )
++                parts = list(map(
++                    urllib.parse.unquote, link[len(self.index_url):].split('/')
++                ))
+                 if len(parts)==2 and '#' not in parts[1]:
+                     # it's a package page, sanitize and index it
+                     pkg = safe_name(parts[0])
+@@ -268,7 +268,7 @@
+ 
+         # process an index page into the package-page index
+         for match in HREF.finditer(page):
+-            scan( urlparse.urljoin(url, htmldecode(match.group(1))) )
++            scan( urllib.parse.urljoin(url, htmldecode(match.group(1))) )
+ 
+         pkg, ver = scan(url)   # ensure this page is in the page index
+         if pkg:
+@@ -361,7 +361,7 @@
+     def prescan(self):
+         """Scan urls scheduled for prescanning (e.g. --find-links)"""
+         if self.to_scan:
+-            map(self.scan_url, self.to_scan)
++            list(map(self.scan_url, self.to_scan))
+         self.to_scan = None     # from now on, go ahead and process immediately
+ 
+     def not_found_in_index(self, requirement):
+@@ -546,7 +546,7 @@
+             if '#' in url:
+                 url, info = url.split('#', 1)
+             fp = self.open_url(url)
+-            if isinstance(fp, urllib2.HTTPError):
++            if isinstance(fp, urllib.error.HTTPError):
+                 raise DistutilsError(
+                     "Can't download %s: %s %s" % (url, fp.code,fp.msg)
+                 )
+@@ -583,9 +583,9 @@
+             return local_open(url)
+         try:
+             return open_with_auth(url)
+-        except urllib2.HTTPError, v:
++        except urllib.error.HTTPError as v:
+             return v
+-        except urllib2.URLError, v:
++        except urllib.error.URLError as v:
+             if warning: self.warn(warning, v.reason)
+             else:
+                 raise DistutilsError("Download error for %s: %s"
+@@ -594,7 +594,7 @@
+     def _download_url(self, scheme, url, tmpdir):
+         # Determine download filename
+         #
+-        name = filter(None,urlparse.urlparse(url)[2].split('/'))
++        name = [_f for _f in urllib.parse.urlparse(url)[2].split('/') if _f]
+         if name:
+             name = name[-1]
+             while '..' in name:
+@@ -612,7 +612,7 @@
+         if scheme=='svn' or scheme.startswith('svn+'):
+             return self._download_svn(url, filename)
+         elif scheme=='file':
+-            return urllib2.url2pathname(urlparse.urlparse(url)[2])
++            return urllib2.url2pathname(urllib.parse.urlparse(url)[2])
+         else:
+             self.url_ok(url, True)   # raises error if not allowed
+             return self._attempt_download(url, filename)
+@@ -667,7 +667,7 @@
+ def uchr(c):
+     if not isinstance(c, int):
+         return c
+-    if c>255: return unichr(c)
++    if c>255: return chr(c)
+     return chr(c)
+ 
+ def decode_entity(match):
+@@ -704,7 +704,7 @@
+ def open_with_auth(url):
+     """Open a urllib2 request, handling HTTP authentication"""
+ 
+-    scheme, netloc, path, params, query, frag = urlparse.urlparse(url)
++    scheme, netloc, path, params, query, frag = urllib.parse.urlparse(url)
+ 
+     if scheme in ('http', 'https'):
+         auth, host = urllib.splituser(netloc)
+@@ -712,22 +712,22 @@
+         auth = None
+ 
+     if auth:
+-        auth = "Basic " + urllib.unquote(auth).encode('base64').strip()
+-        new_url = urlparse.urlunparse((scheme,host,path,params,query,frag))
+-        request = urllib2.Request(new_url)
++        auth = "Basic " + urllib.parse.unquote(auth).encode('base64').strip()
++        new_url = urllib.parse.urlunparse((scheme,host,path,params,query,frag))
++        request = urllib.request.Request(new_url)
+         request.add_header("Authorization", auth)
+     else:
+-        request = urllib2.Request(url)
++        request = urllib.request.Request(url)
+ 
+     request.add_header('User-Agent', user_agent)
+-    fp = urllib2.urlopen(request)
++    fp = urllib.request.urlopen(request)
+ 
+     if auth:
+         # Put authentication info back into request URL if same host,
+         # so that links found on the page will work
+-        s2, h2, path2, param2, query2, frag2 = urlparse.urlparse(fp.url)
++        s2, h2, path2, param2, query2, frag2 = urllib.parse.urlparse(fp.url)
+         if s2==scheme and h2==host:
+-            fp.url = urlparse.urlunparse((s2,netloc,path2,param2,query2,frag2))
++            fp.url = urllib.parse.urlunparse((s2,netloc,path2,param2,query2,frag2))
+ 
+     return fp
+ 
+@@ -747,10 +747,10 @@
+ 
+ def local_open(url):
+     """Read a local path, with special support for directories"""
+-    scheme, server, path, param, query, frag = urlparse.urlparse(url)
+-    filename = urllib.url2pathname(path)
++    scheme, server, path, param, query, frag = urllib.parse.urlparse(url)
++    filename = urllib.parse.url2pathname(path)
+     if os.path.isfile(filename):
+-        return urllib2.urlopen(url)
++        return urllib.request.urlopen(url)
+     elif path.endswith('/') and os.path.isdir(filename):
+         files = []
+         for f in os.listdir(filename):
+@@ -767,8 +767,8 @@
+     else:
+         status, message, body = 404, "Path not found", "Not found"
+ 
+-    return urllib2.HTTPError(url, status, message,
+-            {'content-type':'text/html'}, cStringIO.StringIO(body))
++    return urllib.error.HTTPError(url, status, message,
++            {'content-type':'text/html'}, io.StringIO(body))
+ 
+ 
+ 
+--- setuptools-9999/setuptools/sandbox.py (original)
++++ setuptools-9999/setuptools/sandbox.py (refactored)
+@@ -1,4 +1,4 @@
+-import os, sys, __builtin__, tempfile, operator
++import os, sys, builtins, tempfile, operator
+ _os = sys.modules[os.name]
+ _open = open
+ from distutils.errors import DistutilsError
+@@ -27,12 +27,11 @@
+             sys.argv[:] = [setup_script]+list(args)
+             sys.path.insert(0, setup_dir)
+             DirectorySandbox(setup_dir).run(
+-                lambda: execfile(
+-                    "setup.py",
+-                    {'__file__':setup_script, '__name__':'__main__'}
+-                )
++                lambda: exec(open(
++                    "setup.py").read(),
++                    {'__file__':setup_script, '__name__':'__main__'})
+             )
+-        except SystemExit, v:
++        except SystemExit as v:
+             if v.args and v.args[0]:
+                 raise
+             # Normal exit, just return
+@@ -64,12 +63,12 @@
+         """Run 'func' under os sandboxing"""
+         try:
+             self._copy(self)
+-            __builtin__.open = __builtin__.file = self._open
++            builtins.open = builtins.file = self._open
+             self._active = True
+             return func()
+         finally:
+             self._active = False
+-            __builtin__.open = __builtin__.file = _open
++            builtins.open = builtins.file = _open
+             self._copy(_os)
+ 
+ 
+@@ -193,7 +192,7 @@
+             self._violation(operation, src, dst, *args, **kw)
+         return (src,dst)
+ 
+-    def open(self, file, flags, mode=0777):
++    def open(self, file, flags, mode=0o777):
+         """Called for low-level os.open()"""
+         if flags & WRITE_FLAGS and not self._ok(file):
+             self._violation("os.open", file, flags, mode)
+--- setuptools-9999/setuptools/command/alias.py (original)
++++ setuptools-9999/setuptools/command/alias.py (refactored)
+@@ -43,10 +43,10 @@
+         aliases = self.distribution.get_option_dict('aliases')
+ 
+         if not self.args:
+-            print "Command Aliases"
+-            print "---------------"
++            print("Command Aliases")
++            print("---------------")
+             for alias in aliases:
+-                print "setup.py alias", format_alias(alias, aliases)
++                print("setup.py alias", format_alias(alias, aliases))
+             return
+ 
+         elif len(self.args)==1:
+@@ -54,10 +54,10 @@
+             if self.remove:
+                 command = None
+             elif alias in aliases:
+-                print "setup.py alias", format_alias(alias, aliases)
++                print("setup.py alias", format_alias(alias, aliases))
+                 return
+             else:
+-                print "No alias definition found for %r" % alias
++                print("No alias definition found for %r" % alias)
+                 return
+         else:
+             alias = self.args[0]
+--- setuptools-9999/setuptools/command/bdist_egg.py (original)
++++ setuptools-9999/setuptools/command/bdist_egg.py (refactored)
+@@ -370,7 +370,7 @@
+ def walk_egg(egg_dir):
+     """Walk an unpacked egg's contents, skipping the metadata directory"""
+     walker = os.walk(egg_dir)
+-    base,dirs,files = walker.next()
++    base,dirs,files = next(walker)
+     if 'EGG-INFO' in dirs:
+         dirs.remove('EGG-INFO')
+     yield base,dirs,files
+@@ -379,7 +379,7 @@
+ 
+ def analyze_egg(egg_dir, stubs):
+     # check for existing flag in EGG-INFO
+-    for flag,fn in safety_flags.items():
++    for flag,fn in list(safety_flags.items()):
+         if os.path.exists(os.path.join(egg_dir,'EGG-INFO',fn)):
+             return flag
+     if not can_scan(): return False
+@@ -395,7 +395,7 @@
+ 
+ def write_safety_flag(egg_dir, safe):
+     # Write or remove zip safety flag file(s)
+-    for flag,fn in safety_flags.items():
++    for flag,fn in list(safety_flags.items()):
+         fn = os.path.join(egg_dir, fn)
+         if os.path.exists(fn):
+             if safe is None or bool(safe)!=flag:
+@@ -443,7 +443,7 @@
+     """Yield names and strings used by `code` and its nested code objects"""
+     for name in code.co_names: yield name
+     for const in code.co_consts:
+-        if isinstance(const,basestring):
++        if isinstance(const,str):
+             yield const
+         elif isinstance(const,CodeType):
+             for name in iter_symbols(const):
+--- setuptools-9999/setuptools/command/easy_install.py (original)
++++ setuptools-9999/setuptools/command/easy_install.py (refactored)
+@@ -154,7 +154,7 @@
+         )
+         # default --record from the install command
+         self.set_undefined_options('install', ('record', 'record'))
+-        normpath = map(normalize_path, sys.path)
++        normpath = list(map(normalize_path, sys.path))
+         self.all_site_dirs = get_site_dirs()
+         if self.site_dirs is not None:
+             site_dirs = [
+@@ -187,7 +187,7 @@
+         self.local_index = Environment(self.shadow_path+sys.path)
+ 
+         if self.find_links is not None:
+-            if isinstance(self.find_links, basestring):
++            if isinstance(self.find_links, str):
+                 self.find_links = self.find_links.split()
+         else:
+             self.find_links = []
+@@ -227,7 +227,7 @@
+                 outputs = self.outputs
+                 if self.root:               # strip any package prefix
+                     root_len = len(self.root)
+-                    for counter in xrange(len(outputs)):
++                    for counter in range(len(outputs)):
+                         outputs[counter] = outputs[counter][root_len:]
+                 from distutils import file_util
+                 self.execute(
+@@ -247,7 +247,7 @@
+         try:
+             pid = os.getpid()
+         except:
+-            pid = random.randint(0,sys.maxint)
++            pid = random.randint(0,sys.maxsize)
+         return os.path.join(self.install_dir, "test-easy-install-%s" % pid)
+ 
+     def warn_deprecated_options(self):
+@@ -291,7 +291,7 @@
+             self.pth_file = None
+ 
+         PYTHONPATH = os.environ.get('PYTHONPATH','').split(os.pathsep)
+-        if instdir not in map(normalize_path, filter(None,PYTHONPATH)):
++        if instdir not in list(map(normalize_path, [_f for _f in PYTHONPATH if _f])):
+             # only PYTHONPATH dirs need a site.py, so pretend it's there
+             self.sitepy_installed = True
+         elif self.multi_version and not os.path.exists(pth_file):
+@@ -532,11 +532,11 @@
+             distros = WorkingSet([]).resolve(
+                 [requirement], self.local_index, self.easy_install
+             )
+-        except DistributionNotFound, e:
++        except DistributionNotFound as e:
+             raise DistutilsError(
+                 "Could not find required distribution %s" % e.args
+             )
+-        except VersionConflict, e:
++        except VersionConflict as e:
+             raise DistutilsError(
+                 "Installed distribution %s conflicts with requirement %s"
+                 % e.args
+@@ -622,7 +622,7 @@
+             f = open(target,"w"+mode)
+             f.write(contents)
+             f.close()
+-            chmod(target,0755)
++            chmod(target,0o755)
+ 
+ 
+ 
+@@ -888,7 +888,7 @@
+     pkg_resources.require("%(name)s==%(version)s")  # this exact version
+     pkg_resources.require("%(name)s>=%(version)s")  # this version or higher
+ """
+-            if self.install_dir not in map(normalize_path,sys.path):
++            if self.install_dir not in list(map(normalize_path,sys.path)):
+                 msg += """
+ 
+ Note also that the installation directory must be on sys.path at runtime for
+@@ -931,7 +931,7 @@
+         )
+         try:
+             run_setup(setup_script, args)
+-        except SystemExit, v:
++        except SystemExit as v:
+             raise DistutilsError("Setup script exited with %s" % (v.args[0],))
+ 
+     def build_and_install(self, setup_script, setup_base):
+@@ -1012,7 +1012,7 @@
+         self.byte_compile(to_compile)
+         if not self.dry_run:
+             for f in to_chmod:
+-                mode = ((os.stat(f)[stat.ST_MODE]) | 0555) & 07755
++                mode = ((os.stat(f)[stat.ST_MODE]) | 0o555) & 0o7755
+                 chmod(f, mode)
+ 
+     def byte_compile(self, to_compile):
+@@ -1139,7 +1139,7 @@
+             config_vars = config_vars.copy()
+             config_vars['base'] = self.prefix
+             scheme = self.INSTALL_SCHEMES.get(os.name,self.DEFAULT_SCHEME)
+-            for attr,val in scheme.items():
++            for attr,val in list(scheme.items()):
+                 if getattr(self,attr,None) is None:
+                     setattr(self,attr,val)
+ 
+@@ -1162,7 +1162,7 @@
+ 
+ def get_site_dirs():
+     # return a list of 'site' dirs
+-    sitedirs = filter(None,os.environ.get('PYTHONPATH','').split(os.pathsep))
++    sitedirs = [_f for _f in os.environ.get('PYTHONPATH','').split(os.pathsep) if _f]
+     prefixes = [sys.prefix]
+     if sys.exec_prefix != sys.prefix:
+         prefixes.append(sys.exec_prefix)
+@@ -1197,7 +1197,7 @@
+         site_lib = get_python_lib(plat_specific)
+         if site_lib not in sitedirs: sitedirs.append(site_lib)
+ 
+-    sitedirs = map(normalize_path, sitedirs)
++    sitedirs = list(map(normalize_path, sitedirs))
+     return sitedirs
+ 
+ 
+@@ -1258,7 +1258,7 @@
+             return None
+         f.seek(prepended-12)
+ 
+-        import struct, StringIO, ConfigParser
++        import struct, io, ConfigParser
+         tag, cfglen, bmlen = struct.unpack("<iii",f.read(12))
+         if tag not in (0x1234567A, 0x1234567B):
+             return None     # not a valid tag
+@@ -1266,7 +1266,7 @@
+         f.seek(prepended-(12+cfglen))
+         cfg = ConfigParser.RawConfigParser({'version':'','target_version':''})
+         try:
+-            cfg.readfp(StringIO.StringIO(f.read(cfglen).split(chr(0),1)[0]))
++            cfg.readfp(io.StringIO(f.read(cfglen).split(chr(0),1)[0]))
+         except ConfigParser.Error:
+             return None
+         if not cfg.has_section('metadata') or not cfg.has_section('Setup'):
+@@ -1330,11 +1330,11 @@
+     dirty = False
+ 
+     def __init__(self, filename, sitedirs=()):
+-        self.filename = filename; self.sitedirs=map(normalize_path, sitedirs)
++        self.filename = filename; self.sitedirs=list(map(normalize_path, sitedirs))
+         self.basedir = normalize_path(os.path.dirname(self.filename))
+         self._load(); Environment.__init__(self, [], None, None)
+         for path in yield_lines(self.paths):
+-            map(self.add, find_distributions(path, True))
++            list(map(self.add, find_distributions(path, True)))
+ 
+     def _load(self):
+         self.paths = []
+@@ -1452,7 +1452,7 @@
+         chmod(arg, stat.S_IWRITE)
+         return func(arg)
+     exc = sys.exc_info()
+-    raise exc[0], (exc[1][0], exc[1][1] + (" %s %s" % (func,arg)))
++    raise exc[0](exc[1][0], exc[1][1] + (" %s %s" % (func,arg)))
+ 
+ def uncache_zipdir(path):
+     """Ensure that the importer caches dont have stale info for `path`"""
+@@ -1552,7 +1552,7 @@
+     log.debug("changing mode of %s to %o", path, mode)
+     try:
+         _chmod(path, mode)
+-    except os.error, e:
++    except os.error as e:
+         log.debug("chmod failed: %s", e)
+ 
+ def fix_jython_executable(executable, options):
+@@ -1575,7 +1575,7 @@
+     spec = str(dist.as_requirement())
+     header = get_script_header("", executable, wininst)
+     for group in 'console_scripts', 'gui_scripts':
+-        for name,ep in dist.get_entry_map(group).items():
++        for name,ep in list(dist.get_entry_map(group).items()):
+             script_text = (
+                 "# EASY-INSTALL-ENTRY-SCRIPT: %(spec)r,%(group)r,%(name)r\n"
+                 "__requires__ = %(spec)r\n"
+@@ -1626,7 +1626,7 @@
+     names = []
+     try:
+         names = os.listdir(path)
+-    except os.error, err:
++    except os.error as err:
+         onerror(os.listdir, path, sys.exc_info())
+     for name in names:
+         fullname = os.path.join(path, name)
+@@ -1639,7 +1639,7 @@
+         else:
+             try:
+                 os.remove(fullname)
+-            except os.error, err:
++            except os.error as err:
+                 onerror(os.remove, fullname, sys.exc_info())
+     try:
+         os.rmdir(path)
+--- setuptools-9999/setuptools/command/egg_info.py (original)
++++ setuptools-9999/setuptools/command/egg_info.py (refactored)
+@@ -12,7 +12,7 @@
+ from distutils.filelist import FileList
+ from pkg_resources import parse_requirements, safe_name, parse_version, \
+     safe_version, yield_lines, EntryPoint, iter_entry_points, to_filename
+-from sdist import walk_revctrl
++from .sdist import walk_revctrl
+ 
+ class egg_info(Command):
+     description = "create a distribution's .egg-info directory"
+@@ -51,7 +51,7 @@
+         self.vtags = None
+ 
+     def save_version_info(self, filename):
+-        from setopt import edit_config
++        from .setopt import edit_config
+         edit_config(
+             filename,
+             {'egg_info':
+@@ -218,7 +218,7 @@
+             f.close()
+ 
+             if data.startswith('9') or data.startswith('8'):
+-                data = map(str.splitlines,data.split('\n\x0c\n'))
++                data = list(map(str.splitlines,data.split('\n\x0c\n')))
+                 del data[0][0]  # get rid of the '8' or '9'
+                 dirurl = data[0][3]
+                 localrev = max([int(d[9]) for d in data if len(d)>9 and d[9]]+[0])
+@@ -381,7 +381,7 @@
+             metadata.name, metadata.version = oldname, oldver
+ 
+         safe = getattr(cmd.distribution,'zip_safe',None)
+-        import bdist_egg; bdist_egg.write_safety_flag(cmd.egg_info, safe)
++        from . import bdist_egg; bdist_egg.write_safety_flag(cmd.egg_info, safe)
+ 
+ def warn_depends_obsolete(cmd, basename, filename):
+     if os.path.exists(filename):
+@@ -394,7 +394,7 @@
+ def write_requirements(cmd, basename, filename):
+     dist = cmd.distribution
+     data = ['\n'.join(yield_lines(dist.install_requires or ()))]
+-    for extra,reqs in (dist.extras_require or {}).items():
++    for extra,reqs in list((dist.extras_require or {}).items()):
+         data.append('\n\n[%s]\n%s' % (extra, '\n'.join(yield_lines(reqs))))
+     cmd.write_or_delete_file("requirements", filename, ''.join(data))
+ 
+@@ -421,14 +421,14 @@
+ def write_entries(cmd, basename, filename):
+     ep = cmd.distribution.entry_points
+ 
+-    if isinstance(ep,basestring) or ep is None:
++    if isinstance(ep,str) or ep is None:
+         data = ep
+     elif ep is not None:
+         data = []
+-        for section, contents in ep.items():
+-            if not isinstance(contents,basestring):
++        for section, contents in list(ep.items()):
++            if not isinstance(contents,str):
+                 contents = EntryPoint.parse_group(section, contents)
+-                contents = '\n'.join(map(str,contents.values()))
++                contents = '\n'.join(map(str,list(contents.values())))
+             data.append('[%s]\n%s\n\n' % (section,contents))
+         data = ''.join(data)
+ 
+--- setuptools-9999/setuptools/command/install_scripts.py (original)
++++ setuptools-9999/setuptools/command/install_scripts.py (refactored)
+@@ -1,6 +1,6 @@
+ from distutils.command.install_scripts import install_scripts \
+      as _install_scripts
+-from easy_install import get_script_args, sys_executable, chmod
++from .easy_install import get_script_args, sys_executable, chmod
+ from pkg_resources import Distribution, PathMetadata, ensure_directory
+ import os
+ from distutils import log
+@@ -50,7 +50,7 @@
+             f = open(target,"w"+mode)
+             f.write(contents)
+             f.close()
+-            chmod(target,0755)
++            chmod(target,0o755)
+ 
+ 
+ 
+--- setuptools-9999/setuptools/command/rotate.py (original)
++++ setuptools-9999/setuptools/command/rotate.py (refactored)
+@@ -33,7 +33,7 @@
+             self.keep = int(self.keep)
+         except ValueError:
+             raise DistutilsOptionError("--keep must be an integer")
+-        if isinstance(self.match, basestring):
++        if isinstance(self.match, str):
+             self.match = [
+                 convert_path(p.strip()) for p in self.match.split(',')
+             ]
+--- setuptools-9999/setuptools/command/saveopts.py (original)
++++ setuptools-9999/setuptools/command/saveopts.py (refactored)
+@@ -9,7 +9,7 @@
+ 
+     def run(self):
+         dist = self.distribution
+-        commands = dist.command_options.keys()
++        commands = list(dist.command_options.keys())
+         settings = {}
+ 
+         for cmd in commands:
+@@ -17,7 +17,7 @@
+             if cmd=='saveopts':
+                 continue    # don't save our own options!
+ 
+-            for opt,(src,val) in dist.get_option_dict(cmd).items():
++            for opt,(src,val) in list(dist.get_option_dict(cmd).items()):
+                 if src=="command line":
+                     settings.setdefault(cmd,{})[opt] = val
+ 
+--- setuptools-9999/setuptools/command/setopt.py (original)
++++ setuptools-9999/setuptools/command/setopt.py (refactored)
+@@ -47,11 +47,11 @@
+     while a dictionary lists settings to be changed or deleted in that section.
+     A setting of ``None`` means to delete that setting.
+     """
+-    from ConfigParser import RawConfigParser
++    from configparser import RawConfigParser
+     log.debug("Reading configuration from %s", filename)
+     opts = RawConfigParser()
+     opts.read([filename])
+-    for section, options in settings.items():
++    for section, options in list(settings.items()):
+         if options is None:
+             log.info("Deleting section [%s] from %s", section, filename)
+             opts.remove_section(section)
+@@ -59,7 +59,7 @@
+             if not opts.has_section(section):
+                 log.debug("Adding new section [%s] to %s", section, filename)
+                 opts.add_section(section)
+-            for option,value in options.items():
++            for option,value in list(options.items()):
+                 if value is None:
+                     log.debug("Deleting %s.%s from %s",
+                         section, option, filename
+--- setuptools-9999/setuptools/command/upload.py (original)
++++ setuptools-9999/setuptools/command/upload.py (refactored)
+@@ -13,11 +13,11 @@
+ import os
+ import socket
+ import platform
+-import ConfigParser
+-import httplib
++import configparser
++import http.client
+ import base64
+-import urlparse
+-import cStringIO as StringIO
++import urllib.parse
++import io as StringIO
+ 
+ class upload(Command):
+ 
+@@ -49,11 +49,11 @@
+             raise DistutilsOptionError(
+                 "Must use --sign for --identity to have meaning"
+             )
+-        if os.environ.has_key('HOME'):
++        if 'HOME' in os.environ:
+             rc = os.path.join(os.environ['HOME'], '.pypirc')
+             if os.path.exists(rc):
+                 self.announce('Using PyPI login from %s' % rc)
+-                config = ConfigParser.ConfigParser({
++                config = configparser.ConfigParser({
+                         'username':'',
+                         'password':'',
+                         'repository':''})
+@@ -118,7 +118,7 @@
+         sep_boundary = '\n--' + boundary
+         end_boundary = sep_boundary + '--'
+         body = StringIO.StringIO()
+-        for key, value in data.items():
++        for key, value in list(data.items()):
+             # handle multiple entries for the same name
+             if type(value) != type([]):
+                 value = [value]
+@@ -146,14 +146,14 @@
+         # We can't use urllib2 since we need to send the Basic
+         # auth right with the first request
+         schema, netloc, url, params, query, fragments = \
+-            urlparse.urlparse(self.repository)
++            urllib.parse.urlparse(self.repository)
+         assert not params and not query and not fragments
+         if schema == 'http':
+-            http = httplib.HTTPConnection(netloc)
++            http = http.client.HTTPConnection(netloc)
+         elif schema == 'https':
+-            http = httplib.HTTPSConnection(netloc)
++            http = http.client.HTTPSConnection(netloc)
+         else:
+-            raise AssertionError, "unsupported schema "+schema
++            raise AssertionError("unsupported schema "+schema)
+ 
+         data = ''
+         loglevel = log.INFO
+@@ -166,7 +166,7 @@
+             http.putheader('Authorization', auth)
+             http.endheaders()
+             http.send(body)
+-        except socket.error, e:
++        except socket.error as e:
+             self.announce(str(e), log.ERROR)
+             return
+ 
+@@ -178,4 +178,4 @@
+             self.announce('Upload failed (%s): %s' % (r.status, r.reason),
+                           log.ERROR)
+         if self.show_response:
+-            print '-'*75, r.read(), '-'*75
++            print('-'*75, r.read(), '-'*75)
+--- setuptools-9999/setuptools/tests/__init__.py (original)
++++ setuptools-9999/setuptools/tests/__init__.py (refactored)
+@@ -55,16 +55,16 @@
+             y = z
+ 
+         # unrecognized name
+-        self.assertEqual(extract_constant(f1.func_code,'q', -1), None)
++        self.assertEqual(extract_constant(f1.__code__,'q', -1), None)
+ 
+         # constant assigned
+-        self.assertEqual(extract_constant(f1.func_code,'x', -1), "test")
++        self.assertEqual(extract_constant(f1.__code__,'x', -1), "test")
+ 
+         # expression assigned
+-        self.assertEqual(extract_constant(f1.func_code,'y', -1), -1)
++        self.assertEqual(extract_constant(f1.__code__,'y', -1), -1)
+ 
+         # recognized name, not assigned
+-        self.assertEqual(extract_constant(f1.func_code,'z', -1), None)
++        self.assertEqual(extract_constant(f1.__code__,'z', -1), None)
+ 
+ 
+     def testFindModule(self):
+--- setuptools-9999/setuptools/tests/test_resources.py (original)
++++ setuptools-9999/setuptools/tests/test_resources.py (refactored)
+@@ -3,7 +3,7 @@
+ # NOTE: the shebang and encoding lines are for ScriptHeaderTests; do not remove
+ from unittest import TestCase, makeSuite; from pkg_resources import *
+ from setuptools.command.easy_install import get_script_header, is_sh
+-import os, pkg_resources, sys, StringIO
++import os, pkg_resources, sys, io
+ try: frozenset
+ except NameError:
+     from sets import ImmutableSet as frozenset
+@@ -139,7 +139,7 @@
+         for i in range(3):
+             targets = list(ws.resolve(parse_requirements("Foo"), ad))
+             self.assertEqual(targets, [Foo])
+-            map(ws.add,targets)
++            list(map(ws.add,targets))
+         self.assertRaises(VersionConflict, ws.resolve,
+             parse_requirements("Foo==0.9"), ad)
+         ws = WorkingSet([]) # reset
+@@ -254,7 +254,7 @@
+ 
+     def checkSubMap(self, m):
+         self.assertEqual(len(m), len(self.submap_expect))
+-        for key, ep in self.submap_expect.iteritems():
++        for key, ep in self.submap_expect.items():
+             self.assertEqual(repr(m.get(key)), repr(ep))
+ 
+     submap_expect = dict(
+@@ -278,10 +278,10 @@
+     def testParseMap(self):
+         m = EntryPoint.parse_map({'xyz':self.submap_str})
+         self.checkSubMap(m['xyz'])
+-        self.assertEqual(m.keys(),['xyz'])
++        self.assertEqual(list(m.keys()),['xyz'])
+         m = EntryPoint.parse_map("[xyz]\n"+self.submap_str)
+         self.checkSubMap(m['xyz'])
+-        self.assertEqual(m.keys(),['xyz'])
++        self.assertEqual(list(m.keys()),['xyz'])
+         self.assertRaises(ValueError, EntryPoint.parse_map, ["[xyz]", "[xyz]"])
+         self.assertRaises(ValueError, EntryPoint.parse_map, self.submap_str)
+ 
+@@ -517,12 +517,12 @@
+ 
+             # Ensure we generate what is basically a broken shebang line
+             # when there's options, with a warning emitted
+-            sys.stdout = StringIO.StringIO()
++            sys.stdout = io.StringIO()
+             self.assertEqual(get_script_header('#!/usr/bin/python -x',
+                                                executable=exe),
+                              '#!%s  -x\n' % exe)
+             self.assert_('Unable to adapt shebang line' in sys.stdout.getvalue())
+-            sys.stdout = StringIO.StringIO()
++            sys.stdout = io.StringIO()
+             self.assertEqual(get_script_header('#!/usr/bin/python',
+                                                executable=self.non_ascii_exe),
+                              '#!%s -x\n' % self.non_ascii_exe)
