@@ -1,4 +1,4 @@
-From dc2a3f7c4dac83f0e1d770aea6512de4d1521100 Mon Sep 17 00:00:00 2001
+From 26169e163be92b6111b39d29a86b2a26914126c8 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Tue, 6 Jan 2009 14:43:14 -0500
 Subject: [PATCH] [gentoo] Common patch
@@ -10,12 +10,12 @@ Subject: [PATCH] [gentoo] Common patch
  3 files changed, 31 insertions(+), 4 deletions(-)
 
 diff --git a/configure.in b/configure.in
-index e22d570..d632e0e 100644
+index a38f5ef..d06bfc0 100644
 --- a/configure.in
 +++ b/configure.in
 @@ -19,10 +19,6 @@ m4_pattern_forbid(^PGAC_)dnl to catch undefined macros
  
- AC_INIT([PostgreSQL], [8.4devel], [pgsql-bugs@postgresql.org])
+ AC_INIT([PostgreSQL], [8.4beta1], [pgsql-bugs@postgresql.org])
  
 -m4_if(m4_defn([m4_PACKAGE_VERSION]), [2.61], [], [m4_fatal([Autoconf version 2.61 is required.
 -Untested combinations of 'autoconf' and PostgreSQL versions are not

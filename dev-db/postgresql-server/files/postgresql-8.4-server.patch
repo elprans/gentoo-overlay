@@ -1,4 +1,4 @@
-From bf92b8ca5b7a919e1fd6a8ac65977b5be32af027 Mon Sep 17 00:00:00 2001
+From 6801586051955c757da6165ca00150bd8051e918 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Sat, 20 Dec 2008 14:49:38 -0500
 Subject: [PATCH] [gentoo] Server patch
@@ -9,7 +9,7 @@ Subject: [PATCH] [gentoo] Server patch
  contrib/adminpack/Makefile     |    2 +-
  contrib/uuid-ossp/Makefile     |    4 +++-
  contrib/xml2/Makefile          |    3 ++-
- src/Makefile                   |    6 +-----
+ src/Makefile                   |    5 +----
  src/Makefile.global.in         |    4 ++--
  src/bin/Makefile               |    3 +--
  src/bin/initdb/Makefile        |    2 +-
@@ -17,7 +17,7 @@ Subject: [PATCH] [gentoo] Server patch
  src/port/Makefile              |    5 ++---
  src/test/regress/GNUmakefile   |    2 +-
  src/test/regress/pg_regress.c  |    3 ---
- 13 files changed, 16 insertions(+), 28 deletions(-)
+ 13 files changed, 16 insertions(+), 27 deletions(-)
 
 diff --git a/GNUmakefile.in b/GNUmakefile.in
 index 3045a4e..f42facd 100644
@@ -44,10 +44,10 @@ index 3045a4e..f42facd 100644
  distprep:
  	$(MAKE) -C doc $@
 diff --git a/contrib/Makefile b/contrib/Makefile
-index 122143f..8e41100 100644
+index 738a28a..17b10c3 100644
 --- a/contrib/Makefile
 +++ b/contrib/Makefile
-@@ -22,23 +22,20 @@ WANTED_DIRS = \
+@@ -23,23 +23,20 @@ WANTED_DIRS = \
  		isn		\
  		lo		\
  		ltree		\
@@ -119,14 +119,13 @@ index ea8636a..2e4e131 100644
  DATA_built = pgxml.sql
  DATA = uninstall_pgxml.sql
 diff --git a/src/Makefile b/src/Makefile
-index 33493a5..de0ca00 100644
+index acefa75..de0ca00 100644
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -19,15 +19,11 @@ all install installdirs uninstall distprep:
+@@ -19,14 +19,11 @@ all install installdirs uninstall distprep:
  	$(MAKE) -C backend $@
  	$(MAKE) -C backend/utils/mb/conversion_procs $@
  	$(MAKE) -C backend/snowball $@
--	$(MAKE) -C backend/foreign $@-fdw
 -	$(MAKE) -C include $@
 -	$(MAKE) -C interfaces $@
  	$(MAKE) -C bin $@
@@ -140,7 +139,7 @@ index 33493a5..de0ca00 100644
  install-local: installdirs-local
  	$(INSTALL_DATA) Makefile.global '$(DESTDIR)$(pgxsdir)/$(subdir)/Makefile.global'
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index ff27dd9..c546581 100644
+index 829ce72..a534a13 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
 @@ -393,10 +393,8 @@ endif
@@ -191,10 +190,10 @@ index f8ff594..52ac206 100644
  OBJS=	initdb.o encnames.o pqsignal.o $(WIN32RES)
  
 diff --git a/src/include/pg_config_manual.h b/src/include/pg_config_manual.h
-index b68bfe2..808de12 100644
+index 270face..2560016 100644
 --- a/src/include/pg_config_manual.h
 +++ b/src/include/pg_config_manual.h
-@@ -152,7 +152,7 @@
+@@ -146,7 +146,7 @@
   * here's where to twiddle it.  You can also override this at runtime
   * with the postmaster's -k switch.
   */

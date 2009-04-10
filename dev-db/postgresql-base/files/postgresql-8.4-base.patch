@@ -1,29 +1,27 @@
-From d07cdf3b3a6b1d06f945496e116f94bb64af9560 Mon Sep 17 00:00:00 2001
+From 81561fa19e15750e6c13ee84583ad83b43724ca6 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Tue, 6 Jan 2009 14:33:27 -0500
 Subject: [PATCH] [gentoo] Base patch
 
-Conflicts:
-
-	contrib/Makefile
 ---
- contrib/Makefile               |   35 -----------------------------------
+ contrib/Makefile               |   36 ------------------------------------
  src/Makefile                   |    5 -----
  src/backend/Makefile           |   23 +++--------------------
  src/bin/Makefile               |    3 +--
  src/include/pg_config_manual.h |    2 +-
- 5 files changed, 5 insertions(+), 63 deletions(-)
+ 5 files changed, 5 insertions(+), 64 deletions(-)
 
 diff --git a/contrib/Makefile b/contrib/Makefile
-index 122143f..e7206fc 100644
+index 738a28a..e7206fc 100644
 --- a/contrib/Makefile
 +++ b/contrib/Makefile
-@@ -5,45 +5,10 @@ top_builddir = ..
+@@ -5,46 +5,10 @@ top_builddir = ..
  include $(top_builddir)/src/Makefile.global
  
  WANTED_DIRS = \
 -		adminpack	\
 -		auto_explain	\
+-		btree_gin	\
 -		btree_gist	\
 -		chkpass		\
 -		citext		\
@@ -65,10 +63,10 @@ index 122143f..e7206fc 100644
  WANTED_DIRS += uuid-ossp
  endif
 diff --git a/src/Makefile b/src/Makefile
-index 33493a5..cf15fee 100644
+index acefa75..36394c6 100644
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -15,17 +15,12 @@ include Makefile.global
+@@ -15,16 +15,11 @@ include Makefile.global
  
  all install installdirs uninstall distprep:
  	$(MAKE) -C port $@
@@ -76,7 +74,6 @@ index 33493a5..cf15fee 100644
  	$(MAKE) -C backend $@
 -	$(MAKE) -C backend/utils/mb/conversion_procs $@
 -	$(MAKE) -C backend/snowball $@
- 	$(MAKE) -C backend/foreign $@-fdw
  	$(MAKE) -C include $@
  	$(MAKE) -C interfaces $@
  	$(MAKE) -C bin $@
@@ -149,10 +146,10 @@ index ec82494..bdbd775 100644
  DIRS+=pgevent
  endif
 diff --git a/src/include/pg_config_manual.h b/src/include/pg_config_manual.h
-index b68bfe2..808de12 100644
+index 270face..2560016 100644
 --- a/src/include/pg_config_manual.h
 +++ b/src/include/pg_config_manual.h
-@@ -152,7 +152,7 @@
+@@ -146,7 +146,7 @@
   * here's where to twiddle it.  You can also override this at runtime
   * with the postmaster's -k switch.
   */
