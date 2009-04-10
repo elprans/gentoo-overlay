@@ -1,0 +1,2463 @@
+From e250cc3deb2c2f85aca13b98e2015f4116676059 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elprans@sprymix.com>
+Date: Tue, 3 Feb 2009 18:00:27 -0500
+Subject: [PATCH] Python 3 compatibility
+
+---
+ lib/__init__.py                |   20 ++--
+ lib/extensions.py              |   30 +++---
+ psycopg/adapter_asis.c         |   11 +-
+ psycopg/adapter_binary.c       |   21 +++--
+ psycopg/adapter_datetime.c     |   15 ++-
+ psycopg/adapter_list.c         |   25 +++--
+ psycopg/adapter_mxdatetime.c   |   11 +-
+ psycopg/adapter_pboolean.c     |   17 ++--
+ psycopg/adapter_pfloat.c       |   11 +-
+ psycopg/adapter_qstring.c      |   27 +++--
+ psycopg/connection_int.c       |    5 +-
+ psycopg/connection_type.c      |   25 +++--
+ psycopg/cursor_type.c          |  218 +++++++++++++++++++++++++++++++---------
+ psycopg/lobject_type.c         |   11 +-
+ psycopg/microprotocols.c       |    8 +-
+ psycopg/microprotocols_proto.c |    9 +-
+ psycopg/pqpath.c               |   27 +++--
+ psycopg/psycopgmodule.c        |  149 ++++++++++++++++++++--------
+ psycopg/python.h               |   48 +++++++++
+ psycopg/typecast.c             |   50 +++++++---
+ psycopg/typecast_basic.c       |   25 ++++-
+ psycopg/typecast_binary.c      |   25 ++++-
+ runtests.py                    |   19 ++++-
+ setup.py                       |   51 ++++++++-
+ tests/__init__.py              |   12 ++
+ tests/extras_dictcursor.py     |    8 +-
+ tests/test_connection.py       |    6 +-
+ tests/test_dates.py            |    9 ++-
+ tests/test_lobject.py          |   47 ++++++----
+ tests/test_psycopg2_dbapi20.py |    7 +-
+ tests/test_quote.py            |   16 ++-
+ tests/test_transaction.py      |    6 +-
+ tests/types_basic.py           |   21 +++--
+ 33 files changed, 717 insertions(+), 273 deletions(-)
+
+diff --git a/lib/__init__.py b/lib/__init__.py
+index e40caa3..8b5190d 100644
+--- a/lib/__init__.py
++++ b/lib/__init__.py
+@@ -38,14 +38,14 @@ Homepage: http://initd.org/projects/psycopg2
+ # embedded Python or something even more devious.)
+ 
+ import sys, warnings
+-if sys.version_info[0] >= 2 and sys.version_info[1] >= 3:
++if sys.version_info >= (2, 3):
+     try:
+         import datetime as _psycopg_needs_datetime
+     except:
+         warnings.warn(
+             "can't import datetime module probably needed by _psycopg",
+             RuntimeWarning)
+-if sys.version_info[0] >= 2 and sys.version_info[1] >= 4:
++if sys.version_info >= (2, 4):
+     try:
+         import decimal as _psycopg_needs_decimal
+     except:
+@@ -57,16 +57,16 @@ del sys, warnings
+ 
+ # Import the DBAPI-2.0 stuff into top-level module.
+ 
+-from _psycopg import BINARY, NUMBER, STRING, DATETIME, ROWID
++from psycopg2._psycopg import BINARY, NUMBER, STRING, DATETIME, ROWID
+ 
+-from _psycopg import Binary, Date, Time, Timestamp
+-from _psycopg import DateFromTicks, TimeFromTicks, TimestampFromTicks
++from psycopg2._psycopg import Binary, Date, Time, Timestamp
++from psycopg2._psycopg import DateFromTicks, TimeFromTicks, TimestampFromTicks
+ 
+-from _psycopg import Error, Warning, DataError, DatabaseError, ProgrammingError
+-from _psycopg import IntegrityError, InterfaceError, InternalError
+-from _psycopg import NotSupportedError, OperationalError
++from psycopg2._psycopg import Error, Warning, DataError, DatabaseError, ProgrammingError
++from psycopg2._psycopg import IntegrityError, InterfaceError, InternalError
++from psycopg2._psycopg import NotSupportedError, OperationalError
+ 
+-from _psycopg import connect, apilevel, threadsafety, paramstyle
+-from _psycopg import __version__
++from psycopg2._psycopg import connect, apilevel, threadsafety, paramstyle
++from psycopg2._psycopg import __version__
+ 
+ __all__ = [ k for k in locals().keys() if not k.startswith('_') ]
+diff --git a/lib/extensions.py b/lib/extensions.py
+index aaaa87e..2c6af09 100644
+--- a/lib/extensions.py
++++ b/lib/extensions.py
+@@ -24,30 +24,30 @@ This module holds all the extensions to the DBAPI-2.0 provided by psycopg.
+ # or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ # for more details.
+ 
+-from _psycopg import UNICODE, INTEGER, LONGINTEGER, BOOLEAN, FLOAT
+-from _psycopg import TIME, DATE, INTERVAL
+-from _psycopg import BINARYARRAY, BOOLEANARRAY, DATEARRAY, DATETIMEARRAY
+-from _psycopg import DECIMALARRAY, FLOATARRAY, INTEGERARRAY, INTERVALARRAY
+-from _psycopg import LONGINTEGERARRAY, ROWIDARRAY, STRINGARRAY, TIMEARRAY
+-from _psycopg import UNICODEARRAY
+-
+-from _psycopg import Boolean, Float, QuotedString, AsIs
++from psycopg2._psycopg import UNICODE, INTEGER, LONGINTEGER, BOOLEAN, FLOAT
++from psycopg2._psycopg import TIME, DATE, INTERVAL
++from psycopg2._psycopg import BINARYARRAY, BOOLEANARRAY, DATEARRAY, DATETIMEARRAY
++from psycopg2._psycopg import DECIMALARRAY, FLOATARRAY, INTEGERARRAY, INTERVALARRAY
++from psycopg2._psycopg import LONGINTEGERARRAY, ROWIDARRAY, STRINGARRAY, TIMEARRAY
++from psycopg2._psycopg import UNICODEARRAY
++
++from psycopg2._psycopg import Boolean, Float, QuotedString, AsIs
+ try:
+-    from _psycopg import DateFromMx, TimeFromMx, TimestampFromMx
+-    from _psycopg import IntervalFromMx
++    from psycopg2._psycopg import DateFromMx, TimeFromMx, TimestampFromMx
++    from psycopg2._psycopg import IntervalFromMx
+ except:
+     pass
+ try:
+-    from _psycopg import DateFromPy, TimeFromPy, TimestampFromPy
+-    from _psycopg import IntervalFromPy
++    from psycopg2._psycopg import DateFromPy, TimeFromPy, TimestampFromPy
++    from psycopg2._psycopg import IntervalFromPy
+ except:
+     pass
+ 
+-from _psycopg import adapt, adapters, encodings, connection, cursor, lobject
+-from _psycopg import string_types, binary_types, new_type, register_type
+-from _psycopg import ISQLQuote
++from psycopg2._psycopg import adapt, adapters, encodings, connection, cursor, lobject
++from psycopg2._psycopg import string_types, binary_types, new_type, register_type
++from psycopg2._psycopg import ISQLQuote
+ 
+-from _psycopg import QueryCanceledError, TransactionRollbackError
++from psycopg2._psycopg import QueryCanceledError, TransactionRollbackError
+ 
+ """Isolation level values."""
+ ISOLATION_LEVEL_AUTOCOMMIT     = 0
+diff --git a/psycopg/adapter_asis.c b/psycopg/adapter_asis.c
+index 2ad6ef5..775655a 100644
+--- a/psycopg/adapter_asis.c
++++ b/psycopg/adapter_asis.c
+@@ -22,7 +22,9 @@
+ #define PY_SSIZE_T_CLEAN
+ #include <Python.h>
+ #include <structmember.h>
++#if PY_MAJOR_VERSION < 3
+ #include <stringobject.h>
++#endif
+ #include <string.h>
+ 
+ #define PSYCOPG_MODULE
+@@ -38,7 +40,7 @@ static PyObject *
+ asis_str(asisObject *self)
+ {
+     if (self->wrapped == Py_None) {
+-        return PyString_FromString("NULL");
++        return Text_FromUTF8("NULL");
+     }
+     else {
+         return PyObject_Str(self->wrapped);
+@@ -73,7 +75,7 @@ asis_conform(asisObject *self, PyObject *args)
+ /* object member list */
+ 
+ static struct PyMemberDef asisObject_members[] = {
+-    {"adapted", T_OBJECT, offsetof(asisObject, wrapped), RO},
++    {"adapted", T_OBJECT, offsetof(asisObject, wrapped), READONLY},
+     {NULL}
+ };
+ 
+@@ -125,7 +127,7 @@ asis_dealloc(PyObject* obj)
+         obj, obj->ob_refcnt
+       );
+ 
+-    obj->ob_type->tp_free(obj);
++    Py_TYPE(obj)->tp_free(obj);
+ }
+ 
+ static int
+@@ -164,8 +166,7 @@ asis_repr(asisObject *self)
+ "AsIs(str) -> new AsIs adapter object"
+ 
+ PyTypeObject asisType = {
+-    PyObject_HEAD_INIT(NULL)
+-    0,
++    PyVarObject_HEAD_INIT(NULL, 0)
+     "psycopg2._psycopg.AsIs",
+     sizeof(asisObject),
+     0,
+diff --git a/psycopg/adapter_binary.c b/psycopg/adapter_binary.c
+index 76ce92d..8b3302d 100644
+--- a/psycopg/adapter_binary.c
++++ b/psycopg/adapter_binary.c
+@@ -22,7 +22,9 @@
+ #define PY_SSIZE_T_CLEAN
+ #include <Python.h>
+ #include <structmember.h>
++#if PY_MAJOR_VERSION < 3
+ #include <stringobject.h>
++#endif
+ 
+ #include <libpq-fe.h>
+ #include <string.h>
+@@ -137,7 +139,13 @@ binary_quote(binaryObject *self)
+     size_t len = 0;
+ 
+     /* if we got a plain string or a buffer we escape it and save the buffer */
+-    if (PyString_Check(self->wrapped) || PyBuffer_Check(self->wrapped)) {
++    if (Bytes_Check(self->wrapped) 
++	#if PY_MAJOR_VERSION < 3
++	|| PyBuffer_Check(self->wrapped)
++	#else
++	|| PyMemoryView_Check(self->wrapped)
++	#endif
++	) {
+         /* escape and build quoted buffer */
+         if (PyObject_AsReadBuffer(self->wrapped, (const void **)&buffer,
+                                   &buffer_len) < 0)
+@@ -155,7 +163,7 @@ binary_quote(binaryObject *self)
+                 (self->conn && ((connectionObject*)self->conn)->equote)
+                     ? "E'%s'" : "'%s'" , to);
+         else
+-            self->buffer = PyString_FromString("''");
++            self->buffer = Text_FromUTF8("''");
+ 
+         PQfreemem(to);
+     }
+@@ -227,8 +235,8 @@ binary_conform(binaryObject *self, PyObject *args)
+ /* object member list */
+ 
+ static struct PyMemberDef binaryObject_members[] = {
+-    {"adapted", T_OBJECT, offsetof(binaryObject, wrapped), RO},
+-    {"buffer", T_OBJECT, offsetof(binaryObject, buffer), RO},
++    {"adapted", T_OBJECT, offsetof(binaryObject, wrapped), READONLY},
++    {"buffer", T_OBJECT, offsetof(binaryObject, buffer), READONLY},
+     {NULL}
+ };
+ 
+@@ -289,7 +297,7 @@ binary_dealloc(PyObject* obj)
+         obj, obj->ob_refcnt
+       );
+ 
+-    obj->ob_type->tp_free(obj);
++    Py_TYPE(obj)->tp_free(obj);
+ }
+ 
+ static int
+@@ -327,8 +335,7 @@ binary_repr(binaryObject *self)
+ "Binary(buffer) -> new binary object"
+ 
+ PyTypeObject binaryType = {
+-    PyObject_HEAD_INIT(NULL)
+-    0,
++    PyVarObject_HEAD_INIT(NULL, 0)
+     "psycopg2._psycopg.Binary",
+     sizeof(binaryObject),
+     0,
+diff --git a/psycopg/adapter_datetime.c b/psycopg/adapter_datetime.c
+index bf337ee..0bad7d9 100644
+--- a/psycopg/adapter_datetime.c
++++ b/psycopg/adapter_datetime.c
+@@ -22,7 +22,9 @@
+ #define PY_SSIZE_T_CLEAN
+ #include <Python.h>
+ #include <structmember.h>
++#if PY_MAJOR_VERSION < 3
+ #include <stringobject.h>
++#endif
+ #include <datetime.h>
+ 
+ #include <time.h>
+@@ -56,7 +58,11 @@ pydatetime_str(pydatetimeObject *self)
+         PyObject *res = NULL;
+         PyObject *iso = PyObject_CallMethod(self->wrapped, "isoformat", NULL);
+         if (iso) {
++	    #if PY_MAJOR_VERSION < 3
+             res = PyString_FromFormat("'%s'", PyString_AsString(iso));
++	    #else
++	    res = PyUnicode_FromFormat("'%U'", iso);
++	    #endif
+             Py_DECREF(iso);
+         }
+         return res;
+@@ -107,8 +113,8 @@ pydatetime_conform(pydatetimeObject *self, PyObject *args)
+ /* object member list */
+ 
+ static struct PyMemberDef pydatetimeObject_members[] = {
+-    {"adapted", T_OBJECT, offsetof(pydatetimeObject, wrapped), RO},
+-    {"type", T_INT, offsetof(pydatetimeObject, type), RO},
++    {"adapted", T_OBJECT, offsetof(pydatetimeObject, wrapped), READONLY},
++    {"type", T_INT, offsetof(pydatetimeObject, type), READONLY},
+     {NULL}
+ };
+ 
+@@ -159,7 +165,7 @@ pydatetime_dealloc(PyObject* obj)
+     Dprintf("mpydatetime_dealloc: deleted pydatetime object at %p, "
+             "refcnt = " FORMAT_CODE_PY_SSIZE_T, obj, obj->ob_refcnt);
+ 
+-    obj->ob_type->tp_free(obj);
++    Py_TYPE(obj)->tp_free(obj);
+ }
+ 
+ static int
+@@ -199,8 +205,7 @@ pydatetime_repr(pydatetimeObject *self)
+ "datetime(datetime, type) -> new datetime wrapper object"
+ 
+ PyTypeObject pydatetimeType = {
+-    PyObject_HEAD_INIT(NULL)
+-    0,
++    PyVarObject_HEAD_INIT(NULL, 0)
+     "psycopg2._psycopg.datetime",
+     sizeof(pydatetimeObject),
+     0,
+diff --git a/psycopg/adapter_list.c b/psycopg/adapter_list.c
+index 2d26c39..1d6b96d 100644
+--- a/psycopg/adapter_list.c
++++ b/psycopg/adapter_list.c
+@@ -22,7 +22,9 @@
+ #define PY_SSIZE_T_CLEAN
+ #include <Python.h>
+ #include <structmember.h>
++#if PY_MAJOR_VERSION < 3
+ #include <stringobject.h>
++#endif
+ 
+ #define PSYCOPG_MODULE
+ #include "psycopg/config.h"
+@@ -47,7 +49,7 @@ list_quote(listObject *self)
+ 
+     /* empty arrays are converted to NULLs (still searching for a way to
+        insert an empty array in postgresql */
+-    if (len == 0) return PyString_FromString("'{}'");
++    if (len == 0) return Text_FromUTF8("'{}'");
+ 
+     tmp = PyTuple_New(len);
+ 
+@@ -55,7 +57,7 @@ list_quote(listObject *self)
+         PyObject *quoted;
+     PyObject *wrapped = PyList_GET_ITEM(self->wrapped, i);
+     if (wrapped == Py_None)
+-        quoted = PyString_FromString("NULL");
++        quoted = Text_FromUTF8("NULL");
+     else
+         quoted = microprotocol_getquoted(wrapped,
+                                    (connectionObject*)self->connection);
+@@ -69,11 +71,15 @@ list_quote(listObject *self)
+ 
+     /* now that we have a tuple of adapted objects we just need to join them
+        and put "ARRAY[] around the result */
+-    str = PyString_FromString(", ");
++    str = Text_FromUTF8(", ");
+     joined = PyObject_CallMethod(str, "join", "(O)", tmp);
+     if (joined == NULL) goto error;
+-
++    
++    #if PY_MAJOR_VERSION < 3
+     res = PyString_FromFormat("ARRAY[%s]", PyString_AsString(joined));
++    #else
++    res = PyUnicode_FromFormat("ARRAY[%U]", joined);
++    #endif
+ 
+  error:
+     Py_XDECREF(tmp);
+@@ -137,7 +143,7 @@ list_conform(listObject *self, PyObject *args)
+ /* object member list */
+ 
+ static struct PyMemberDef listObject_members[] = {
+-    {"adapted", T_OBJECT, offsetof(listObject, wrapped), RO},
++    {"adapted", T_OBJECT, offsetof(listObject, wrapped), READONLY},
+     {NULL}
+ };
+ 
+@@ -201,14 +207,14 @@ list_dealloc(PyObject* obj)
+     Dprintf("list_dealloc: deleted list object at %p, "
+             "refcnt = " FORMAT_CODE_PY_SSIZE_T, obj, obj->ob_refcnt);
+ 
+-    obj->ob_type->tp_free(obj);
++    Py_TYPE(obj)->tp_free(obj);
+ }
+ 
+ static int
+ list_init(PyObject *obj, PyObject *args, PyObject *kwds)
+ {
+     PyObject *l;
+-    const char *enc = "latin-1"; /* default encoding as in Python */
++    const char *enc = "UTF8"; /* default encoding as in Python */
+ 
+     if (!PyArg_ParseTuple(args, "O|s", &l, &enc))
+         return -1;
+@@ -240,8 +246,7 @@ list_repr(listObject *self)
+ "List(list) -> new list wrapper object"
+ 
+ PyTypeObject listType = {
+-    PyObject_HEAD_INIT(NULL)
+-    0,
++    PyVarObject_HEAD_INIT(NULL, 0)
+     "psycopg2._psycopg.List",
+     sizeof(listObject),
+     0,
+@@ -307,7 +312,7 @@ PyObject *
+ psyco_List(PyObject *module, PyObject *args)
+ {
+     PyObject *str;
+-    const char *enc = "latin-1"; /* default encoding as in Python */
++    const char *enc = "UTF8"; /* default encoding as in Python */
+ 
+     if (!PyArg_ParseTuple(args, "O|s", &str, &enc))
+         return NULL;
+diff --git a/psycopg/adapter_mxdatetime.c b/psycopg/adapter_mxdatetime.c
+index 92b2181..61e8161 100644
+--- a/psycopg/adapter_mxdatetime.c
++++ b/psycopg/adapter_mxdatetime.c
+@@ -96,7 +96,7 @@ mxdatetime_str(mxdatetimeObject *self)
+         break;
+     }
+ 
+-    return PyString_FromString(buf);
++    return Text_FromUTF8(buf);
+ }
+ 
+ static PyObject *
+@@ -127,8 +127,8 @@ mxdatetime_conform(mxdatetimeObject *self, PyObject *args)
+ /* object member list */
+ 
+ static struct PyMemberDef mxdatetimeObject_members[] = {
+-    {"adapted", T_OBJECT, offsetof(mxdatetimeObject, wrapped), RO},
+-    {"type", T_INT, offsetof(mxdatetimeObject, type), RO},
++    {"adapted", T_OBJECT, offsetof(mxdatetimeObject, wrapped), READONLY},
++    {"type", T_INT, offsetof(mxdatetimeObject, type), READONLY},
+     {NULL}
+ };
+ 
+@@ -183,7 +183,7 @@ mxdatetime_dealloc(PyObject* obj)
+         obj, obj->ob_refcnt
+       );
+ 
+-    obj->ob_type->tp_free(obj);
++    Py_TYPE(obj)->tp_free(obj);
+ }
+ 
+ static int
+@@ -223,8 +223,7 @@ mxdatetime_repr(mxdatetimeObject *self)
+ "MxDateTime(mx, type) -> new mx.DateTime wrapper object"
+ 
+ PyTypeObject mxdatetimeType = {
+-    PyObject_HEAD_INIT(NULL)
+-    0,
++    PyVarObject_HEAD_INIT(NULL, 0)
+     "psycopg2._psycopg.MxDateTime",
+     sizeof(mxdatetimeObject),
+     0,
+diff --git a/psycopg/adapter_pboolean.c b/psycopg/adapter_pboolean.c
+index 1ce80dd..89b7970 100644
+--- a/psycopg/adapter_pboolean.c
++++ b/psycopg/adapter_pboolean.c
+@@ -22,7 +22,9 @@
+ #define PY_SSIZE_T_CLEAN
+ #include <Python.h>
+ #include <structmember.h>
++#if PY_MAJOR_VERSION < 3
+ #include <stringobject.h>
++#endif
+ #include <string.h>
+ 
+ #define PSYCOPG_MODULE
+@@ -40,17 +42,17 @@ pboolean_str(pbooleanObject *self)
+ {
+ #ifdef PSYCOPG_NEW_BOOLEAN
+     if (PyObject_IsTrue(self->wrapped)) {
+-        return PyString_FromString("true");
++        return Text_FromUTF8("true");
+     }
+     else {
+-        return PyString_FromString("false");
++        return Text_FromUTF8("false");
+     }
+ #else
+     if (PyObject_IsTrue(self->wrapped)) {
+-        return PyString_FromString("'t'");
++        return Text_FromUTF8("'t'");
+     }
+     else {
+-        return PyString_FromString("'f'");
++        return Text_FromUTF8("'f'");
+     }
+ #endif
+ }
+@@ -83,7 +85,7 @@ pboolean_conform(pbooleanObject *self, PyObject *args)
+ /* object member list */
+ 
+ static struct PyMemberDef pbooleanObject_members[] = {
+-    {"adapted", T_OBJECT, offsetof(pbooleanObject, wrapped), RO},
++    {"adapted", T_OBJECT, offsetof(pbooleanObject, wrapped), READONLY},
+     {NULL}
+ };
+ 
+@@ -137,7 +139,7 @@ pboolean_dealloc(PyObject* obj)
+         obj, obj->ob_refcnt
+       );
+ 
+-    obj->ob_type->tp_free(obj);
++    Py_TYPE(obj)->tp_free(obj);
+ }
+ 
+ static int
+@@ -177,8 +179,7 @@ pboolean_repr(pbooleanObject *self)
+ "Boolean(str) -> new Boolean adapter object"
+ 
+ PyTypeObject pbooleanType = {
+-    PyObject_HEAD_INIT(NULL)
+-    0,
++    PyVarObject_HEAD_INIT(NULL, 0)
+     "psycopg2._psycopg.Boolean",
+     sizeof(pbooleanObject),
+     0,
+diff --git a/psycopg/adapter_pfloat.c b/psycopg/adapter_pfloat.c
+index 10c05bd..569887b 100644
+--- a/psycopg/adapter_pfloat.c
++++ b/psycopg/adapter_pfloat.c
+@@ -40,9 +40,9 @@ pfloat_str(pfloatObject *self)
+ {
+     double n = PyFloat_AsDouble(self->wrapped);
+     if (isnan(n))
+-        return PyString_FromString("'NaN'::float");
++        return Text_FromUTF8("'NaN'::float");
+     else if (isinf(n))
+-        return PyString_FromString("'Infinity'::float");
++        return Text_FromUTF8("'Infinity'::float");
+     else
+         return PyObject_Str(self->wrapped);
+ }
+@@ -75,7 +75,7 @@ pfloat_conform(pfloatObject *self, PyObject *args)
+ /* object member list */
+ 
+ static struct PyMemberDef pfloatObject_members[] = {
+-    {"adapted", T_OBJECT, offsetof(pfloatObject, wrapped), RO},
++    {"adapted", T_OBJECT, offsetof(pfloatObject, wrapped), READONLY},
+     {NULL}
+ };
+ 
+@@ -129,7 +129,7 @@ pfloat_dealloc(PyObject* obj)
+         obj, obj->ob_refcnt
+       );
+ 
+-    obj->ob_type->tp_free(obj);
++    Py_TYPE(obj)->tp_free(obj);
+ }
+ 
+ static int
+@@ -169,8 +169,7 @@ pfloat_repr(pfloatObject *self)
+ "Float(str) -> new Float adapter object"
+ 
+ PyTypeObject pfloatType = {
+-    PyObject_HEAD_INIT(NULL)
+-    0,
++    PyVarObject_HEAD_INIT(NULL, 0)
+     "psycopg2._psycopg.Float",
+     sizeof(pfloatObject),
+     0,
+diff --git a/psycopg/adapter_qstring.c b/psycopg/adapter_qstring.c
+index 036ef40..a7172ce 100644
+--- a/psycopg/adapter_qstring.c
++++ b/psycopg/adapter_qstring.c
+@@ -22,7 +22,9 @@
+ #define PY_SSIZE_T_CLEAN
+ #include <Python.h>
+ #include <structmember.h>
++#if PY_MAJOR_VERSION < 3
+ #include <stringobject.h>
++#endif
+ 
+ #include <libpq-fe.h>
+ #include <string.h>
+@@ -56,10 +58,14 @@ qstring_quote(qstringObject *self)
+         /* note that enc is a borrowed reference */
+ 
+         if (enc) {
++	    #if PY_MAJOR_VERSION < 3
+             const char *s = PyString_AsString(enc);
+             Dprintf("qstring_quote: encoding unicode object to %s", s);
+             str = PyUnicode_AsEncodedString(self->wrapped, s, NULL);
+             Dprintf("qstring_quote: got encoded object at %p", str);
++	    #else
++	    str = PyObject_CallMethod(self->wrapped, "encode", "O", enc);
++	    #endif
+             if (str == NULL) return NULL;
+         }
+         else {
+@@ -70,6 +76,7 @@ qstring_quote(qstringObject *self)
+         }
+     }
+ 
++#if PY_MAJOR_VERSION < 3
+     /* if the wrapped object is a simple string, we don't know how to
+        (re)encode it, so we pass it as-is */
+     else if (PyString_Check(self->wrapped)) {
+@@ -77,6 +84,7 @@ qstring_quote(qstringObject *self)
+         /* INCREF to make it ref-wise identical to unicode one */
+         Py_INCREF(str);
+     }
++#endif
+ 
+     /* if the wrapped object is not a string, this is an error */
+     else {
+@@ -86,7 +94,7 @@ qstring_quote(qstringObject *self)
+     }
+ 
+     /* encode the string into buffer */
+-    PyString_AsStringAndSize(str, &s, &len);
++    Bytes_AsStringAndSize(str, &s, &len);
+ 
+     /* Call qstring_escape with the GIL released, then reacquire the GIL
+        before verifying that the results can fit into a Python string; raise
+@@ -110,7 +118,7 @@ qstring_quote(qstringObject *self)
+         return NULL;
+     }
+     
+-    self->buffer = PyString_FromStringAndSize(buffer, qlen);
++    self->buffer = Text_FromUTF8AndSize(buffer, qlen);
+     PyMem_Free(buffer);
+     Py_DECREF(str);
+ 
+@@ -183,9 +191,9 @@ qstring_conform(qstringObject *self, PyObject *args)
+ /* object member list */
+ 
+ static struct PyMemberDef qstringObject_members[] = {
+-    {"adapted", T_OBJECT, offsetof(qstringObject, wrapped), RO},
+-    {"buffer", T_OBJECT, offsetof(qstringObject, buffer), RO},
+-    {"encoding", T_STRING, offsetof(qstringObject, encoding), RO},
++    {"adapted", T_OBJECT, offsetof(qstringObject, wrapped), READONLY},
++    {"buffer", T_OBJECT, offsetof(qstringObject, buffer), READONLY},
++    {"encoding", T_STRING, offsetof(qstringObject, encoding), READONLY},
+     {NULL}
+ };
+ 
+@@ -253,14 +261,14 @@ qstring_dealloc(PyObject* obj)
+         obj, obj->ob_refcnt
+       );
+ 
+-    obj->ob_type->tp_free(obj);
++    Py_TYPE(obj)->tp_free(obj);
+ }
+ 
+ static int
+ qstring_init(PyObject *obj, PyObject *args, PyObject *kwds)
+ {
+     PyObject *str;
+-    const char *enc = "latin-1"; /* default encoding as in Python */
++    const char *enc = "UTF8"; /* default encoding as in Python */
+ 
+     if (!PyArg_ParseTuple(args, "O|s", &str, &enc))
+         return -1;
+@@ -293,8 +301,7 @@ qstring_repr(qstringObject *self)
+ "QuotedString(str, enc) -> new quoted object with 'enc' encoding"
+ 
+ PyTypeObject qstringType = {
+-    PyObject_HEAD_INIT(NULL)
+-    0,
++    PyVarObject_HEAD_INIT(NULL, 0)
+     "psycopg2._psycopg.QuotedString",
+     sizeof(qstringObject),
+     0,
+@@ -360,7 +367,7 @@ PyObject *
+ psyco_QuotedString(PyObject *module, PyObject *args)
+ {
+     PyObject *str;
+-    const char *enc = "latin-1"; /* default encoding as in Python */
++    const char *enc = "UTF8"; /* default encoding as in Python */
+ 
+     if (!PyArg_ParseTuple(args, "O|s", &str, &enc))
+         return NULL;
+diff --git a/psycopg/connection_int.c b/psycopg/connection_int.c
+index a2eda87..56483d4 100644
+--- a/psycopg/connection_int.c
++++ b/psycopg/connection_int.c
+@@ -20,7 +20,7 @@
+  */
+ 
+ #define PY_SSIZE_T_CLEAN
+-#include <Python.h>
++#include <psycopg/python.h>
+ #include <string.h>
+ 
+ #define PSYCOPG_MODULE
+@@ -46,7 +46,8 @@ conn_notice_callback(void *args, const char *message)
+     if (self->protocol < 3 && strncmp(message, "ERROR", 5) == 0)
+         pq_set_critical(self, message);
+     else {
+-        PyObject *msg = PyString_FromString(message);
++	/* XXX is this guaranteed to be ASCII/UTF-8? */
++        PyObject *msg = Text_FromUTF8(message);
+ 
+         PyList_Append(self->notice_list, msg);
+         Py_DECREF(msg);
+diff --git a/psycopg/connection_type.c b/psycopg/connection_type.c
+index 8b4213c..3c6707b 100644
+--- a/psycopg/connection_type.c
++++ b/psycopg/connection_type.c
+@@ -22,7 +22,9 @@
+ #define PY_SSIZE_T_CLEAN
+ #include <Python.h>
+ #include <structmember.h>
++#if PY_MAJOR_VERSION < 3
+ #include <stringobject.h>
++#endif
+ 
+ #include <string.h>
+ #include <ctype.h>
+@@ -365,23 +367,23 @@ static struct PyMethodDef connectionObject_methods[] = {
+ 
+ static struct PyMemberDef connectionObject_members[] = {
+ #ifdef PSYCOPG_EXTENSIONS
+-    {"closed", T_LONG, offsetof(connectionObject, closed), RO,
++    {"closed", T_LONG, offsetof(connectionObject, closed), READONLY,
+         "True if the connection is closed."},
+     {"isolation_level", T_LONG,
+-        offsetof(connectionObject, isolation_level), RO,
++        offsetof(connectionObject, isolation_level), READONLY,
+         "The current isolation level."},
+-    {"encoding", T_STRING, offsetof(connectionObject, encoding), RO,
++    {"encoding", T_STRING, offsetof(connectionObject, encoding), READONLY,
+         "The current client encoding."},
+-    {"notices", T_OBJECT, offsetof(connectionObject, notice_list), RO},
+-    {"notifies", T_OBJECT, offsetof(connectionObject, notifies), RO},
+-    {"dsn", T_STRING, offsetof(connectionObject, dsn), RO,
++    {"notices", T_OBJECT, offsetof(connectionObject, notice_list), READONLY},
++    {"notifies", T_OBJECT, offsetof(connectionObject, notifies), READONLY},
++    {"dsn", T_STRING, offsetof(connectionObject, dsn), READONLY,
+         "The current connection string."},
+     {"status", T_INT,
+-        offsetof(connectionObject, status), RO,
++        offsetof(connectionObject, status), READONLY,
+         "The current transaction status."},
+-    {"string_types", T_OBJECT, offsetof(connectionObject, string_types), RO,
++    {"string_types", T_OBJECT, offsetof(connectionObject, string_types), READONLY,
+         "A set of typecasters to convert textual values."},
+-    {"binary_types", T_OBJECT, offsetof(connectionObject, binary_types), RO,
++    {"binary_types", T_OBJECT, offsetof(connectionObject, binary_types), READONLY,
+         "A set of typecasters to convert binary values."},
+ #endif
+     {NULL}
+@@ -479,7 +481,7 @@ connection_dealloc(PyObject* obj)
+         obj, obj->ob_refcnt
+       );
+ 
+-    obj->ob_type->tp_free(obj);
++    Py_TYPE(obj)->tp_free(obj);
+ }
+ 
+ static int
+@@ -536,8 +538,7 @@ connection_traverse(connectionObject *self, visitproc visit, void *arg)
+ "    ProgrammingError, IntegrityError, DataError, NotSupportedError"
+ 
+ PyTypeObject connectionType = {
+-    PyObject_HEAD_INIT(NULL)
+-    0,
++    PyVarObject_HEAD_INIT(NULL, 0)
+     "psycopg2._psycopg.connection",
+     sizeof(connectionObject),
+     0,
+diff --git a/psycopg/cursor_type.c b/psycopg/cursor_type.c
+index 586de89..5bd1fab 100644
+--- a/psycopg/cursor_type.c
++++ b/psycopg/cursor_type.c
+@@ -20,7 +20,7 @@
+  */
+ 
+ #define PY_SSIZE_T_CLEAN
+-#include <Python.h>
++#include "psycopg/python.h"
+ #include <structmember.h>
+ #include <string.h>
+ 
+@@ -39,6 +39,31 @@
+ 
+ extern PyObject *pyPsycopgTzFixedOffsetTimezone;
+ 
++static PyObject*
++encode_to_connection(cursorObject *self, PyObject *text)
++{
++    PyObject *enc = PyDict_GetItemString(psycoEncodings,
++					 self->conn->encoding);
++    /* enc is a borrowed reference; we won't decref it */
++    
++    if (enc) {
++        #if PY_MAJOR_VERSION < 3
++	text = PyUnicode_AsEncodedString(text, PyString_AsString(enc), NULL);
++        #else
++	text = PyObject_CallMethod(text, "encode", "O", enc);
++        #endif
++	/* if there was an error during the encoding from unicode to the
++	   target encoding, we just let the exception propagate */
++	if (text == NULL) { return NULL; }
++    } else {
++	PyErr_Format(InterfaceError,
++		     "can't encode unicode SQL statement to %s",
++		     self->conn->encoding);
++	return NULL;
++    }
++    return text;
++}
++
+ 
+ /** DBAPI methods **/
+ 
+@@ -86,7 +111,7 @@ _mogrify(PyObject *var, PyObject *fmt, connectionObject *conn, PyObject **new)
+        just before returning. we also init *new to NULL to exit with an error
+        if we can't complete the mogrification */
+     n = *new = NULL;
+-    c = PyString_AsString(fmt);
++    c = Bytes_AsString(fmt);
+ 
+     while(*c) {
+         /* handle plain percent symbol in format string */
+@@ -115,7 +140,7 @@ _mogrify(PyObject *var, PyObject *fmt, connectionObject *conn, PyObject **new)
+             for (d = c + 2; *d && *d != ')'; d++);
+ 
+             if (*d == ')') {
+-                key = PyString_FromStringAndSize(c+2, (Py_ssize_t) (d-c-2));
++                key = Text_FromUTF8AndSize(c+2, (Py_ssize_t) (d-c-2));
+                 value = PyObject_GetItem(var, key);
+                 /* key has refcnt 1, value the original value + 1 */
+ 
+@@ -143,7 +168,7 @@ _mogrify(PyObject *var, PyObject *fmt, connectionObject *conn, PyObject **new)
+                        optimization over the adapting code and can go away in
+                        the future if somebody finds a None adapter usefull. */
+                     if (value == Py_None) {
+-                        t = PyString_FromString("NULL");
++                        t = Text_FromUTF8("NULL");
+                         PyDict_SetItem(n, key, t);
+                         /* t is a new object, refcnt = 1, key is at 2 */
+ 
+@@ -219,7 +244,7 @@ _mogrify(PyObject *var, PyObject *fmt, connectionObject *conn, PyObject **new)
+             d = c+1;
+ 
+             if (value == Py_None) {
+-                PyTuple_SET_ITEM(n, index, PyString_FromString("NULL"));
++                PyTuple_SET_ITEM(n, index, Text_FromUTF8("NULL"));
+                 while (*d && !isalpha(*d)) d++;
+                 if (*d) *d = 's';
+                 Py_DECREF(value);
+@@ -266,27 +291,22 @@ static PyObject *_psyco_curs_validate_sql_basic(
+         goto fail;
+     }
+ 
++#if PY_MAJOR_VERSION < 3
+     if (PyString_Check(sql)) {
+         /* Necessary for ref-count symmetry with the unicode case: */
+         Py_INCREF(sql);
+     }
+-    else if (PyUnicode_Check(sql)) {
+-        PyObject *enc = PyDict_GetItemString(psycoEncodings,
+-                                             self->conn->encoding);
+-        /* enc is a borrowed reference; we won't decref it */
+-
+-        if (enc) {
+-            sql = PyUnicode_AsEncodedString(sql, PyString_AsString(enc), NULL);
+-            /* if there was an error during the encoding from unicode to the
+-               target encoding, we just let the exception propagate */
+-            if (sql == NULL) { goto fail; }
+-        } else {
+-            PyErr_Format(InterfaceError,
+-                         "can't encode unicode SQL statement to %s",
+-                         self->conn->encoding);
+-            goto fail;
+-        }
++    else 
++    if (PyUnicode_Check(sql)) {
++	sql = encode_to_connection(self, sql);
++	if (!sql)
++	    goto fail;
++    }
++#else
++    if (PyUnicode_Check(sql)) {
++	Py_INCREF(sql);
+     }
++#endif
+     else {
+         /* the  is not unicode or string, raise an error */
+         PyErr_SetString(PyExc_TypeError,
+@@ -344,7 +364,19 @@ _psyco_curs_execute(cursorObject *self,
+ 
+     if (vars && vars != Py_None)
+     {
+-        if(_mogrify(vars, operation, self->conn, &cvt) == -1) { goto fail; }
++	PyObject *operation_ascii;
++	int result;
++	if (Bytes_Check(operation)) {
++	    operation_ascii = operation;
++	    Py_INCREF(operation);
++	} else
++	    operation_ascii = PyUnicode_AsEncodedString(operation, "ascii",
++							NULL);
++	if (!operation_ascii)
++	    goto fail;
++	result = _mogrify(vars, operation_ascii, self->conn, &cvt);
++	Py_DECREF(operation_ascii);
++        if(result == -1) { goto fail; }
+     }
+ 
+     if (vars && cvt) {
+@@ -358,8 +390,13 @@ _psyco_curs_execute(cursorObject *self,
+            and return the appropriate ProgrammingError. we do that by grabbing
+            the curren exception (we will later restore it if the type or the
+            strings do not match.) */
++	#if PY_MAJOR_VERSION < 3
++	fquery = PyString_Format(operation, cvt);
++	#else
++	fquery = PyUnicode_Format(operation, cvt);
++	#endif
+ 
+-        if (!(fquery = PyString_Format(operation, cvt))) {
++        if (!fquery) {
+             PyObject *err, *arg, *trace;
+             int pe = 0;
+ 
+@@ -372,7 +409,18 @@ _psyco_curs_execute(cursorObject *self,
+                 if (PyObject_HasAttrString(arg, "args")) {
+                     PyObject *args = PyObject_GetAttrString(arg, "args");
+                     PyObject *str = PySequence_GetItem(args, 0);
+-                    const char *s = PyString_AS_STRING(str);
++		    #if PY_MAJOR_VERSION > 2
++		    PyObject *str_ascii = PyUnicode_AsEncodedString(str,
++								    "ascii",
++								    NULL);
++		    Py_DECREF(str);
++		    if (!str_ascii) {
++			Py_DECREF(args);
++			goto fail;
++		    }
++		    str = str_ascii;
++		    #endif
++                    const char *s = Bytes_AS_STRING(str);
+ 
+                     Dprintf("psyco_curs_execute:     -> %s", s);
+ 
+@@ -400,9 +448,15 @@ _psyco_curs_execute(cursorObject *self,
+         }
+ 
+         if (self->name != NULL) {
++	    #if PY_MAJOR_VERSION < 3
+             self->query = PyString_FromFormat(
+                 "DECLARE %s CURSOR WITHOUT HOLD FOR %s",
+                 self->name, PyString_AS_STRING(fquery));
++	    #else
++            self->query = PyUnicode_FromFormat(
++                "DECLARE %s CURSOR WITHOUT HOLD FOR %U",
++                self->name, fquery);
++	    #endif
+             Py_DECREF(fquery);
+         }
+         else {
+@@ -411,9 +465,15 @@ _psyco_curs_execute(cursorObject *self,
+     }
+     else {
+         if (self->name != NULL) {
++	    #if PY_MAJOR_VERSION < 3
+             self->query = PyString_FromFormat(
+                 "DECLARE %s CURSOR WITHOUT HOLD FOR %s",
+                 self->name, PyString_AS_STRING(operation));
++	    #else
++            self->query = PyUnicode_FromFormat(
++                "DECLARE %s CURSOR WITHOUT HOLD FOR %U",
++                self->name, operation);
++	    #endif
+         }
+         else {
+             /* Transfer reference ownership of the str in operation to
+@@ -424,9 +484,14 @@ _psyco_curs_execute(cursorObject *self,
+         }
+     }
+ 
+-    /* At this point, the SQL statement must be str, not unicode */
++    if (PyUnicode_Check(self->query)) {
++	PyObject *query_conn = encode_to_connection(self, self->query);
++	if (!query_conn) goto fail;
++	Py_DECREF(self->query);
++	self->query = query_conn;
++    }
+     
+-    res = pq_execute(self, PyString_AS_STRING(self->query), async);
++    res = pq_execute(self, Bytes_AS_STRING(self->query), async);
+     Dprintf("psyco_curs_execute: res = %d, pgres = %p", res, self->pgres);
+     if (res == -1) { goto fail; }
+ 
+@@ -554,6 +619,7 @@ psyco_curs_mogrify(cursorObject *self, PyObject *args, PyObject *kwargs)
+ {
+     PyObject *vars = NULL, *cvt = NULL, *operation = NULL;
+     PyObject *fquery;
++    PyObject *operation_ascii;
+ 
+     static char *kwlist[] = {"query", "vars", NULL};
+ 
+@@ -563,10 +629,21 @@ psyco_curs_mogrify(cursorObject *self, PyObject *args, PyObject *kwargs)
+     }
+ 
+     if (PyUnicode_Check(operation)) {
+-        PyErr_SetString(NotSupportedError,
+-                        "unicode queries not yet supported");
+-        return NULL;
++	operation_ascii = PyUnicode_AsEncodedString(operation, "ascii", NULL);
++	if (!operation_ascii)
++	    return NULL;
++    }
++#if PY_MAJOR_VERSION < 3
++    else if (PyString_Check(operation)) {
++	Py_INCREF(operation);
++	operation_ascii = operation;
++    } 
++#endif
++    else {
++	PyErr_SetString(PyExc_TypeError, "query must be a string");
++	return NULL;
+     }
++	
+ 
+     EXC_IF_CURS_CLOSED(self);
+     IFCLEARPGRES(self->pgres);
+@@ -579,11 +656,21 @@ psyco_curs_mogrify(cursorObject *self, PyObject *args, PyObject *kwargs)
+ 
+     if (vars)
+     {
+-        if(_mogrify(vars, operation, self->conn, &cvt) == -1) return NULL;
++        if(_mogrify(vars, operation_ascii, self->conn, &cvt) == -1) return NULL;
+     }
+ 
++    Py_DECREF(operation_ascii);
++
+     if (vars && cvt) {
+-        if (!(fquery = PyString_Format(operation, cvt))) {
++#if PY_MAJOR_VERSION < 3
++	if (PyUnicode_Check(operation))
++	    fquery = PyUnicode_Format(operation, cvt);
++	else
++	    fquery = PyString_Format(operation, cvt);
++#else
++	fquery = PyUnicode_Format(operation, cvt);
++#endif
++        if (!fquery) {
+             PyObject *err, *arg, *trace;
+             int pe = 0;
+ 
+@@ -596,7 +683,20 @@ psyco_curs_mogrify(cursorObject *self, PyObject *args, PyObject *kwargs)
+                 if (PyObject_HasAttrString(arg, "args")) {
+                     PyObject *args = PyObject_GetAttrString(arg, "args");
+                     PyObject *str = PySequence_GetItem(args, 0);
+-                    const char *s = PyString_AS_STRING(str);
++                    const char *s;
++		    #if PY_MAJOR_VERSION > 2
++		    PyObject *str_ascii = PyUnicode_AsEncodedString(str,
++								    "ascii",
++								    NULL);
++		    Py_DECREF(str);
++		    if (!str_ascii) {
++			Py_DECREF(args);
++			return NULL;
++		    }
++		    str = str_ascii;
++		    #endif
++		    
++		    s = Bytes_AS_STRING(str);
+ 
+                     Dprintf("psyco_curs_execute:     -> %s", s);
+ 
+@@ -983,8 +1083,10 @@ psyco_curs_callproc(cursorObject *self, PyObject *args, PyObject *kwargs)
+     sql[sl-2] = ')';
+     sql[sl-1] = '\0';
+ 
+-    operation = PyString_FromString(sql);
++    operation = Text_FromUTF8(sql);
+     PyMem_Free((void*)sql);
++    if (!operation)
++	return NULL;
+ 
+     if (_psyco_curs_execute(self, operation, parameters, async)) {
+         Py_INCREF(parameters);
+@@ -1140,14 +1242,27 @@ static int _psyco_curs_copy_columns(PyObject *columns, char *columnlist)
+     columnlist[0] = '(';
+ 
+     while ((col = PyIter_Next(coliter)) != NULL) {
+-        if (!PyString_Check(col)) {
++        if (!Text_Check(col)) {
+             Py_DECREF(col);
+             Py_DECREF(coliter);
+             PyErr_SetString(PyExc_ValueError,
+                 "elements in column list must be strings");
+             return -1;
+         }
+-        PyString_AsStringAndSize(col, &colname, &collen);
++	#if PY_MAJOR_VERSION > 2
++	{
++	    PyObject* col_ascii = PyObject_CallMethod(col, "encode",
++						      "s", "ascii");
++	    if (!col_ascii) {
++		Py_DECREF(col);
++		Py_DECREF(coliter);
++		return -1;
++	    }
++	    Py_DECREF(col);
++	    col = col_ascii;
++	}
++	#endif
++        Bytes_AsStringAndSize(col, &colname, &collen);
+         if (offset + collen > DEFAULT_COPYBUFF - 2) {
+             Py_DECREF(col);
+             Py_DECREF(coliter);
+@@ -1435,8 +1550,14 @@ psyco_curs_copy_expert(cursorObject *self, PyObject *args, PyObject *kwargs)
+     self->copysize = bufsize;
+     self->copyfile = file;
+ 
+-    /* At this point, the SQL statement must be str, not unicode */
+-    if (pq_execute(self, PyString_AS_STRING(sql), 0) != 1) { goto fail; }
++    if (PyUnicode_Check(sql)) {
++	PyObject *sql_ascii = PyObject_CallMethod(sql, "encode", "s", "ascii");
++	if (!sql_ascii) goto fail;
++	Py_DECREF(sql);
++	sql = sql_ascii;
++    }
++
++    if (pq_execute(self, Bytes_AS_STRING(sql), 0) != 1) { goto fail; }
+ 
+     res = Py_None;
+     Py_INCREF(res);
+@@ -1617,29 +1738,29 @@ static struct PyMethodDef cursorObject_methods[] = {
+ 
+ static struct PyMemberDef cursorObject_members[] = {
+     /* DBAPI-2.0 basics */
+-    {"rowcount", T_LONG, OFFSETOF(rowcount), RO,
++    {"rowcount", T_LONG, OFFSETOF(rowcount), READONLY,
+         "Number of rows read from the backend in the last command."},
+     {"arraysize", T_LONG, OFFSETOF(arraysize), 0,
+         "Number of records `fetchmany()` must fetch if not explicitely " \
+         "specified."},
+-    {"description", T_OBJECT, OFFSETOF(description), RO,
++    {"description", T_OBJECT, OFFSETOF(description), READONLY,
+         "Cursor description as defined in DBAPI-2.0."},
+-    {"lastrowid", T_LONG, OFFSETOF(lastoid), RO,
++    {"lastrowid", T_LONG, OFFSETOF(lastoid), READONLY,
+         "The ``oid`` of the last row inserted by the cursor."},
+     /* DBAPI-2.0 extensions */
+-    {"rownumber", T_LONG, OFFSETOF(row), RO,
++    {"rownumber", T_LONG, OFFSETOF(row), READONLY,
+         "The current row position."},
+-    {"connection", T_OBJECT, OFFSETOF(conn), RO,
++    {"connection", T_OBJECT, OFFSETOF(conn), READONLY,
+         "The connection where the cursor comes from."},
+ #ifdef PSYCOPG_EXTENSIONS
+-    {"name", T_STRING, OFFSETOF(name), RO},
+-    {"statusmessage", T_OBJECT, OFFSETOF(pgstatus), RO,
++    {"name", T_STRING, OFFSETOF(name), READONLY},
++    {"statusmessage", T_OBJECT, OFFSETOF(pgstatus), READONLY,
+         "The return message of the last command."},
+-    {"query", T_OBJECT, OFFSETOF(query), RO,
++    {"query", T_OBJECT, OFFSETOF(query), READONLY,
+         "The last query text sent to the backend."},
+     {"row_factory", T_OBJECT, OFFSETOF(tuple_factory), 0},
+     {"tzinfo_factory", T_OBJECT, OFFSETOF(tzinfo_factory), 0},
+-    {"typecaster", T_OBJECT, OFFSETOF(caster), RO},
++    {"typecaster", T_OBJECT, OFFSETOF(caster), READONLY},
+     {"string_types", T_OBJECT, OFFSETOF(string_types), 0},
+     {"binary_types", T_OBJECT, OFFSETOF(binary_types), 0},
+ #endif
+@@ -1737,7 +1858,7 @@ cursor_dealloc(PyObject* obj)
+         obj, obj->ob_refcnt
+       );
+ 
+-    obj->ob_type->tp_free(obj);
++    Py_TYPE(obj)->tp_free(obj);
+ }
+ 
+ static int
+@@ -1795,8 +1916,7 @@ cursor_traverse(cursorObject *self, visitproc visit, void *arg)
+ "A database cursor."
+ 
+ PyTypeObject cursorType = {
+-    PyObject_HEAD_INIT(NULL)
+-    0,
++    PyVarObject_HEAD_INIT(NULL, 0)
+     "psycopg2._psycopg.cursor",
+     sizeof(cursorObject),
+     0,
+diff --git a/psycopg/lobject_type.c b/psycopg/lobject_type.c
+index ac2df91..6c29ef9 100644
+--- a/psycopg/lobject_type.c
++++ b/psycopg/lobject_type.c
+@@ -121,7 +121,7 @@ psyco_lobj_read(lobjectObject *self, PyObject *args)
+         return NULL;
+     }
+ 
+-    res = PyString_FromStringAndSize(buffer, size);
++    res = Bytes_FromStringAndSize(buffer, size);
+     PyMem_Free(buffer);
+     
+     return res;
+@@ -249,9 +249,9 @@ static struct PyMethodDef lobjectObject_methods[] = {
+ /* object member list */
+ 
+ static struct PyMemberDef lobjectObject_members[] = {
+-    {"oid", T_UINT, offsetof(lobjectObject, oid), RO,
++    {"oid", T_UINT, offsetof(lobjectObject, oid), READONLY,
+         "The backend OID associated to this lobject."},
+-    {"mode", T_STRING, offsetof(lobjectObject, smode), RO,
++    {"mode", T_STRING, offsetof(lobjectObject, smode), READONLY,
+         "Open mode ('r', 'w', 'rw' or 'n')."},
+     {NULL}
+ };
+@@ -307,7 +307,7 @@ lobject_dealloc(PyObject* obj)
+     Dprintf("lobject_dealloc: deleted lobject object at %p, refcnt = "
+             FORMAT_CODE_PY_SSIZE_T, obj, obj->ob_refcnt);
+ 
+-    obj->ob_type->tp_free(obj);
++    Py_TYPE(obj)->tp_free(obj);
+ }
+ 
+ static int
+@@ -352,8 +352,7 @@ lobject_repr(lobjectObject *self)
+ "A database large object."
+ 
+ PyTypeObject lobjectType = {
+-    PyObject_HEAD_INIT(NULL)
+-    0,
++    PyVarObject_HEAD_INIT(NULL, 0)
+     "psycopg2._psycopg.lobject",
+     sizeof(lobjectObject),
+     0,
+diff --git a/psycopg/microprotocols.c b/psycopg/microprotocols.c
+index f451e7e..a75d5b7 100644
+--- a/psycopg/microprotocols.c
++++ b/psycopg/microprotocols.c
+@@ -82,12 +82,12 @@ microprotocols_adapt(PyObject *obj, PyObject *proto, PyObject *alt)
+     /* None is always adapted to NULL */
+     
+     if (obj == Py_None)
+-        return PyString_FromString("NULL");
++        return Text_FromUTF8("NULL");
+ 
+-    Dprintf("microprotocols_adapt: trying to adapt %s", obj->ob_type->tp_name);
++    Dprintf("microprotocols_adapt: trying to adapt %s", Py_TYPE(obj)->tp_name);
+ 
+     /* look for an adapter in the registry */
+-    key = Py_BuildValue("(OO)", (PyObject*)obj->ob_type, proto);
++    key = Py_BuildValue("(OO)", (PyObject*)Py_TYPE(obj), proto);
+     adapter = PyDict_GetItem(psyco_adapters, key);
+     Py_DECREF(key);
+     if (adapter) {
+@@ -129,7 +129,7 @@ microprotocol_getquoted(PyObject *obj, connectionObject *conn)
+ 
+     if (tmp != NULL) {
+         Dprintf("microprotocol_getquoted: adapted to %s",
+-                tmp->ob_type->tp_name);
++                Py_TYPE(tmp)->tp_name);
+ 
+         /* if requested prepare the object passing it the connection */
+         if (PyObject_HasAttrString(tmp, "prepare") && conn) {
+diff --git a/psycopg/microprotocols_proto.c b/psycopg/microprotocols_proto.c
+index 7acef18..f098c9b 100644
+--- a/psycopg/microprotocols_proto.c
++++ b/psycopg/microprotocols_proto.c
+@@ -22,7 +22,9 @@
+ #define PY_SSIZE_T_CLEAN
+ #include <Python.h>
+ #include <structmember.h>
++#if PY_MAJOR_VERSION < 3
+ #include <stringobject.h>
++#endif
+ 
+ #include <string.h>
+ 
+@@ -101,7 +103,7 @@ static struct PyMethodDef isqlquoteObject_methods[] = {
+ 
+ static struct PyMemberDef isqlquoteObject_members[] = {
+     /* DBAPI-2.0 extensions (exception objects) */
+-    {"_wrapped", T_OBJECT, offsetof(isqlquoteObject, wrapped), RO},
++    {"_wrapped", T_OBJECT, offsetof(isqlquoteObject, wrapped), READONLY},
+     {NULL}
+ };
+ 
+@@ -123,7 +125,7 @@ isqlquote_dealloc(PyObject* obj)
+ 
+     Py_XDECREF(self->wrapped);
+ 
+-    obj->ob_type->tp_free(obj);
++    Py_TYPE(obj)->tp_free(obj);
+ }
+ 
+ static int
+@@ -158,8 +160,7 @@ isqlquote_del(PyObject* self)
+ "returning the SQL representation of the object.\n\n"
+ 
+ PyTypeObject isqlquoteType = {
+-    PyObject_HEAD_INIT(NULL)
+-    0,
++    PyVarObject_HEAD_INIT(NULL, 0)
+     "psycopg2._psycopg.ISQLQuote",
+     sizeof(isqlquoteObject),
+     0,
+diff --git a/psycopg/pqpath.c b/psycopg/pqpath.c
+index 8b6633b..96576ab 100644
+--- a/psycopg/pqpath.c
++++ b/psycopg/pqpath.c
+@@ -533,7 +533,8 @@ pq_is_busy(connectionObject *conn)
+         Py_BLOCK_THREADS;
+         notify = PyTuple_New(2);
+         PyTuple_SET_ITEM(notify, 0, PyInt_FromLong((long)pgn->be_pid));
+-        PyTuple_SET_ITEM(notify, 1, PyString_FromString(pgn->relname));
++	/* XXX guaranteed to be ASCII or UTF-8? */
++        PyTuple_SET_ITEM(notify, 1, Text_FromUTF8(pgn->relname));
+         PyList_Append(conn->notifies, notify);
+         Py_UNBLOCK_THREADS;
+         free(pgn);
+@@ -740,15 +741,13 @@ _pq_fetch_tuples(cursorObject *curs)
+             cast = psyco_default_cast;
+         }
+ 
+-        Dprintf("_pq_fetch_tuples: using cast at %p (%s) for type %d",
+-                cast, PyString_AS_STRING(((typecastObject*)cast)->name),
+-                PQftype(curs->pgres,i));
+         Py_INCREF(cast);
+         PyTuple_SET_ITEM(curs->casts, i, cast);
+ 
+         /* 1/ fill the other fields */
+         PyTuple_SET_ITEM(dtitem, 0,
+-                         PyString_FromString(PQfname(curs->pgres, i)));
++			 /* XXX guaranteed to be ASCII/UTF8? */
++                         Text_FromUTF8(PQfname(curs->pgres, i)));
+         PyTuple_SET_ITEM(dtitem, 1, type);
+ 
+         /* 2/ display size is the maximum size of this field result tuples. */
+@@ -818,13 +817,14 @@ _pq_copy_in_v3(cursorObject *curs)
+     while (1) {
+         o = PyObject_CallMethod(curs->copyfile, "read",
+             CONV_CODE_PY_SSIZE_T, curs->copysize);
+-        if (!o || !PyString_Check(o) || (length = PyString_Size(o)) == -1) {
++	
++        if (!o || !Bytes_Check(o) || (length = Bytes_Size(o)) == -1) {
+             error = 1;
+         }
+         if (length == 0 || length > INT_MAX || error == 1) break;
+ 
+         Py_BEGIN_ALLOW_THREADS;
+-        res = PQputCopyData(curs->conn->pgconn, PyString_AS_STRING(o),
++        res = PQputCopyData(curs->conn->pgconn, Bytes_AS_STRING(o),
+             /* Py_ssize_t->int cast was validated above */
+             (int) length);
+         Dprintf("_pq_copy_in_v3: sent %d bytes of data; res = %d",
+@@ -895,8 +895,14 @@ _pq_copy_in(cursorObject *curs)
+     while (1) {
+         o = PyObject_CallMethod(curs->copyfile, "readline", NULL);
+         if (o == NULL) return -1;
+-        if (o == Py_None || PyString_GET_SIZE(o) == 0) break;
+-        if (PQputline(curs->conn->pgconn, PyString_AS_STRING(o)) != 0) {
++	if (Py_TYPE(o) != &BytesType) {
++	    PyErr_Format(PyExc_TypeError, "readline returned %.200s, not %.200s",
++			 Py_TYPE(o)->tp_name, BytesType.tp_name);
++	    Py_DECREF(o);
++	    return -1;
++	}
++        if (o == Py_None || Bytes_GET_SIZE(o) == 0) break;
++        if (PQputline(curs->conn->pgconn, Bytes_AS_STRING(o)) != 0) {
+             Py_DECREF(o);
+             return -1;
+         }
+@@ -1089,7 +1095,8 @@ pq_fetch(cursorObject *curs)
+ 
+     /* backend status message */
+     Py_XDECREF(curs->pgstatus);
+-    curs->pgstatus = PyString_FromString(PQcmdStatus(curs->pgres));
++    /* XXX guaranteed to be ASCII/UTF8? */
++    curs->pgstatus = Text_FromUTF8(PQcmdStatus(curs->pgres));
+ 
+     switch(pgstatus) {
+ 
+diff --git a/psycopg/psycopgmodule.c b/psycopg/psycopgmodule.c
+index 29974a2..956cb31 100644
+--- a/psycopg/psycopgmodule.c
++++ b/psycopg/psycopgmodule.c
+@@ -124,6 +124,7 @@ psyco_connect(PyObject *self, PyObject *args, PyObject *keywds)
+         return NULL;
+     }
+ 
++#if PY_MAJOR_VERSION < 3
+     if (pyport && PyString_Check(pyport)) {
+       PyObject *pyint = PyInt_FromString(PyString_AsString(pyport), NULL, 10);
+       if (!pyint) goto fail;
+@@ -135,6 +136,22 @@ psyco_connect(PyObject *self, PyObject *args, PyObject *keywds)
+     else if (pyport && PyInt_Check(pyport)) {
+       iport = PyInt_AsLong(pyport);
+     }
++#else
++    if (pyport && PyUnicode_Check(pyport)) {
++	PyObject *pyint = PyObject_CallFunction((PyObject*)&PyLong_Type, 
++						"Oi", pyport, 10);
++      if (!pyint) goto fail;
++      iport = PyLong_AsLong(pyint);
++      Py_DECREF(pyint);
++      if (iport == -1 && PyErr_Occurred())
++	  goto fail;
++    }
++    else if (pyport && PyLong_Check(pyport)) {
++      iport = PyLong_AsLong(pyport);
++      if (iport == -1 && PyErr_Occurred())
++	  goto fail;
++    }
++#endif
+     else if (pyport != NULL) {
+       PyErr_SetString(PyExc_TypeError, "port must be a string or int");
+       goto fail;
+@@ -274,13 +291,23 @@ psyco_adapters_init(PyObject *mod)
+     PyObject *call;
+ 
+     microprotocols_add(&PyFloat_Type, NULL, (PyObject*)&pfloatType);
++#if PY_MAJOR_VERSION < 3
+     microprotocols_add(&PyInt_Type, NULL, (PyObject*)&asisType);
++#endif
+     microprotocols_add(&PyLong_Type, NULL, (PyObject*)&asisType);
+     microprotocols_add(&PyBool_Type, NULL, (PyObject*)&pbooleanType);
+ 
++#if PY_MAJOR_VERSION < 3
+     microprotocols_add(&PyString_Type, NULL, (PyObject*)&qstringType);
++#endif
+     microprotocols_add(&PyUnicode_Type, NULL, (PyObject*)&qstringType);
++#if PY_MAJOR_VERSION < 3
+     microprotocols_add(&PyBuffer_Type, NULL, (PyObject*)&binaryType);
++#else
++    microprotocols_add(&PyBytes_Type, NULL, (PyObject*)&binaryType);
++    microprotocols_add(&PyByteArray_Type, NULL, (PyObject*)&binaryType);
++    microprotocols_add(&PyMemoryView_Type, NULL, (PyObject*)&binaryType);
++#endif
+     microprotocols_add(&PyList_Type, NULL, (PyObject*)&listType);
+     microprotocols_add((PyTypeObject*)psyco_GetDecimalType(),
+                        NULL, (PyObject*)&asisType);
+@@ -386,7 +413,7 @@ static void psyco_encodings_fill(PyObject *dict)
+     encodingPair *enc;
+ 
+     for (enc = encodings; enc->pgenc != NULL; enc++) {
+-        PyObject *value = PyString_FromString(enc->pyenc);
++        PyObject *value = Text_FromUTF8(enc->pyenc);
+         PyDict_SetItemString(dict, enc->pgenc, value);
+         Py_DECREF(value);
+     }
+@@ -451,12 +478,18 @@ psyco_errors_init(void)
+         dict = PyDict_New();
+ 
+         if (exctable[i].docstr) {
+-            str = PyString_FromString(exctable[i].docstr);
++            str = Text_FromUTF8(exctable[i].docstr);
+             PyDict_SetItemString(dict, "__doc__", str);
+         }
+ 
+-        if (exctable[i].base == 0)
++        if (exctable[i].base == 0) {
++	    #if PY_MAJOR_VERSION < 3
+             base = PyExc_StandardError;
++	    #else
++	    /* StandardError is gone in 3.0 */
++	    base = NULL;
++	    #endif
++	}
+         else
+             base = *exctable[i].base;
+ 
+@@ -525,13 +558,16 @@ psyco_set_error(PyObject *exc, PyObject *curs, const char *msg,
+ 
+     if (err) {
+         if (pgerror) {
+-            t = PyString_FromString(pgerror);
++	    /* XXX is this always ASCII? If not, it needs
++	       to be decoded properly for Python 3. */
++            t = Text_FromUTF8(pgerror);
+             PyObject_SetAttrString(err, "pgerror", t);
+             Py_DECREF(t);
+         }
+ 
+         if (pgcode) {
+-            t = PyString_FromString(pgcode);
++	    /* XXX likewise */
++            t = Text_FromUTF8(pgcode);
+             PyObject_SetAttrString(err, "pgcode", t);
+             Py_DECREF(t);
+         }
+@@ -674,8 +710,22 @@ static PyMethodDef psycopgMethods[] = {
+     {NULL, NULL, 0, NULL}        /* Sentinel */
+ };
+ 
+-PyMODINIT_FUNC
+-init_psycopg(void)
++#if PY_MAJOR_VERSION > 2
++static struct PyModuleDef psycopgmodule = {
++	PyModuleDef_HEAD_INIT,
++	"_psycopg",
++	NULL,
++	-1,
++	psycopgMethods,
++	NULL,
++	NULL,
++	NULL,
++	NULL
++};
++#endif
++
++static PyObject *
++_init(void)
+ {
+     static void *PSYCOPG_API[PSYCOPG_API_pointers];
+ 
+@@ -690,39 +740,39 @@ init_psycopg(void)
+     Dprintf("initpsycopg: initializing psycopg %s", PSYCOPG_VERSION);
+ 
+     /* initialize all the new types and then the module */
+-    connectionType.ob_type = &PyType_Type;
+-    cursorType.ob_type     = &PyType_Type;
+-    typecastType.ob_type   = &PyType_Type;
+-    qstringType.ob_type    = &PyType_Type;
+-    binaryType.ob_type     = &PyType_Type;
+-    isqlquoteType.ob_type  = &PyType_Type;
+-    pbooleanType.ob_type   = &PyType_Type;
+-    pfloatType.ob_type     = &PyType_Type;
+-    asisType.ob_type       = &PyType_Type;
+-    listType.ob_type       = &PyType_Type;
+-    chunkType.ob_type      = &PyType_Type;
+-
+-    if (PyType_Ready(&connectionType) == -1) return;
+-    if (PyType_Ready(&cursorType) == -1) return;
+-    if (PyType_Ready(&typecastType) == -1) return;
+-    if (PyType_Ready(&qstringType) == -1) return;
+-    if (PyType_Ready(&binaryType) == -1) return;
+-    if (PyType_Ready(&isqlquoteType) == -1) return;
+-    if (PyType_Ready(&pbooleanType) == -1) return;
+-    if (PyType_Ready(&pfloatType) == -1) return;
+-    if (PyType_Ready(&asisType) == -1) return;
+-    if (PyType_Ready(&listType) == -1) return;
+-    if (PyType_Ready(&chunkType) == -1) return;
++    Py_TYPE(&connectionType) = &PyType_Type;
++    Py_TYPE(&cursorType)     = &PyType_Type;
++    Py_TYPE(&typecastType)   = &PyType_Type;
++    Py_TYPE(&qstringType)    = &PyType_Type;
++    Py_TYPE(&binaryType)     = &PyType_Type;
++    Py_TYPE(&isqlquoteType)  = &PyType_Type;
++    Py_TYPE(&pbooleanType)   = &PyType_Type;
++    Py_TYPE(&pfloatType)     = &PyType_Type;
++    Py_TYPE(&asisType)       = &PyType_Type;
++    Py_TYPE(&listType)       = &PyType_Type;
++    Py_TYPE(&chunkType)      = &PyType_Type;
++
++    if (PyType_Ready(&connectionType) == -1) return NULL;
++    if (PyType_Ready(&cursorType) == -1) return NULL;
++    if (PyType_Ready(&typecastType) == -1) return NULL;
++    if (PyType_Ready(&qstringType) == -1) return NULL;
++    if (PyType_Ready(&binaryType) == -1) return NULL;
++    if (PyType_Ready(&isqlquoteType) == -1) return NULL;
++    if (PyType_Ready(&pbooleanType) == -1) return NULL;
++    if (PyType_Ready(&pfloatType) == -1) return NULL;
++    if (PyType_Ready(&asisType) == -1) return NULL;
++    if (PyType_Ready(&listType) == -1) return NULL;
++    if (PyType_Ready(&chunkType) == -1) return NULL;
+ 
+ #ifdef PSYCOPG_EXTENSIONS
+-    lobjectType.ob_type    = &PyType_Type;
+-    if (PyType_Ready(&lobjectType) == -1) return;
++    Py_TYPE(&lobjectType)    = &PyType_Type;
++    if (PyType_Ready(&lobjectType) == -1) return NULL;
+ #endif
+ 
+     /* import mx.DateTime module, if necessary */
+ #ifdef HAVE_MXDATETIME
+-    mxdatetimeType.ob_type = &PyType_Type;
+-    if (PyType_Ready(&mxdatetimeType) == -1) return;
++    Py_TYPE(&mxdatetimeType) = &PyType_Type;
++    if (PyType_Ready(&mxdatetimeType) == -1) return NULL;
+     if (mxDateTime_ImportModuleAndAPI() != 0) {
+         Dprintf("initpsycopg: why marc hide mx.DateTime again?!");
+         PyErr_SetString(PyExc_ImportError, "can't import mx.DateTime module");
+@@ -736,10 +786,10 @@ init_psycopg(void)
+     if (pyDateTimeModuleP == NULL) {
+         Dprintf("initpsycopg: can't import datetime module");
+         PyErr_SetString(PyExc_ImportError, "can't import datetime module");
+-        return;
++        return NULL;
+     }
+-    pydatetimeType.ob_type = &PyType_Type;
+-    if (PyType_Ready(&pydatetimeType) == -1) return;
++    Py_TYPE(&pydatetimeType) = &PyType_Type;
++    if (PyType_Ready(&pydatetimeType) == -1) return NULL;
+ 
+     /* now we define the datetime types, this is crazy because python should
+        be doing that, not us! */
+@@ -753,7 +803,7 @@ init_psycopg(void)
+     if (pyPsycopgTzModule == NULL) {
+         Dprintf("initpsycopg: can't import psycopg2.tz module");
+         PyErr_SetString(PyExc_ImportError, "can't import psycopg2.tz module");
+-        return;
++        return NULL;
+     }
+     pyPsycopgTzLOCAL =
+         PyObject_GetAttrString(pyPsycopgTzModule, "LOCAL");
+@@ -761,7 +811,11 @@ init_psycopg(void)
+         PyObject_GetAttrString(pyPsycopgTzModule, "FixedOffsetTimezone");
+ 
+     /* initialize the module and grab module's dictionary */
++#if PY_MAJOR_VERSION < 3
+     module = Py_InitModule("_psycopg", psycopgMethods);
++#else
++    module = PyModule_Create(&psycopgmodule);
++#endif
+     dict = PyModule_GetDict(module);
+ 
+     /* initialize all the module's exported functions */
+@@ -779,9 +833,9 @@ init_psycopg(void)
+     /* set some module's parameters */
+     PyModule_AddStringConstant(module, "__version__", PSYCOPG_VERSION);
+     PyModule_AddStringConstant(module, "__doc__", "psycopg PostgreSQL driver");
+-    PyModule_AddObject(module, "apilevel", PyString_FromString(APILEVEL));
++    PyModule_AddObject(module, "apilevel", Text_FromUTF8(APILEVEL));
+     PyModule_AddObject(module, "threadsafety", PyInt_FromLong(THREADSAFETY));
+-    PyModule_AddObject(module, "paramstyle", PyString_FromString(PARAMSTYLE));
++    PyModule_AddObject(module, "paramstyle", Text_FromUTF8(PARAMSTYLE));
+ 
+     /* put new types in module dictionary */
+     PyModule_AddObject(module, "connection", (PyObject*)&connectionType);
+@@ -828,4 +882,19 @@ init_psycopg(void)
+ #endif
+ 
+     Dprintf("initpsycopg: module initialization complete");
++    return module;
++}
++
++#if PY_MAJOR_VERSION < 3
++PyMODINIT_FUNC
++init_psycopg(void)
++{
++    _init();
+ }
++#else
++PyMODINIT_FUNC
++PyInit__psycopg(void)
++{
++    return _init();
++}
++#endif
+diff --git a/psycopg/python.h b/psycopg/python.h
+index 22cae4a..fb80322 100644
+--- a/psycopg/python.h
++++ b/psycopg/python.h
+@@ -58,4 +58,52 @@
+   #define FORMAT_CODE_SIZE_T "%zu"
+ #endif
+ 
++/* Macros defined in Python 2.6 */
++#ifndef Py_REFCNT
++#define Py_REFCNT(ob)           (((PyObject*)(ob))->ob_refcnt)
++#define Py_TYPE(ob)             (((PyObject*)(ob))->ob_type)
++#define Py_SIZE(ob)             (((PyVarObject*)(ob))->ob_size)
++#define PyVarObject_HEAD_INIT(x,n) PyObject_HEAD_INIT(x) n,
++#endif
++
++/* Abstract from text type. Only supported for ASCII and UTF-8 */
++#if PY_MAJOR_VERSION < 3
++#define Text_Check(s) PyString_Check(s)
++#define Text_FromUTF8(s) PyString_FromString(s)
++#define Text_FromUTF8AndSize(s,n) PyString_FromStringAndSize(s,n)
++#else
++#define Text_Check(s) PyUnicode_Check(s)
++#define Text_FromUTF8(s) PyUnicode_FromString(s)
++#define Text_FromUTF8AndSize(s,n) PyUnicode_FromStringAndSize(s,n)
++#endif
++
++#if PY_MAJOR_VERSION > 2
++#define PyInt_FromLong         PyLong_FromLong
++#define PyString_FromFormat    PyUnicode_FromFormat
++#endif
++
++#if PY_MAJOR_VERSION < 3
++#define BytesType PyString_Type
++#define Bytes_Check PyString_Check
++#define Bytes_AS_STRING PyString_AS_STRING
++#define Bytes_GET_SIZE PyString_GET_SIZE
++#define Bytes_Size PyString_Size
++#define Bytes_AsString PyString_AsString
++#define Bytes_AsStringAndSize PyString_AsStringAndSize
++#define Bytes_FromStringAndSize PyString_FromStringAndSize
++#else
++#define BytesType PyBytes_Type
++#define Bytes_Check PyBytes_Check
++#define Bytes_AS_STRING PyBytes_AS_STRING
++#define Bytes_GET_SIZE PyBytes_GET_SIZE
++#define Bytes_Size PyBytes_Size
++#define Bytes_AsString PyBytes_AsString
++#define Bytes_AsStringAndSize PyBytes_AsStringAndSize
++#define Bytes_FromStringAndSize PyBytes_FromStringAndSize
++#endif
++
++#if PY_MAJOR_VERSION > 2
++#define Py_TPFLAGS_HAVE_ITER 0
++#endif
++
+ #endif /* !defined(PSYCOPG_PYTHON_H) */
+diff --git a/psycopg/typecast.c b/psycopg/typecast.c
+index 07bb1f5..d253770 100644
+--- a/psycopg/typecast.c
++++ b/psycopg/typecast.c
+@@ -295,7 +295,13 @@ typecast_add(PyObject *obj, PyObject *dict, int binary)
+     len = PyTuple_Size(type->values);
+     for (i = 0; i < len; i++) {
+         val = PyTuple_GetItem(type->values, i);
+-        Dprintf("typecast_add:     adding val: %ld", PyInt_AsLong(val));
++        Dprintf("typecast_add:     adding val: %ld", 
++		#if PY_MAJOR_VERSION < 3
++		PyInt_AsLong(val)
++		#else
++		PyLong_AsLong(val)
++		#endif
++		);
+         PyDict_SetItem(dict, val, obj);
+     }
+ 
+@@ -309,6 +315,11 @@ typecast_add(PyObject *obj, PyObject *dict, int binary)
+ 
+ #define OFFSETOF(x) offsetof(typecastObject, x)
+ 
++/* will undef after the function */
++#if PY_MAJOR_VERSION > 2
++#define PyInt_AsLong PyLong_AsLong
++#define PyNumber_Int PyNumber_Long
++#endif
+ static int
+ typecast_cmp(PyObject *obj1, PyObject* obj2)
+ {
+@@ -348,6 +359,7 @@ typecast_cmp(PyObject *obj1, PyObject* obj2)
+     Py_XDECREF(number);
+     return res;
+ }
++#undef PyInt_AsLong
+ 
+ static PyObject*
+ typecast_richcompare(PyObject *obj1, PyObject* obj2, int opid)
+@@ -367,8 +379,8 @@ typecast_richcompare(PyObject *obj1, PyObject* obj2, int opid)
+ }
+ 
+ static struct PyMemberDef typecastObject_members[] = {
+-    {"name", T_OBJECT, OFFSETOF(name), RO},
+-    {"values", T_OBJECT, OFFSETOF(values), RO},
++    {"name", T_OBJECT, OFFSETOF(name), READONLY},
++    {"values", T_OBJECT, OFFSETOF(values), READONLY},
+     {NULL}
+ };
+ 
+@@ -381,7 +393,7 @@ typecast_dealloc(PyObject *obj)
+     Py_CLEAR(self->name);
+     Py_CLEAR(self->pcast);
+ 
+-    obj->ob_type->tp_free(obj);
++    Py_TYPE(obj)->tp_free(obj);
+ }
+ 
+ static int
+@@ -404,20 +416,26 @@ typecast_del(void *self)
+ static PyObject *
+ typecast_call(PyObject *obj, PyObject *args, PyObject *kwargs)
+ {
+-    PyObject *string, *cursor;
+-
+-    if (!PyArg_ParseTuple(args, "OO", &string, &cursor)) {
++    char *string;
++    Py_ssize_t length;
++    PyObject *cursor;
++
++    /* Can pass either string or None for the string argument. */
++    /* XXX original code had "OO", and "relied" on setting an
++       PyString_AsString returning NULL, and an exception which
++       was ignored. */
++    if (!PyArg_ParseTuple(args, "z#O", &string, &length, &cursor)) {
+         return NULL;
+     }
+ 
+-    return typecast_cast(obj,
+-                         PyString_AsString(string), PyString_Size(string),
+-                         cursor);
++    return typecast_cast(obj, string, length, cursor);
+ }
+ 
++#if PY_MAJOR_VERSION > 2
++#define Py_TPFLAGS_HAVE_RICHCOMPARE 0
++#endif
+ PyTypeObject typecastType = {
+-    PyObject_HEAD_INIT(NULL)
+-    0,
++    PyVarObject_HEAD_INIT(NULL, 0)
+     "psycopg2._psycopg.type",
+     sizeof(typecastObject),
+     0,
+@@ -485,7 +503,7 @@ typecast_new(PyObject *name, PyObject *values, PyObject *cast, PyObject *base)
+     if (obj == NULL) return NULL;
+ 
+     Dprintf("typecast_new: new type at = %p, refcnt = " FORMAT_CODE_PY_SSIZE_T,
+-      obj, obj->ob_refcnt);
++      obj, Py_REFCNT(obj));
+ 
+     Py_INCREF(values);
+     obj->values = values;
+@@ -527,7 +545,11 @@ typecast_from_python(PyObject *self, PyObject *args, PyObject *keywds)
+ 
+     if (!PyArg_ParseTupleAndKeywords(args, keywds, "O!|O!OO", kwlist,
+                                      &PyTuple_Type, &v,
++				     #if PY_MAJOR_VERSION < 3
+                                      &PyString_Type, &name,
++				     #else
++				     &PyUnicode_Type, &name,
++				     #endif
+                                      &cast, &base)) {
+         return NULL;
+     }
+@@ -552,7 +574,7 @@ typecast_from_c(typecastObject_initlist *type, PyObject *dict)
+         }
+     }
+ 
+-    name = PyString_FromString(type->name);
++    name = Text_FromUTF8(type->name);
+     if (!name) goto end;
+ 
+     while (type->values[len] != 0) len++;
+diff --git a/psycopg/typecast_basic.c b/psycopg/typecast_basic.c
+index 5d91e3c..ac437ae 100644
+--- a/psycopg/typecast_basic.c
++++ b/psycopg/typecast_basic.c
+@@ -31,7 +31,11 @@ typecast_INTEGER_cast(const char *s, Py_ssize_t len, PyObject *curs)
+         strncpy(buffer, s, (size_t) len); buffer[len] = '\0';
+         s = buffer;
+     }
++    #if PY_MAJOR_VERSION < 3
+     return PyInt_FromString((char *)s, NULL, 0);
++    #else
++    return PyLong_FromString((char *)s, NULL, 0);
++    #endif
+ }
+ 
+ /** LONGINTEGER - cast long integers (8 bytes) to python long **/
+@@ -55,22 +59,31 @@ static PyObject *
+ typecast_FLOAT_cast(const char *s, Py_ssize_t len, PyObject *curs)
+ {
+     PyObject *str = NULL, *flo = NULL;
+-    char *pend;
+ 
+     if (s == NULL) {Py_INCREF(Py_None); return Py_None;}
++    #if PY_MAJOR_VERSION < 3
+     str = PyString_FromStringAndSize(s, len);
+-    flo = PyFloat_FromString(str, &pend);
++    flo = PyFloat_FromString(str, NULL);
++    #else
++    str = PyUnicode_FromStringAndSize(s, len);
++    flo = PyFloat_FromString(str);
++    #endif
+     Py_DECREF(str);
+     return flo;
+ }
+ 
+ /** STRING - cast strings of any type to python string **/
+ 
++static PyObject *typecast_UNICODE_cast(const char *, Py_ssize_t, PyObject *);
+ static PyObject *
+ typecast_STRING_cast(const char *s, Py_ssize_t len, PyObject *curs)
+ {
++    #if PY_MAJOR_VERSION < 3
+     if (s == NULL) {Py_INCREF(Py_None); return Py_None;}
+     return PyString_FromStringAndSize(s, len);
++    #else
++    return typecast_UNICODE_cast(s, len, curs);
++    #endif
+ }
+ 
+ /** UNICODE - cast strings of any type to a python unicode object **/
+@@ -85,7 +98,15 @@ typecast_UNICODE_cast(const char *s, Py_ssize_t len, PyObject *curs)
+     enc = PyDict_GetItemString(psycoEncodings,
+                                ((cursorObject*)curs)->conn->encoding);
+     if (enc) {
++	#if PY_MAJOR_VERSION < 3
+         return PyUnicode_Decode(s, len, PyString_AsString(enc), NULL);
++	#else
++	/* In Python 3.0, there is no official way to get the defenc
++	   string. So as we need to create an object, anyway, we can
++	   just as well create a bytes object first. */
++	return PyObject_CallFunction((PyObject*)&PyUnicode_Type,
++				     "y#O", s, len, enc);
++	#endif
+     }
+     else {
+        PyErr_Format(InterfaceError,
+diff --git a/psycopg/typecast_binary.c b/psycopg/typecast_binary.c
+index 47fff1e..f1c6f4b 100644
+--- a/psycopg/typecast_binary.c
++++ b/psycopg/typecast_binary.c
+@@ -38,7 +38,7 @@ chunk_dealloc(chunkObject *self)
+         self->base, self->len
+       );
+     free(self->base);
+-    self->ob_type->tp_free((PyObject *) self);
++    Py_TYPE(self)->tp_free((PyObject *) self);
+ }
+ 
+ static PyObject *
+@@ -50,6 +50,8 @@ chunk_repr(chunkObject *self)
+       );
+ }
+ 
++#if PY_MAJOR_VERSION < 3
++/* XXX support 3.0 buffer protocol */
+ static Py_ssize_t
+ chunk_getreadbuffer(chunkObject *self, Py_ssize_t segment, void **ptr)
+ {
+@@ -78,12 +80,24 @@ static PyBufferProcs chunk_as_buffer =
+     (segcountproc) chunk_getsegcount,
+     (charbufferproc) NULL
+ };
++#else
++/* 3.0 buffer interface */
++int chunk_getbuffer(PyObject *_self, Py_buffer *view, int flags)
++{
++    chunkObject *self = (chunkObject*)_self;
++    return PyBuffer_FillInfo(view, _self, self->base, self->len, 1, flags);
++}
++static PyBufferProcs chunk_as_buffer =
++{
++    chunk_getbuffer,
++    NULL,
++};
++#endif
+ 
+ #define chunk_doc "memory chunk"
+ 
+ PyTypeObject chunkType = {
+-    PyObject_HEAD_INIT(NULL)
+-    0,                          /* ob_size */
++    PyVarObject_HEAD_INIT(NULL, 0)
+     "psycopg2._psycopg.chunk",   /* tp_name */
+     sizeof(chunkObject),        /* tp_basicsize */
+     0,                          /* tp_itemsize */
+@@ -203,8 +217,13 @@ typecast_BINARY_cast(const char *s, Py_ssize_t l, PyObject *curs)
+ 
+     /* size_t->Py_ssize_t cast was validated above: */
+     chunk->len = (Py_ssize_t) len;
++#if PY_MAJOR_VERSION < 3
+     if ((res = PyBuffer_FromObject((PyObject *)chunk, 0, chunk->len)) == NULL)
+         goto fail;
++#else
++    if ((res = PyMemoryView_FromObject((PyObject*)chunk)) == NULL)
++	goto fail;
++#endif
+     /* PyBuffer_FromObject() created a new reference.  We'll release our
+      * reference held in 'chunk' in the 'cleanup' clause. */
+ 
+diff --git a/runtests.py b/runtests.py
+index 6124fad..07ee391 100644
+--- a/runtests.py
++++ b/runtests.py
+@@ -16,7 +16,24 @@ if os.path.exists(platlib):
+     sys.path.insert(0, platlib)
+ 
+ import psycopg2
+-import tests
++if sys.version_info < (3,):
++    import tests
++else:
++    from distutils.file_util import copy_file
++    import glob
++    from lib2to3.refactor import RefactoringTool, get_fixers_from_package
++    if not os.path.isdir("py3tests"):
++        os.mkdir("py3tests")
++    new = []
++    for f in glob.glob("tests/*.py"):
++        f, copied = copy_file(f, "py3tests", preserve_times=0, update=1)
++        if copied:
++            new.append(f)
++    fixers = get_fixers_from_package('lib2to3.fixes')
++    r = RefactoringTool(fixers)
++    r.refactor(new, write=True)
++    import py3tests as tests
++    
+ 
+ def test_suite():
+     return tests.test_suite()
+diff --git a/setup.py b/setup.py
+index cc49e30..ec30d32 100644
+--- a/setup.py
++++ b/setup.py
+@@ -47,7 +47,28 @@ import os
+ import os.path
+ import sys
+ import subprocess
+-import ConfigParser
++try:
++    from popen2 import popen3
++except ImportError:
++    # 3.0: popen2 is gone
++    import subprocess
++    def popen3(command):
++        p = subprocess.Popen(command, shell = True,
++                             stdout = subprocess.PIPE,
++                             stdin = subprocess.PIPE,
++                             stderr = subprocess.PIPE)
++        # XXX this has a fourth result, just to hold onto p
++        return (p.stdout, p.stdin, p.stderr, p)
++try:
++    import ConfigParser
++except ImportError:
++    import configparser as ConfigParser # 3.0
++
++try:
++    from distutils.command.build_py import build_py_2to3 as build_py
++except ImportError:
++    from distutils.command.build_py import build_py
++
+ from distutils.core import setup, Extension
+ from distutils.errors import DistutilsFileError
+ from distutils.command.build_ext import build_ext
+@@ -68,6 +89,8 @@ def get_pg_config(kind, pg_config="pg_config"):
+     r = p.stdout.readline().strip()
+     if not r:
+         raise Warning(p.stderr.readline())
++    if not isinstance(r, str):
++        r = r.decode('ascii')
+     return r
+ 
+ class psycopg_build_ext(build_ext):
+@@ -212,11 +235,12 @@ class psycopg_build_ext(build_ext):
+             except:
+                 # Mm.. development version?
+                 pgmajor, pgminor = pgversion.replace("devel", "").split('.')
+-                pgminor = 0
++                pgpatch = 0
+ 
+             define_macros.append(("PG_VERSION_HEX", "0x%02X%02X%02X" %
+                                   (int(pgmajor), int(pgminor), int(pgpatch))))
+-        except Warning, w:
++        except Warning:
++            w = sys.exc_info()
+             if self.pg_config == self.DEFAULT_PG_CONFIG:
+                 sys.stderr.write("Warning: %s" % str(w))
+             else:
+@@ -314,6 +338,18 @@ include_dirs = []
+ # gather information to build the extension module
+ ext = [] ; data_files = []
+ 
++depends = [
++    # header files
++    'adapter_asis.h', 'adapter_list.h', 'adapter_qstring.h',
++    'cursor.h', 'pgtypes.h', 'psycopg.h', 'typecast.h',
++    'adapter_binary.h', 'adapter_mxdatetime.h', 'config.h',
++    'microprotocols.h', 'pgversion.h', 'python.h', 'adapter_datetime.h',
++    'adapter_pboolean.h', 'connection.h', 'microprotocols_proto.h',
++    'pqpath.h', 'typecast_binary.h',
++    # source files that are included
++    'typecast_array.c', 'typecast_basic.c', 'typecast_binary.c',
++    'typecast_builtins.c', 'typecast_datetime.c', 'typecast_mxdatetime.c']
++
+ # sources
+ 
+ sources = [
+@@ -384,12 +420,14 @@ else:
+ 
+ # build the extension
+ 
+-sources = map(lambda x: os.path.join('psycopg', x), sources)
++sources = list(map(lambda x: os.path.join('psycopg', x), sources))
++depends = list(map(lambda x: os.path.join('psycopg', x), depends))
+ 
+ ext.append(Extension("psycopg2._psycopg", sources,
+                      define_macros=define_macros,
+                      include_dirs=include_dirs,
+-                     undef_macros=[]))
++                     undef_macros=[],
++                     depends=depends,))
+ setup(name="psycopg2",
+       version=PSYCOPG_VERSION,
+       maintainer="Federico Di Gregorio",
+@@ -406,6 +444,7 @@ setup(name="psycopg2",
+       data_files=data_files,
+       package_dir={'psycopg2':'lib'},
+       packages=['psycopg2'],
+-      cmdclass={ 'build_ext': psycopg_build_ext },
++      cmdclass={ 'build_ext': psycopg_build_ext,
++                 'build_py': build_py},
+       ext_modules=ext)
+ 
+diff --git a/tests/__init__.py b/tests/__init__.py
+index bce4918..f8cda51 100755
+--- a/tests/__init__.py
++++ b/tests/__init__.py
+@@ -1,4 +1,5 @@
+ #!/usr/bin/env python
++import sys
+ import os
+ import unittest
+ 
+@@ -16,6 +17,17 @@ if dbport is not None:
+ if dbuser is not None:
+     dsn += ' user=%s' % dbuser
+ 
++if sys.version_info < (3,):
++    def list2bytes(l):
++        return ''.join(map(chr, l))
++    str2bytes = str
++    asbytes = str
++else:
++    list2bytes = bytes
++    def str2bytes(s):
++        return s.encode('ascii')
++    asbytes = bytes
++
+ import bugX000
+ import extras_dictcursor
+ import test_dates
+diff --git a/tests/extras_dictcursor.py b/tests/extras_dictcursor.py
+index 11579ba..82c6efc 100644
+--- a/tests/extras_dictcursor.py
++++ b/tests/extras_dictcursor.py
+@@ -17,8 +17,12 @@ import psycopg2
+ import psycopg2.extras
+ import unittest
+ 
+-import tests
+-
++# XXX if relative imports were available, we would say "from . import dsn"
++import sys
++if sys.version_info < (3,):
++    import tests
++else:
++    import py3tests as tests
+ 
+ class ExtrasDictCursorTests(unittest.TestCase):
+     """Test if DictCursor extension class works."""
+diff --git a/tests/test_connection.py b/tests/test_connection.py
+index 306c7c3..9c12d67 100644
+--- a/tests/test_connection.py
++++ b/tests/test_connection.py
+@@ -2,7 +2,11 @@
+ import unittest
+ 
+ import psycopg2
+-import tests
++import sys
++if sys.version_info < (3,):
++    import tests
++else:
++    import py3tests as tests
+ 
+ 
+ class ConnectionTests(unittest.TestCase):
+diff --git a/tests/test_dates.py b/tests/test_dates.py
+index 0a02a11..f371742 100644
+--- a/tests/test_dates.py
++++ b/tests/test_dates.py
+@@ -4,8 +4,13 @@ import unittest
+ 
+ import psycopg2
+ from psycopg2.tz import FixedOffsetTimezone
+-import tests
+ 
++# XXX if relative imports were available, we would say "from . import dsn"
++import sys
++if sys.version_info < (3,):
++    import tests
++else:
++    import py3tests as tests
+ 
+ class CommonDatetimeTestsMixin:
+ 
+@@ -237,6 +242,7 @@ class DatetimeTests(unittest.TestCase, CommonDatetimeTestsMixin):
+                                         microseconds=123456)])
+         seconds = math.floor(value)
+         self.assertEqual(seconds, 3674096)
++        # XXX gives 123455
+         self.assertEqual(int(round((value - seconds) * 1000000)), 123456)
+ 
+     def test_adapt_megative_timedelta(self):
+@@ -246,6 +252,7 @@ class DatetimeTests(unittest.TestCase, CommonDatetimeTestsMixin):
+                                         microseconds=123456)])
+         seconds = math.floor(value)
+         self.assertEqual(seconds, -3583504)
++        # XXX gives 123455
+         self.assertEqual(int(round((value - seconds) * 1000000)), 123456)
+ 
+ 
+diff --git a/tests/test_lobject.py b/tests/test_lobject.py
+index 799492c..9907a05 100644
+--- a/tests/test_lobject.py
++++ b/tests/test_lobject.py
+@@ -5,7 +5,18 @@ import unittest
+ 
+ import psycopg2
+ import psycopg2.extensions
+-import tests
++import sys
++if sys.version_info < (3,):
++    import tests
++else:
++    import py3tests as tests
++
++if sys.version_info < (2,6):
++    def b(string):
++        return string
++else:
++    def b(string):
++        return bytes(string, encoding="ascii")
+ 
+ 
+ class LargeObjectTests(unittest.TestCase):
+@@ -82,11 +93,11 @@ class LargeObjectTests(unittest.TestCase):
+         self.tmpdir = tempfile.mkdtemp()
+         filename = os.path.join(self.tmpdir, "data.txt")
+         fp = open(filename, "wb")
+-        fp.write("some data")
++        fp.write(b("some data"))
+         fp.close()
+ 
+         lo = self.conn.lobject(0, "r", 0, filename)
+-        self.assertEqual(lo.read(), "some data")
++        self.assertEqual(lo.read(), b("some data"))
+ 
+     def test_close(self):
+         lo = self.conn.lobject()
+@@ -100,33 +111,33 @@ class LargeObjectTests(unittest.TestCase):
+ 
+     def test_read(self):
+         lo = self.conn.lobject()
+-        length = lo.write("some data")
++        length = lo.write(b("some data"))
+         lo.close()
+ 
+         lo = self.conn.lobject(lo.oid)
+-        self.assertEqual(lo.read(4), "some")
+-        self.assertEqual(lo.read(), " data")
++        self.assertEqual(lo.read(4), b("some"))
++        self.assertEqual(lo.read(), b(" data"))
+ 
+     def test_seek_tell(self):
+         lo = self.conn.lobject()
+-        length = lo.write("some data")
++        length = lo.write(b("some data"))
+         self.assertEqual(lo.tell(), length)
+         lo.close()
+         lo = self.conn.lobject(lo.oid)
+ 
+         self.assertEqual(lo.seek(5, 0), 5)
+         self.assertEqual(lo.tell(), 5)
+-        self.assertEqual(lo.read(), "data")
++        self.assertEqual(lo.read(), b("data"))
+ 
+         # SEEK_CUR: relative current location
+         lo.seek(5)
+         self.assertEqual(lo.seek(2, 1), 7)
+         self.assertEqual(lo.tell(), 7)
+-        self.assertEqual(lo.read(), "ta")
++        self.assertEqual(lo.read(), b("ta"))
+ 
+         # SEEK_END: relative to end of file
+         self.assertEqual(lo.seek(-2, 2), length - 2)
+-        self.assertEqual(lo.read(), "ta")
++        self.assertEqual(lo.read(), b("ta"))
+ 
+     def test_unlink(self):
+         lo = self.conn.lobject()
+@@ -139,13 +150,13 @@ class LargeObjectTests(unittest.TestCase):
+ 
+     def test_export(self):
+         lo = self.conn.lobject()
+-        lo.write("some data")
++        lo.write(b("some data"))
+ 
+         self.tmpdir = tempfile.mkdtemp()
+         filename = os.path.join(self.tmpdir, "data.txt")
+         lo.export(filename)
+         self.assertTrue(os.path.exists(filename))
+-        self.assertEqual(open(filename, "rb").read(), "some data")
++        self.assertEqual(open(filename, "rb").read(), b("some data"))
+ 
+     def test_close_twice(self):
+         lo = self.conn.lobject()
+@@ -155,7 +166,7 @@ class LargeObjectTests(unittest.TestCase):
+     def test_write_after_close(self):
+         lo = self.conn.lobject()
+         lo.close()
+-        self.assertRaises(psycopg2.InterfaceError, lo.write, "some data")
++        self.assertRaises(psycopg2.InterfaceError, lo.write, b("some data"))
+ 
+     def test_read_after_close(self):
+         lo = self.conn.lobject()
+@@ -180,14 +191,14 @@ class LargeObjectTests(unittest.TestCase):
+ 
+     def test_export_after_close(self):
+         lo = self.conn.lobject()
+-        lo.write("some data")
++        lo.write(b("some data"))
+         lo.close()
+ 
+         self.tmpdir = tempfile.mkdtemp()
+         filename = os.path.join(self.tmpdir, "data.txt")
+         lo.export(filename)
+         self.assertTrue(os.path.exists(filename))
+-        self.assertEqual(open(filename, "rb").read(), "some data")
++        self.assertEqual(open(filename, "rb").read(), b("some data"))
+ 
+     def test_close_after_commit(self):
+         lo = self.conn.lobject()
+@@ -202,7 +213,7 @@ class LargeObjectTests(unittest.TestCase):
+         self.lo_oid = lo.oid
+         self.conn.commit()
+ 
+-        self.assertRaises(psycopg2.ProgrammingError, lo.write, "some data")
++        self.assertRaises(psycopg2.ProgrammingError, lo.write, b("some data"))
+ 
+     def test_read_after_commit(self):
+         lo = self.conn.lobject()
+@@ -235,14 +246,14 @@ class LargeObjectTests(unittest.TestCase):
+ 
+     def test_export_after_commit(self):
+         lo = self.conn.lobject()
+-        lo.write("some data")
++        lo.write(b("some data"))
+         self.conn.commit()
+ 
+         self.tmpdir = tempfile.mkdtemp()
+         filename = os.path.join(self.tmpdir, "data.txt")
+         lo.export(filename)
+         self.assertTrue(os.path.exists(filename))
+-        self.assertEqual(open(filename, "rb").read(), "some data")
++        self.assertEqual(open(filename, "rb").read(), b("some data"))
+ 
+ 
+ def test_suite():
+diff --git a/tests/test_psycopg2_dbapi20.py b/tests/test_psycopg2_dbapi20.py
+index 9b6b119..ac76c70 100755
+--- a/tests/test_psycopg2_dbapi20.py
++++ b/tests/test_psycopg2_dbapi20.py
+@@ -2,9 +2,12 @@
+ import dbapi20
+ import unittest
+ import psycopg2
+-import popen2
+ 
+-import tests
++import sys
++if sys.version_info < (3,):
++    import tests
++else:
++    import py3tests as tests
+ 
+ class Psycopg2TestCase(dbapi20.DatabaseAPI20Test):
+     driver = psycopg2
+diff --git a/tests/test_quote.py b/tests/test_quote.py
+index 6da10fa..2076d8c 100755
+--- a/tests/test_quote.py
++++ b/tests/test_quote.py
+@@ -4,7 +4,13 @@ import warnings
+ 
+ import psycopg2
+ import psycopg2.extensions
+-import tests
++import sys
++if sys.version_info < (3,):
++    import tests
++    from tests import list2bytes, str2bytes, asbytes
++else:
++    import py3tests as tests
++    from py3tests import list2bytes, str2bytes, asbytes
+ 
+ class QuotingTestCase(unittest.TestCase):
+     r"""Checks the correct quoting of strings and binary objects.
+@@ -44,14 +50,14 @@ class QuotingTestCase(unittest.TestCase):
+         self.assert_(not self.conn.notices)
+ 
+     def test_binary(self):
+-        data = """some data with \000\013 binary
++        data = str2bytes("""some data with \000\013 binary
+         stuff into, 'quotes' and \\ a backslash too.
+-        """
+-        data += "".join(map(chr, range(256)))
++        """)
++        data += list2bytes(range(256))
+ 
+         curs = self.conn.cursor()
+         curs.execute("SELECT %s::bytea;", (psycopg2.Binary(data),))
+-        res = str(curs.fetchone()[0])
++        res = asbytes(curs.fetchone()[0])
+ 
+         self.assertEqual(res, data)
+         self.assert_(not self.conn.notices)
+diff --git a/tests/test_transaction.py b/tests/test_transaction.py
+index 9517541..d379af9 100755
+--- a/tests/test_transaction.py
++++ b/tests/test_transaction.py
+@@ -5,7 +5,11 @@ import unittest
+ import psycopg2
+ from psycopg2.extensions import (
+     ISOLATION_LEVEL_SERIALIZABLE, STATUS_BEGIN, STATUS_READY)
+-import tests
++import sys
++if sys.version_info < (3,):
++    import tests
++else:
++    import py3tests as tests
+ 
+ 
+ class TransactionTests(unittest.TestCase):
+diff --git a/tests/types_basic.py b/tests/types_basic.py
+index 180bb2a..7c29c4f 100755
+--- a/tests/types_basic.py
++++ b/tests/types_basic.py
+@@ -21,8 +21,13 @@ import sys
+ import unittest
+ 
+ import psycopg2
+-import tests
+-
++import sys
++if sys.version_info < (3,):
++    import tests
++    from tests import list2bytes, str2bytes, asbytes
++else:
++    import py3tests as tests
++    from py3tests import list2bytes, str2bytes, asbytes
+ 
+ class TypesBasicTests(unittest.TestCase):
+     """Test that all type conversions are working."""
+@@ -51,7 +56,7 @@ class TypesBasicTests(unittest.TestCase):
+         s = self.execute("SELECT %s AS foo", (1971L,))
+         self.failUnless(s == 1971L, "wrong integer quoting: " + str(s))
+         # Python 2.4 defaults to Decimal?
+-        if sys.version_info[0] >= 2 and sys.version_info[1] >= 4:
++        if sys.version_info >= (2,4):
+             s = self.execute("SELECT %s AS foo", (19.10,))
+             self.failUnless(s - decimal.Decimal("19.10") == 0,
+                             "wrong decimal quoting: " + str(s))
+@@ -69,23 +74,23 @@ class TypesBasicTests(unittest.TestCase):
+         self.failUnless(type(s) == float, "wrong float conversion: " + repr(s))
+ 
+     def testBinary(self):
+-        s = ''.join([chr(x) for x in range(256)])
++        s = list2bytes(range(256))
+         b = psycopg2.Binary(s)
+         buf = self.execute("SELECT %s::bytea AS foo", (b,))
+-        self.failUnless(str(buf) == s, "wrong binary quoting")
++        self.failUnless(asbytes(buf) == s, "wrong binary quoting")
+ 
+     def testBinaryEmptyString(self):
+         # test to make sure an empty Binary is converted to an empty string
+-        b = psycopg2.Binary('')
++        b = psycopg2.Binary(str2bytes(''))
+         self.assertEqual(str(b), "''")
+ 
+     def testBinaryRoundTrip(self):
+         # test to make sure buffers returned by psycopg2 are
+         # understood by execute:
+-        s = ''.join([chr(x) for x in range(256)])
++        s = list2bytes(range(256))
+         buf = self.execute("SELECT %s::bytea AS foo", (psycopg2.Binary(s),))
+         buf2 = self.execute("SELECT %s::bytea AS foo", (buf,))
+-        self.failUnless(str(buf2) == s, "wrong binary quoting")
++        self.failUnless(asbytes(buf2) == s, "wrong binary quoting")
+ 
+     def testArray(self):
+         s = self.execute("SELECT %s AS foo", ([[1,2],[3,4]],))
+-- 
+1.6.0.6
+

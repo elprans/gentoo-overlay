@@ -1,0 +1,5458 @@
+diff -u -r Cython-0.10.3.orig/Cython/CodeWriter.py Cython-0.10.3/Cython/CodeWriter.py
+--- Cython-0.10.3.orig/Cython/CodeWriter.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/CodeWriter.py	2009-01-16 21:35:36.886657987 -0500
+@@ -13,14 +13,14 @@
+ class LinesResult(object):
+     def __init__(self):
+         self.lines = []
+-        self.s = u""
++        self.s = ""
+         
+     def put(self, s):
+         self.s += s
+     
+     def newline(self):
+         self.lines.append(self.s)
+-        self.s = u""
++        self.s = ""
+     
+     def putline(self, s):
+         self.put(s)
+@@ -28,7 +28,7 @@
+ 
+ class CodeWriter(TreeVisitor):
+ 
+-    indent_string = u"    "
++    indent_string = "    "
+     
+     def __init__(self, result = None):
+         super(CodeWriter, self).__init__()
+@@ -48,13 +48,13 @@
+     def dedent(self):
+         self.numindents -= 1
+     
+-    def startline(self, s = u""):
++    def startline(self, s = ""):
+         self.result.put(self.indent_string * self.numindents + s)
+     
+     def put(self, s):
+         self.result.put(s)
+     
+-    def endline(self, s = u""):
++    def endline(self, s = ""):
+         self.result.putline(s)
+ 
+     def line(self, s):
+@@ -66,9 +66,9 @@
+             for item in items[:-1]:
+                 self.visit(item)
+                 if output_rhs and item.default is not None:
+-                    self.put(u" = ")
++                    self.put(" = ")
+                     self.visit(item.default)
+-                self.put(u", ")
++                self.put(", ")
+             self.visit(items[-1])
+     
+     def visit_Node(self, node):
+@@ -81,9 +81,9 @@
+         self.visitchildren(node)
+ 
+     def visit_FuncDefNode(self, node):
+-        self.startline(u"def %s(" % node.name)
++        self.startline("def %s(" % node.name)
+         self.comma_seperated_list(node.args)
+-        self.endline(u"):")
++        self.endline("):")
+         self.indent()
+         self.visit(node.body)
+         self.dedent()
+@@ -91,10 +91,10 @@
+     def visit_CArgDeclNode(self, node):
+         if node.base_type.name is not None:
+             self.visit(node.base_type)
+-            self.put(u" ")
++            self.put(" ")
+         self.visit(node.declarator)
+         if node.default is not None:
+-            self.put(u" = ")
++            self.put(" = ")
+             self.visit(node.default)
+     
+     def visit_CNameDeclaratorNode(self, node):
+@@ -114,7 +114,7 @@
+     def visit_SingleAssignmentNode(self, node):
+         self.startline()
+         self.visit(node.lhs)
+-        self.put(u" = ")
++        self.put(" = ")
+         self.visit(node.rhs)
+         self.endline()
+     
+@@ -122,7 +122,7 @@
+         self.startline()
+         for lhs in node.lhs_list:
+             self.visit(lhs)
+-            self.put(u" = ")
++            self.put(" = ")
+         self.visit(node.rhs)
+         self.endline()
+     
+@@ -141,7 +141,7 @@
+     def visit_IfStatNode(self, node):
+         # The IfClauseNode is handled directly without a seperate match
+         # for clariy.
+-        self.startline(u"if ")
++        self.startline("if ")
+         self.visit(node.if_clauses[0].condition)
+         self.endline(":")
+         self.indent()
+@@ -161,39 +161,39 @@
+             self.dedent()
+ 
+     def visit_PassStatNode(self, node):
+-        self.startline(u"pass")
++        self.startline("pass")
+         self.endline()
+     
+     def visit_PrintStatNode(self, node):
+-        self.startline(u"print ")
++        self.startline("print ")
+         self.comma_seperated_list(node.arg_tuple.args)
+         if not node.append_newline:
+-            self.put(u",")
++            self.put(",")
+         self.endline()
+ 
+     def visit_BinopNode(self, node):
+         self.visit(node.operand1)
+-        self.put(u" %s " % node.operator)
++        self.put(" %s " % node.operator)
+         self.visit(node.operand2)
+     
+     def visit_CVarDefNode(self, node):
+-        self.startline(u"cdef ")
++        self.startline("cdef ")
+         self.visit(node.base_type)
+-        self.put(u" ")
++        self.put(" ")
+         self.comma_seperated_list(node.declarators, output_rhs=True)
+         self.endline()
+ 
+     def visit_ForInStatNode(self, node):
+-        self.startline(u"for ")
++        self.startline("for ")
+         self.visit(node.target)
+-        self.put(u" in ")
++        self.put(" in ")
+         self.visit(node.iterator.sequence)
+-        self.endline(u":")
++        self.endline(":")
+         self.indent()
+         self.visit(node.body)
+         self.dedent()
+         if node.else_clause is not None:
+-            self.line(u"else:")
++            self.line("else:")
+             self.indent()
+             self.visit(node.else_clause)
+             self.dedent()
+@@ -203,13 +203,13 @@
+     
+     def visit_SimpleCallNode(self, node):
+         self.visit(node.function)
+-        self.put(u"(")
++        self.put("(")
+         self.comma_seperated_list(node.args)
+         self.put(")")
+ 
+     def visit_GeneralCallNode(self, node):
+         self.visit(node.function)
+-        self.put(u"(")
++        self.put("(")
+         posarg = node.positional_args
+         if isinstance(posarg, AsTupleNode):
+             self.visit(posarg.arg)
+@@ -217,7 +217,7 @@
+             self.comma_seperated_list(posarg)
+         if node.keyword_args is not None or node.starstar_arg is not None:
+             raise Exception("Not implemented yet")
+-        self.put(u")")
++        self.put(")")
+ 
+     def visit_ExprStatNode(self, node):
+         self.startline()
+@@ -227,41 +227,41 @@
+     def visit_InPlaceAssignmentNode(self, node):
+         self.startline()
+         self.visit(node.lhs)
+-        self.put(u" %s= " % node.operator)
++        self.put(" %s= " % node.operator)
+         self.visit(node.rhs)
+         self.endline()
+         
+     def visit_WithStatNode(self, node):
+         self.startline()
+-        self.put(u"with ")
++        self.put("with ")
+         self.visit(node.manager)
+         if node.target is not None:
+-            self.put(u" as ")
++            self.put(" as ")
+             self.visit(node.target)
+-        self.endline(u":")
++        self.endline(":")
+         self.indent()
+         self.visit(node.body)
+         self.dedent()
+         
+     def visit_AttributeNode(self, node):
+         self.visit(node.obj)
+-        self.put(u".%s" % node.attribute)
++        self.put(".%s" % node.attribute)
+ 
+     def visit_BoolNode(self, node):
+         self.put(str(node.value))
+ 
+     def visit_TryFinallyStatNode(self, node):
+-        self.line(u"try:")
++        self.line("try:")
+         self.indent()
+         self.visit(node.body)
+         self.dedent()
+-        self.line(u"finally:")
++        self.line("finally:")
+         self.indent()
+         self.visit(node.finally_clause)
+         self.dedent()
+ 
+     def visit_TryExceptStatNode(self, node):
+-        self.line(u"try:")
++        self.line("try:")
+         self.indent()
+         self.visit(node.body)
+         self.dedent()
+@@ -271,12 +271,12 @@
+             self.visit(node.else_clause)
+ 
+     def visit_ExceptClauseNode(self, node):
+-        self.startline(u"except")
++        self.startline("except")
+         if node.pattern is not None:
+-            self.put(u" ")
++            self.put(" ")
+             self.visit(node.pattern)
+         if node.target is not None:
+-            self.put(u", ")
++            self.put(", ")
+             self.visit(node.target)
+         self.endline(":")
+         self.indent()
+@@ -297,15 +297,15 @@
+         self.line("raise")
+ 
+     def visit_NoneNode(self, node):
+-        self.put(u"None")
++        self.put("None")
+ 
+     def visit_ImportNode(self, node):
+-        self.put(u"(import %s)" % node.module_name.value)
++        self.put("(import %s)" % node.module_name.value)
+ 
+     def visit_NotNode(self, node):
+-        self.put(u"(not ")
++        self.put("(not ")
+         self.visit(node.operand)
+-        self.put(u")")
++        self.put(")")
+ 
+     def visit_TempsBlockNode(self, node):
+         """
+Only in Cython-0.10.3/Cython: CodeWriter.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Annotate.py Cython-0.10.3/Cython/Compiler/Annotate.py
+--- Cython-0.10.3.orig/Cython/Compiler/Annotate.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Annotate.py	2009-01-16 21:35:38.476655354 -0500
+@@ -4,16 +4,16 @@
+ import re
+ import time
+ import codecs
+-from StringIO import StringIO
++from io import StringIO
+ 
+-import Version
+-from Code import CCodeWriter
++from . import Version
++from .Code import CCodeWriter
+ from Cython import Utils
+ 
+ # need one-characters subsitutions (for now) so offsets aren't off
+-special_chars = [(u'<', u'\xF0', u'&lt;'),
+-                 (u'>', u'\xF1', u'&gt;'), 
+-                 (u'&', u'\xF2', u'&amp;')]
++special_chars = [('<', '\xF0', '&lt;'),
++                 ('>', '\xF1', '&gt;'), 
++                 ('&', '\xF2', '&amp;')]
+                  
+ line_pos_comment = re.compile(r'/\*.*?<<<<<<<<<<<<<<.*?\*/\n*', re.DOTALL)
+ 
+@@ -84,8 +84,8 @@
+         
+         html_filename = os.path.splitext(target_filename)[0] + ".html"
+         f = codecs.open(html_filename, "w", encoding="UTF-8")
+-        f.write(u'<html>\n')
+-        f.write(u"""
++        f.write('<html>\n')
++        f.write("""
+ <head>
+ <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+ <style type="text/css">
+@@ -120,16 +120,16 @@
+ </script>
+ </head>
+         """)
+-        f.write(u'<body>\n')
+-        f.write(u'<p>Generated by Cython %s on %s\n' % (Version.version, time.asctime()))
++        f.write('<body>\n')
++        f.write('<p>Generated by Cython %s on %s\n' % (Version.version, time.asctime()))
+         c_file = Utils.encode_filename(os.path.basename(target_filename))
+-        f.write(u'<p>Raw output: <a href="%s">%s</a>\n' % (c_file, c_file))
++        f.write('<p>Raw output: <a href="%s">%s</a>\n' % (c_file, c_file))
+         k = 0
+         
+-        py_c_api = re.compile(u'(Py[A-Z][a-z]+_[A-Z][a-z][A-Za-z_]+)')
+-        pyx_api = re.compile(u'(__Pyx[A-Za-z_]+)\(')
+-        py_marco_api = re.compile(u'(Py[A-Za-z]*_[A-Z][A-Z_]+)')
+-        error_goto = re.compile(ur'((; *if .*)? \{__pyx_filename = .*goto __pyx_L\w+;\})')
++        py_c_api = re.compile('(Py[A-Z][a-z]+_[A-Z][a-z][A-Za-z_]+)')
++        pyx_api = re.compile('(__Pyx[A-Za-z_]+)\(')
++        py_marco_api = re.compile('(Py[A-Za-z]*_[A-Z][A-Z_]+)')
++        error_goto = re.compile(r'((; *if .*)? \{__pyx_filename = .*goto __pyx_L\w+;\})')
+         
+         for line in lines:
+ 
+@@ -139,34 +139,34 @@
+             except KeyError:
+                 code = ''
+                 
+-            code, c_api_calls = py_c_api.subn(ur"<span class='py_api'>\1</span>", code)
+-            code, pyx_api_calls = pyx_api.subn(ur"<span class='pyx_api'>\1</span>(", code)
+-            code, macro_api_calls = py_marco_api.subn(ur"<span class='py_macro_api'>\1</span>", code)
+-            code, error_goto_calls = error_goto.subn(ur"<span class='error_goto'>\1</span>", code)
++            code, c_api_calls = py_c_api.subn(r"<span class='py_api'>\1</span>", code)
++            code, pyx_api_calls = pyx_api.subn(r"<span class='pyx_api'>\1</span>(", code)
++            code, macro_api_calls = py_marco_api.subn(r"<span class='py_macro_api'>\1</span>", code)
++            code, error_goto_calls = error_goto.subn(r"<span class='error_goto'>\1</span>", code)
+             
+-            code = code.replace(u"<span class='error_goto'>;", u";<span class='error_goto'>")
++            code = code.replace("<span class='error_goto'>;", ";<span class='error_goto'>")
+             
+-            color = u"FFFF%02x" % int(255/(1+(5*c_api_calls+2*pyx_api_calls+macro_api_calls)/10.0))
+-            f.write(u"<pre class='line' style='background-color: #%s' onclick='toggleDiv(\"line%s\")'>" % (color, k))
++            color = "FFFF%02x" % int(255/(1+(5*c_api_calls+2*pyx_api_calls+macro_api_calls)/10.0))
++            f.write("<pre class='line' style='background-color: #%s' onclick='toggleDiv(\"line%s\")'>" % (color, k))
+ 
+-            f.write(u" %d: " % k)
++            f.write(" %d: " % k)
+             for c, cc, html in special_chars:
+                 line = line.replace(cc, html)
+             f.write(line.rstrip())
+                 
+-            f.write(u'</pre>\n')
++            f.write('</pre>\n')
+             code = re.sub(line_pos_comment, '', code) # inline annotations are redundant
+-            f.write(u"<pre id='line%s' class='code' style='background-color: #%s'>%s</pre>" % (k, color, code))
+-        f.write(u'</body></html>\n')
++            f.write("<pre id='line%s' class='code' style='background-color: #%s'>%s</pre>" % (k, color, code))
++        f.write('</body></html>\n')
+         f.close()
+         
+ 
+ # TODO: make this cleaner
+ def escape(raw_string):
+-    raw_string = raw_string.replace(u"\'", ur"&#146;")
+-    raw_string = raw_string.replace(u'\"', ur'&quot;')
+-    raw_string = raw_string.replace(u'\n', ur'<br>\n')
+-    raw_string = raw_string.replace(u'\t', ur'\t')
++    raw_string = raw_string.replace("\'", r"&#146;")
++    raw_string = raw_string.replace('\"', r'&quot;')
++    raw_string = raw_string.replace('\n', r'<br>\n')
++    raw_string = raw_string.replace('\t', r'\t')
+     return raw_string
+ 
+ 
+@@ -179,7 +179,7 @@
+         self.size = size
+         
+     def start(self):
+-        return u"<span class='tag %s' title='%s'>%s" % (self.style, self.text, self.tag)
++        return "<span class='tag %s' title='%s'>%s" % (self.style, self.text, self.tag)
+     
+     def end(self):
+-        return self.size, u"</span>"
++        return self.size, "</span>"
+Only in Cython-0.10.3/Cython/Compiler: Annotate.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Buffer.py Cython-0.10.3/Cython/Compiler/Buffer.py
+--- Cython-0.10.3.orig/Cython/Compiler/Buffer.py	2008-12-17 03:56:17.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Buffer.py	2009-01-16 21:35:40.836657322 -0500
+@@ -5,8 +5,8 @@
+ from Cython.Compiler.StringEncoding import EncodedString
+ from Cython.Compiler.Errors import CompileError
+ from Cython.Utils import UtilityCode
+-import Interpreter
+-import PyrexTypes
++from . import Interpreter
++from . import PyrexTypes
+ 
+ try:
+     set
+@@ -54,7 +54,7 @@
+         # The variables are also accessible from the buffer_info
+         # on the buffer entry
+         bufvars = [entry for name, entry
+-                   in scope.entries.iteritems()
++                   in scope.entries.items()
+                    if entry.type.is_buffer]
+         if len(bufvars) > 0:
+             self.buffers_exists = True
+@@ -149,7 +149,7 @@
+         raise CompileError(posargs[-1][1], ERR_BUF_TOO_MANY)
+ 
+     options = {}
+-    for name, (value, pos) in dictargs.iteritems():
++    for name, (value, pos) in dictargs.items():
+         if not name in buffer_options:
+             raise CompileError(pos, ERR_BUF_OPTION_UNKNOWN % name)
+         options[name.encode("ASCII")] = value
+@@ -360,8 +360,8 @@
+         # error is occuring at.
+         tmp_cname = code.funcstate.allocate_temp(PyrexTypes.c_int_type)
+         code.putln("%s = -1;" % tmp_cname)
+-        for dim, (signed, cname, shape) in enumerate(zip(index_signeds, index_cnames,
+-                                                         bufaux.shapevars)):
++        for dim, (signed, cname, shape) in enumerate(list(zip(index_signeds, index_cnames,
++                                                         bufaux.shapevars))):
+             if signed != 0:
+                 # not unsigned, deal with negative index
+                 code.putln("if (%s < 0) {" % cname)
+@@ -723,8 +723,8 @@
+             if t.is_extension_type:
+                 release = get = None
+                 for x in t.scope.pyfunc_entries:
+-                    if x.name == u"__getbuffer__": get = x.func_cname
+-                    elif x.name == u"__releasebuffer__": release = x.func_cname
++                    if x.name == "__getbuffer__": get = x.func_cname
++                    elif x.name == "__releasebuffer__": release = x.func_cname
+                 if get:
+                     types.append((t.typeptr_cname, get, release))
+ 
+Only in Cython-0.10.3/Cython/Compiler: Buffer.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Builtin.py Cython-0.10.3/Cython/Compiler/Builtin.py
+--- Cython-0.10.3.orig/Cython/Compiler/Builtin.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Builtin.py	2009-01-16 21:35:41.166657280 -0500
+@@ -2,10 +2,10 @@
+ #   Pyrex - Builtin Definitions
+ #
+ 
+-from Symtab import BuiltinScope, StructOrUnionScope
++from .Symtab import BuiltinScope, StructOrUnionScope
+ from Cython.Utils import UtilityCode
+-from TypeSlots import Signature
+-import PyrexTypes
++from .TypeSlots import Signature
++from . import PyrexTypes
+ 
+ builtin_function_table = [
+     # name,        args,   return,  C API func,           py equiv = "*"
+Only in Cython-0.10.3/Cython/Compiler: Builtin.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/CmdLine.py Cython-0.10.3/Cython/Compiler/CmdLine.py
+--- Cython-0.10.3.orig/Cython/Compiler/CmdLine.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/CmdLine.py	2009-01-16 21:35:41.476656944 -0500
+@@ -3,7 +3,7 @@
+ #
+ 
+ import sys
+-import Options
++from . import Options
+ 
+ usage = """\
+ Cython (http://cython.org) is a compiler for code written in the
+@@ -119,7 +119,7 @@
+             elif option in ("-X", "--directive"):
+                 try:
+                     options.pragma_overrides = Options.parse_option_list(pop_arg())
+-                except ValueError, e:
++                except ValueError as e:
+                     sys.stderr.write("Error in compiler directive: %s\n" % e.message)
+                     sys.exit(1)
+             else:
+Only in Cython-0.10.3/Cython/Compiler: CmdLine.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Code.py Cython-0.10.3/Cython/Compiler/Code.py
+--- Cython-0.10.3.orig/Cython/Compiler/Code.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Code.py	2009-01-16 21:35:43.546657366 -0500
+@@ -3,12 +3,12 @@
+ #
+ 
+ import codecs
+-import Naming
+-import Options
++from . import Naming
++from . import Options
+ from Cython.Utils import open_new_file, open_source_file
+-from PyrexTypes import py_object_type, typecast
+-from TypeSlots import method_coexist
+-from Scanning import SourceDescriptor
++from .PyrexTypes import py_object_type, typecast
++from .TypeSlots import method_coexist
++from .Scanning import SourceDescriptor
+ from Cython.StringIOTree import StringIOTree
+ try:
+     set
+@@ -214,7 +214,7 @@
+         if self.pystring_table_needed:
+             self.pystring_table.putln("{0, 0, 0, 0, 0, 0}")
+             self.pystring_table.putln("};")
+-            import Nodes
++            from . import Nodes
+             self.use_utility_code(Nodes.init_string_tab_utility_code)
+             self.initwriter.putln(
+                 "if (__Pyx_InitStrings(%s) < 0) %s;" % (
+@@ -334,11 +334,11 @@
+         try:
+             return self.input_file_contents[source_desc]
+         except KeyError:
+-            F = [u' * ' + line.rstrip().replace(
+-                    u'*/', u'*[inserted by cython to avoid comment closer]/'
++            F = [' * ' + line.rstrip().replace(
++                    '*/', '*[inserted by cython to avoid comment closer]/'
+                     ).encode('ASCII', 'replace') # + Py2 auto-decode to unicode
+                  for line in source_desc.get_lines()]
+-            if len(F) == 0: F.append(u'')
++            if len(F) == 0: F.append('')
+             self.input_file_contents[source_desc] = F
+             return F
+ 
+@@ -598,11 +598,11 @@
+         assert isinstance(source_desc, SourceDescriptor)
+         contents = self.globalstate.commented_file_contents(source_desc)
+         lines = contents[max(0,line-3):line] # line numbers start at 1
+-        lines[-1] += u'             # <<<<<<<<<<<<<<'
++        lines[-1] += '             # <<<<<<<<<<<<<<'
+         lines += contents[line:line+2]
+ 
+-        marker = u'"%s":%d\n%s\n' % (
+-            source_desc.get_escaped_description(), line, u'\n'.join(lines))
++        marker = '"%s":%d\n%s\n' % (
++            source_desc.get_escaped_description(), line, '\n'.join(lines))
+         self.marker = (line, marker)
+         if self.emit_linenums:
+             self.source_desc = source_desc.get_escaped_description()
+Only in Cython-0.10.3/Cython/Compiler: Code.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/ControlFlow.py Cython-0.10.3/Cython/Compiler/ControlFlow.py
+--- Cython-0.10.3.orig/Cython/Compiler/ControlFlow.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/ControlFlow.py	2009-01-16 21:35:44.046657841 -0500
+@@ -13,7 +13,7 @@
+ # redesigned. It doesn't take return, raise, continue, or break into 
+ # account. 
+ 
+-_END_POS = ((unichr(sys.maxunicode)*10),())
++_END_POS = ((chr(sys.maxunicode)*10),())
+ 
+ class ControlFlow:
+ 
+@@ -98,7 +98,7 @@
+             
+         else:
+             all = []
+-            for item, event_list in self.events.items():
++            for item, event_list in list(self.events.items()):
+                 for pos, state in event_list:
+                     all.append((indent, pos, item, state))
+             all.sort()
+Only in Cython-0.10.3/Cython/Compiler: ControlFlow.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/CythonScope.py Cython-0.10.3/Cython/Compiler/CythonScope.py
+--- Cython-0.10.3.orig/Cython/Compiler/CythonScope.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/CythonScope.py	2009-01-16 21:35:44.096655685 -0500
+@@ -1,5 +1,5 @@
+-from Symtab import ModuleScope
+-from PyrexTypes import *
++from .Symtab import ModuleScope
++from .PyrexTypes import *
+ 
+ shape_func_type = CFuncType(
+     c_ptr_type(c_py_ssize_t_type),
+@@ -7,7 +7,7 @@
+ 
+ class CythonScope(ModuleScope):
+     def __init__(self, context):
+-        ModuleScope.__init__(self, u'cython', None, context)
++        ModuleScope.__init__(self, 'cython', None, context)
+         self.pxd_file_loaded = True
+ 
+         self.shape_entry = self.declare_cfunction('shape',
+Only in Cython-0.10.3/Cython/Compiler: CythonScope.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Errors.py Cython-0.10.3/Cython/Compiler/Errors.py
+--- Cython-0.10.3.orig/Cython/Compiler/Errors.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Errors.py	2009-01-16 21:35:44.346655281 -0500
+@@ -15,7 +15,7 @@
+ 
+ def context(position):
+     source = position[0]
+-    assert not (isinstance(source, unicode) or isinstance(source, str)), (
++    assert not (isinstance(source, str) or isinstance(source, str)), (
+         "Please replace filename strings with Scanning.FileSourceDescriptor instances %r" % source)
+     try:
+         F = list(source.get_lines())
+Only in Cython-0.10.3/Cython/Compiler: Errors.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/ExprNodes.py Cython-0.10.3/Cython/Compiler/ExprNodes.py
+--- Cython-0.10.3.orig/Cython/Compiler/ExprNodes.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/ExprNodes.py	2009-01-16 21:35:56.646655619 -0500
+@@ -5,21 +5,21 @@
+ import operator
+ from string import join
+ 
+-from Errors import error, warning, InternalError
+-from Errors import hold_errors, release_errors, held_errors, report_error
++from .Errors import error, warning, InternalError
++from .Errors import hold_errors, release_errors, held_errors, report_error
+ from Cython.Utils import UtilityCode
+-import StringEncoding
+-import Naming
+-from Nodes import Node
+-import PyrexTypes
+-from PyrexTypes import py_object_type, c_long_type, typecast, error_type
+-from Builtin import list_type, tuple_type, dict_type, unicode_type
+-import Symtab
+-import Options
+-from Annotate import AnnotationItem
++from . import StringEncoding
++from . import Naming
++from .Nodes import Node
++from . import PyrexTypes
++from .PyrexTypes import py_object_type, c_long_type, typecast, error_type
++from .Builtin import list_type, tuple_type, dict_type, unicode_type
++from . import Symtab
++from . import Options
++from .Annotate import AnnotationItem
+ 
+ from Cython.Debugging import print_call_chain
+-from DebugFlags import debug_disposal_code, debug_temp_alloc, \
++from .DebugFlags import debug_disposal_code, debug_temp_alloc, \
+     debug_coercion
+ 
+ 
+@@ -341,7 +341,7 @@
+     def allocate_target_temps(self, env, rhs):
+         #  Perform temp allocation for the LHS of an assignment.
+         if debug_temp_alloc:
+-            print("%s Allocating target temps" % self)
++            print(("%s Allocating target temps" % self))
+         self.allocate_subexpr_temps(env)
+         self.is_target = True
+         if rhs:
+@@ -355,7 +355,7 @@
+         #  is used as the result instead of allocating a new
+         #  one.
+         if debug_temp_alloc:
+-            print("%s Allocating temps" % self)
++            print(("%s Allocating temps" % self))
+         self.allocate_subexpr_temps(env)
+         self.allocate_temp(env, result)
+         if self.is_temp:
+@@ -365,11 +365,11 @@
+         #  Allocate temporary variables for all sub-expressions
+         #  of this node.
+         if debug_temp_alloc:
+-            print("%s Allocating temps for: %s" % (self, self.subexprs))
++            print(("%s Allocating temps for: %s" % (self, self.subexprs)))
+         for node in self.subexpr_nodes():
+             if node:
+                 if debug_temp_alloc:
+-                    print("%s Allocating temps for %s" % (self, node))
++                    print(("%s Allocating temps for %s" % (self, node)))
+                 node.allocate_temps(env)
+     
+     def allocate_temp(self, env, result = None):
+@@ -380,7 +380,7 @@
+         #  is used as the result instead of allocating a new
+         #  one.
+         if debug_temp_alloc:
+-            print("%s Allocating temp" % self)
++            print(("%s Allocating temp" % self))
+         if result:
+             if not self.is_temp:
+                 raise InternalError("Result forced on non-temp node")
+@@ -394,7 +394,7 @@
+             else:
+                 self.result_code = None
+             if debug_temp_alloc:
+-                print("%s Allocated result %s" % (self, self.result_code))
++                print(("%s Allocated result %s" % (self, self.result_code)))
+                 
+     def target_code(self):
+         #  Return code fragment for use as LHS of a C assignment.
+@@ -412,7 +412,7 @@
+         #  otherwise release results of its sub-expressions.
+         if self.is_temp:
+             if debug_temp_alloc:
+-                print("%s Releasing result %s" % (self, self.result_code))
++                print(("%s Releasing result %s" % (self, self.result_code)))
+             env.release_temp(self.result_code)
+         else:
+             self.release_subexpr_temps(env)
+@@ -798,9 +798,9 @@
+         type = PyrexTypes.parse_basic_type(self.value)
+         if type is not None:    
+             return type
+-        from TreeFragment import TreeFragment
++        from .TreeFragment import TreeFragment
+         pos = (self.pos[0], self.pos[1], self.pos[2]-7)
+-        declaration = TreeFragment(u"sizeof(%s)" % self.value, name=pos[0].filename, initial_pos=pos)
++        declaration = TreeFragment("sizeof(%s)" % self.value, name=pos[0].filename, initial_pos=pos)
+         sizeof_node = declaration.root.stats[0].expr
+         sizeof_node.analyse_types(env)
+         if isinstance(sizeof_node, SizeofTypeNode):
+@@ -886,7 +886,7 @@
+     #  value   string
+     
+     def compile_time_value(self, denv):
+-        return long(self.value)
++        return int(self.value)
+ 
+     gil_message = "Constructing Python long int"
+     
+@@ -1040,7 +1040,7 @@
+             self.type = PyrexTypes.error_type
+         self.entry.used = 1
+         if self.entry.type.is_buffer:
+-            import Buffer
++            from . import Buffer
+             Buffer.used_buffer_aux_vars(self.entry)
+                 
+     def analyse_rvalue_entry(self, env):
+@@ -1117,7 +1117,7 @@
+         if entry:
+             entry.used = 1
+             if entry.type.is_buffer:
+-                import Buffer
++                from . import Buffer
+                 Buffer.used_buffer_aux_vars(entry)
+             if entry.utility_code:
+                 env.use_utility_code(entry.utility_code)
+@@ -1188,7 +1188,7 @@
+                         rhs.py_result()))
+                 if debug_disposal_code:
+                     print("NameNode.generate_assignment_code:")
+-                    print("...generating disposal code for %s" % rhs)
++                    print(("...generating disposal code for %s" % rhs))
+                 rhs.generate_disposal_code(code)
+                 
+         else:
+@@ -1220,7 +1220,7 @@
+             code.putln('%s = %s;' % (self.result(), rhs.result_as(self.ctype())))
+             if debug_disposal_code:
+                 print("NameNode.generate_assignment_code:")
+-                print("...generating post-assignment code for %s" % rhs)
++                print(("...generating post-assignment code for %s" % rhs))
+             rhs.generate_post_assignment_code(code)
+ 
+     def generate_acquire_buffer(self, rhs, code):
+@@ -1229,7 +1229,7 @@
+         bufstruct = buffer_aux.buffer_info_var.cname
+         code.putln('%s = %s;' % (rhstmp, rhs.result_as(self.ctype())))
+ 
+-        import Buffer
++        from . import Buffer
+         Buffer.put_assign_to_buffer(self.result(), rhstmp, buffer_aux, self.entry.type,
+                                     is_initialized=not self.lhs_of_first_assignment,
+                                     pos=self.pos, code=code)
+@@ -1480,7 +1480,7 @@
+         index = self.index.compile_time_value(denv)
+         try:
+             return base[index]
+-        except Exception, e:
++        except Exception as e:
+             self.compile_time_value_error(e)
+     
+     def is_ephemeral(self):
+@@ -1730,7 +1730,7 @@
+         for temp, index in zip(index_temps, self.indices):
+             code.putln("%s = %s;" % (temp, index.result()))
+         # Generate buffer access code using these temps
+-        import Buffer
++        from . import Buffer
+         # The above could happen because child_attrs is wrong somewhere so that
+         # options are not propagated.
+         return Buffer.put_buffer_lookup_code(entry=self.base.entry,
+@@ -1767,7 +1767,7 @@
+             stop = self.stop.compile_time_value(denv)
+         try:
+             return base[start:stop]
+-        except Exception, e:
++        except Exception as e:
+             self.compile_time_value_error(e)
+     
+     def analyse_target_declaration(self, env):
+@@ -1856,7 +1856,7 @@
+             step = self.step.compile_time_value(denv)
+         try:
+             return slice(start, stop, step)
+-        except Exception, e:
++        except Exception as e:
+             self.compile_time_value_error(e)
+ 
+     subexprs = ['start', 'stop', 'step']
+@@ -1930,7 +1930,7 @@
+         args = [arg.compile_time_value(denv) for arg in self.args]
+         try:
+             return function(*args)
+-        except Exception, e:
++        except Exception as e:
+             self.compile_time_value_error(e)
+             
+     def analyse_as_type(self, env):
+@@ -2065,7 +2065,7 @@
+             return "<error>"
+         formal_args = func_type.args
+         arg_list_code = []
+-        args = zip(formal_args, self.args)
++        args = list(zip(formal_args, self.args))
+         max_nargs = len(func_type.args)
+         expected_nargs = max_nargs - func_type.optional_arg_count
+         actual_nargs = len(self.args)
+@@ -2110,7 +2110,7 @@
+                         self.opt_arg_struct,
+                         Naming.pyrex_prefix + "n",
+                         len(self.args) - expected_nargs))
+-                args = zip(func_type.args, self.args)
++                args = list(zip(func_type.args, self.args))
+                 for formal_arg, actual_arg in args[expected_nargs:actual_nargs]:
+                     code.putln("%s.%s = %s;" % (
+                             self.opt_arg_struct,
+@@ -2176,7 +2176,7 @@
+         try:
+             keyword_args.update(starstar_arg)
+             return function(*positional_args, **keyword_args)
+-        except Exception, e:
++        except Exception as e:
+             self.compile_time_value_error(e)
+             
+     def explicit_args_kwds(self):
+@@ -2245,7 +2245,7 @@
+         arg = self.arg.compile_time_value(denv)
+         try:
+             return tuple(arg)
+-        except Exception, e:
++        except Exception as e:
+             self.compile_time_value_error(e)
+ 
+     def analyse_types(self, env):
+@@ -2315,7 +2315,7 @@
+         obj = self.arg.compile_time_value(denv)
+         try:
+             return getattr(obj, attr)
+-        except Exception, e:
++        except Exception as e:
+             self.compile_time_value_error(e)
+ 
+     def analyse_target_declaration(self, env):
+@@ -2701,7 +2701,7 @@
+                 self.iterator.py_result()))
+         if debug_disposal_code:
+             print("UnpackNode.generate_assignment_code:")
+-            print("...generating disposal code for %s" % self.iterator)
++            print(("...generating disposal code for %s" % self.iterator))
+         self.iterator.generate_disposal_code(code)
+ 
+         code.putln("}")
+@@ -2739,7 +2739,7 @@
+         values = self.compile_time_value_list(denv)
+         try:
+             return tuple(values)
+-        except Exception, e:
++        except Exception as e:
+             self.compile_time_value_error(e)
+     
+     def generate_operation_code(self, code):
+@@ -2810,7 +2810,7 @@
+             else:
+                 if len(self.args) < len(dst_type.scope.var_entries):
+                     warning(self.pos, "Too few members for '%s'" % dst_type, 1)
+-                for i, (arg, member) in enumerate(zip(self.original_args, dst_type.scope.var_entries)):
++                for i, (arg, member) in enumerate(list(zip(self.original_args, dst_type.scope.var_entries))):
+                     if isinstance(arg, CoerceToPyTypeNode):
+                         arg = arg.arg
+                     self.args[i] = arg.coerce_to(member.type, env)
+@@ -2885,7 +2885,7 @@
+         
+     def allocate_temps(self, env, result = None): 
+         if debug_temp_alloc:
+-            print("%s Allocating temps" % self)
++            print(("%s Allocating temps" % self))
+         self.allocate_temp(env, result)
+         self.loop.analyse_declarations(env)
+         self.loop.analyse_expressions(env)
+@@ -2936,7 +2936,7 @@
+             for item in self.key_value_pairs]
+         try:
+             return dict(pairs)
+-        except Exception, e:
++        except Exception as e:
+             self.compile_time_value_error(e)
+     
+     def analyse_types(self, env):
+@@ -3178,7 +3178,7 @@
+         operand = self.operand.compile_time_value(denv)
+         try:
+             return func(operand)
+-        except Exception, e:
++        except Exception as e:
+             self.compile_time_value_error(e)
+ 
+     def analyse_types(self, env):
+@@ -3232,7 +3232,7 @@
+         operand = self.operand.compile_time_value(denv)
+         try:
+             return not operand
+-        except Exception, e:
++        except Exception as e:
+             self.compile_time_value_error(e)
+ 
+     subexprs = ['operand']
+@@ -3565,7 +3565,7 @@
+         operand2 = self.operand2.compile_time_value(denv)
+         try:
+             return func(operand1, operand2)
+-        except Exception, e:
++        except Exception as e:
+             self.compile_time_value_error(e)
+ 
+     def analyse_types(self, env):
+@@ -4001,7 +4001,7 @@
+         operand2 = self.operand2.compile_time_value(denv)
+         try:
+             result = func(operand1, operand2)
+-        except Exception, e:
++        except Exception as e:
+             self.compile_time_value_error(e)
+             result = None
+         if result:
+@@ -4345,7 +4345,7 @@
+         self.pos = arg.pos
+         self.arg = arg
+         if debug_coercion:
+-            print("%s Coercing %s" % (self, self.arg))
++            print(("%s Coercing %s" % (self, self.arg)))
+             
+     def annotate(self, code):
+         self.arg.annotate(code)
+Only in Cython-0.10.3/Cython/Compiler: ExprNodes.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Interpreter.py Cython-0.10.3/Cython/Compiler/Interpreter.py
+--- Cython-0.10.3.orig/Cython/Compiler/Interpreter.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Interpreter.py	2009-01-16 21:35:56.756655156 -0500
+@@ -6,10 +6,10 @@
+ compile-time values.
+ """
+ 
+-from Nodes import *
+-from ExprNodes import *
+-from Visitor import BasicVisitor
+-from Errors import CompileError
++from .Nodes import *
++from .ExprNodes import *
++from .Visitor import BasicVisitor
++from .Errors import CompileError
+ 
+ 
+ class EmptyScope:
+Only in Cython-0.10.3/Cython/Compiler: Interpreter.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Lexicon.py Cython-0.10.3/Cython/Compiler/Lexicon.py
+--- Cython-0.10.3.orig/Cython/Compiler/Lexicon.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Lexicon.py	2009-01-16 21:35:57.226655121 -0500
+@@ -12,7 +12,7 @@
+     from Cython.Plex import \
+         Str, Any, AnyBut, AnyChar, Rep, Rep1, Opt, Bol, Eol, Eof, \
+         TEXT, IGNORE, State, Lexicon
+-    from Scanning import Method
++    from .Scanning import Method
+ 
+     letter = Any("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_")
+     digit = Any("0123456789")
+Only in Cython-0.10.3/Cython/Compiler: Lexicon.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Main.py Cython-0.10.3/Cython/Compiler/Main.py
+--- Cython-0.10.3.orig/Cython/Compiler/Main.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Main.py	2009-01-16 21:35:58.766657475 -0500
+@@ -14,16 +14,16 @@
+     from sets import Set as set
+ 
+ from time import time
+-import Code
+-import Errors
+-import Parsing
+-import Version
+-from Scanning import PyrexScanner, FileSourceDescriptor
+-from Errors import PyrexError, CompileError, InternalError, error
+-from Symtab import BuiltinScope, ModuleScope
++from . import Code
++from . import Errors
++from . import Parsing
++from . import Version
++from .Scanning import PyrexScanner, FileSourceDescriptor
++from .Errors import PyrexError, CompileError, InternalError, error
++from .Symtab import BuiltinScope, ModuleScope
+ from Cython import Utils
+ from Cython.Utils import open_new_file, replace_suffix
+-import CythonScope
++from . import CythonScope
+ 
+ module_name_pattern = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$")
+ 
+@@ -31,7 +31,7 @@
+ 
+ def dumptree(t):
+     # For quick debugging in pipelines
+-    print t.dump()
++    print(t.dump())
+     return t
+ 
+ class CompilationData:
+@@ -75,16 +75,16 @@
+         self.include_directories = include_directories + [standard_include_path]
+ 
+     def create_pipeline(self, pxd, py=False):
+-        from Visitor import PrintTree
+-        from ParseTreeTransforms import WithTransform, NormalizeTree, PostParse, PxdPostParse
+-        from ParseTreeTransforms import AnalyseDeclarationsTransform, AnalyseExpressionsTransform
+-        from ParseTreeTransforms import CreateClosureClasses, MarkClosureVisitor, DecoratorTransform
+-        from ParseTreeTransforms import InterpretCompilerDirectives, TransformBuiltinMethods
+-        from ParseTreeTransforms import AlignFunctionDefinitions
+-        from AutoDocTransforms import EmbedSignature
+-        from Optimize import FlattenInListTransform, SwitchTransform, FinalOptimizePhase
+-        from Buffer import IntroduceBufferAuxiliaryVars
+-        from ModuleNode import check_c_declarations
++        from .Visitor import PrintTree
++        from .ParseTreeTransforms import WithTransform, NormalizeTree, PostParse, PxdPostParse
++        from .ParseTreeTransforms import AnalyseDeclarationsTransform, AnalyseExpressionsTransform
++        from .ParseTreeTransforms import CreateClosureClasses, MarkClosureVisitor, DecoratorTransform
++        from .ParseTreeTransforms import InterpretCompilerDirectives, TransformBuiltinMethods
++        from .ParseTreeTransforms import AlignFunctionDefinitions
++        from .AutoDocTransforms import EmbedSignature
++        from .Optimize import FlattenInListTransform, SwitchTransform, FinalOptimizePhase
++        from .Buffer import IntroduceBufferAuxiliaryVars
++        from .ModuleNode import check_c_declarations
+ 
+         if pxd:
+             _check_c_declarations = None
+@@ -128,7 +128,7 @@
+         def inject_pxd_code(module_node):
+             from textwrap import dedent
+             stats = module_node.body.stats
+-            for name, (statlistnode, scope) in self.pxds.iteritems():
++            for name, (statlistnode, scope) in self.pxds.items():
+                 # Copy over function nodes to the module
+                 # (this seems strange -- I believe the right concept is to split
+                 # ModuleNode into a ModuleNode and a CodeGenerator, and tell that
+@@ -154,7 +154,7 @@
+             tree.is_pxd = True
+             return tree
+ 
+-        from CodeGeneration import ExtractPxdCode
++        from .CodeGeneration import ExtractPxdCode
+ 
+         # The pxd pipeline ends up with a CCodeWriter containing the
+         # code of the pxd, as well as a pxd scope.
+@@ -181,10 +181,10 @@
+             for phase in pipeline:
+                 if phase is not None:
+                     data = phase(data)
+-        except CompileError, err:
++        except CompileError as err:
+             # err is set
+             Errors.report_error(err)
+-        except InternalError, err:
++        except InternalError as err:
+             # Only raise if there was not an earlier error
+             if Errors.num_errors == 0:
+                 raise
+@@ -201,8 +201,8 @@
+         # that module, provided its name is not a dotted name.
+         debug_find_module = 0
+         if debug_find_module:
+-            print("Context.find_module: module_name = %s, relative_to = %s, pos = %s, need_pxd = %s" % (
+-                    module_name, relative_to, pos, need_pxd))
++            print(("Context.find_module: module_name = %s, relative_to = %s, pos = %s, need_pxd = %s" % (
++                    module_name, relative_to, pos, need_pxd)))
+ 
+         scope = None
+         pxd_pathname = None
+@@ -227,7 +227,7 @@
+             for name in module_name.split("."):
+                 scope = scope.find_submodule(name)
+         if debug_find_module:
+-            print("...scope =", scope)
++            print(("...scope =", scope))
+         if not scope.pxd_file_loaded:
+             if debug_find_module:
+                 print("...pxd not loaded")
+@@ -237,13 +237,13 @@
+                     print("...looking for pxd file")
+                 pxd_pathname = self.find_pxd_file(module_name, pos)
+                 if debug_find_module:
+-                    print("......found ", pxd_pathname)
++                    print(("......found ", pxd_pathname))
+                 if not pxd_pathname and need_pxd:
+                     error(pos, "'%s.pxd' not found" % module_name)
+             if pxd_pathname:
+                 try:
+                     if debug_find_module:
+-                        print("Context.find_module: Parsing %s" % pxd_pathname)
++                        print(("Context.find_module: Parsing %s" % pxd_pathname))
+                     source_desc = FileSourceDescriptor(pxd_pathname)
+                     err, result = self.process_pxd(source_desc, scope, module_name)
+                     if err:
+@@ -414,7 +414,7 @@
+                 tree = Parsing.p_module(s, pxd, full_module_name)
+             finally:
+                 f.close()
+-        except UnicodeDecodeError, msg:
++        except UnicodeDecodeError as msg:
+             #import traceback
+             #traceback.print_exc()
+             error((source_desc, 0, 0), "Decoding error, missing or incorrect coding=<encoding-name> at top of source (%s)" % msg)
+@@ -685,7 +685,7 @@
+     """
+     options = CompilationOptions(defaults = options, c_compile = c_compile,
+         c_link = c_link, **kwds)
+-    if isinstance(source, basestring) and not options.timestamps \
++    if isinstance(source, str) and not options.timestamps \
+             and not options.recursive:
+         return compile_single(source, options, full_module_name)
+     else:
+@@ -701,7 +701,7 @@
+     args = sys.argv[1:]
+     any_failures = 0
+     if command_line:
+-        from CmdLine import parse_command_line
++        from .CmdLine import parse_command_line
+         options, sources = parse_command_line(args)
+     else:
+         options = CompilationOptions(default_options)
+@@ -715,7 +715,7 @@
+         result = compile(sources, options)
+         if result.num_errors > 0:
+             any_failures = 1
+-    except (EnvironmentError, PyrexError), e:
++    except (EnvironmentError, PyrexError) as e:
+         sys.stderr.write(str(e) + '\n')
+         any_failures = 1
+     if any_failures:
+Only in Cython-0.10.3/Cython/Compiler: Main.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/ModuleNode.py Cython-0.10.3/Cython/Compiler/ModuleNode.py
+--- Cython-0.10.3.orig/Cython/Compiler/ModuleNode.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/ModuleNode.py	2009-01-16 21:36:04.966655952 -0500
+@@ -3,27 +3,27 @@
+ #
+ 
+ import os, time
+-from PyrexTypes import CPtrType
+-import Future
++from .PyrexTypes import CPtrType
++from . import Future
+ 
+ try:
+     set
+ except NameError: # Python 2.3
+     from sets import Set as set
+ 
+-import Annotate
+-import Code
+-import Naming
+-import Nodes
+-import Options
+-import PyrexTypes
+-import TypeSlots
+-import Version
++from . import Annotate
++from . import Code
++from . import Naming
++from . import Nodes
++from . import Options
++from . import PyrexTypes
++from . import TypeSlots
++from . import Version
+ 
+-from Errors import error, warning
+-from PyrexTypes import py_object_type
++from .Errors import error, warning
++from .PyrexTypes import py_object_type
+ from Cython.Utils import open_new_file, replace_suffix, UtilityCode
+-from StringEncoding import escape_byte_string, EncodedString
++from .StringEncoding import escape_byte_string, EncodedString
+ 
+ 
+ def check_c_declarations(module_node):
+@@ -48,9 +48,9 @@
+     
+     def analyse_declarations(self, env):
+         if Options.embed_pos_in_docstring:
+-            env.doc = EncodedString(u'File: %s (starting at line %s)' % Nodes.relative_position(self.pos))
++            env.doc = EncodedString('File: %s (starting at line %s)' % Nodes.relative_position(self.pos))
+             if not self.doc is None:
+-                env.doc = EncodedString(env.doc + u'\n' + self.doc)
++                env.doc = EncodedString(env.doc + '\n' + self.doc)
+                 env.doc.encoding = self.doc.encoding
+         else:
+             env.doc = self.doc
+@@ -297,7 +297,7 @@
+     def sort_types_by_inheritance(self, type_dict, getkey):
+         # copy the types into a list moving each parent type before
+         # its first child
+-        type_items = type_dict.items()
++        type_items = list(type_dict.items())
+         type_list = []
+         for i, item in enumerate(type_items):
+             key, new_entry = item
+@@ -1483,7 +1483,7 @@
+     def generate_import_star(self, env, code):
+         code.putln()
+         code.putln("char* %s_type_names[] = {" % Naming.import_star)
+-        for name, entry in env.entries.items():
++        for name, entry in list(env.entries.items()):
+             if entry.is_type:
+                 code.putln('"%s",' % name)
+         code.putln("0")
+@@ -1501,7 +1501,7 @@
+         code.putln("}")
+         old_error_label = code.new_error_label()
+         code.putln("if (0);") # so the first one can be "else if"
+-        for name, entry in env.entries.items():
++        for name, entry in list(env.entries.items()):
+             if entry.is_cglobal and entry.used:
+                 code.putln('else if (!strcmp(name, "%s")) {' % name)
+                 if entry.type.is_pyobject:
+@@ -1643,7 +1643,7 @@
+         code.putln("__Pyx_CleanupGlobals();")
+         if Options.generate_cleanup_code >= 3:
+             code.putln("/*--- Type import cleanup code ---*/")
+-            for type, _ in env.types_imported.items():
++            for type, _ in list(env.types_imported.items()):
+                 code.put_decref("((PyObject*)%s)" % type.typeptr_cname, PyrexTypes.py_object_type)
+         if Options.cache_builtins:
+             code.putln("/*--- Builtin cleanup code ---*/")
+Only in Cython-0.10.3/Cython/Compiler: ModuleNode.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Naming.py Cython-0.10.3/Cython/Compiler/Naming.py
+--- Cython-0.10.3.orig/Cython/Compiler/Naming.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Naming.py	2009-01-16 21:36:05.086656724 -0500
+@@ -11,7 +11,7 @@
+ 
+ codewriter_temp_prefix = pyrex_prefix + "t_"
+ 
+-temp_prefix       = u"__cyt_"
++temp_prefix       = "__cyt_"
+ 
+ builtin_prefix    = pyrex_prefix + "builtin_"
+ arg_prefix        = pyrex_prefix + "arg_"
+Only in Cython-0.10.3/Cython/Compiler: Naming.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Nodes.py Cython-0.10.3/Cython/Compiler/Nodes.py
+--- Cython-0.10.3.orig/Cython/Compiler/Nodes.py	2008-12-14 05:58:05.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Nodes.py	2009-01-16 21:36:18.426656332 -0500
+@@ -4,20 +4,20 @@
+ 
+ import string, sys, os, time, copy
+ 
+-import Code
+-from Errors import error, warning, InternalError
+-import Naming
+-import PyrexTypes
+-import TypeSlots
+-from PyrexTypes import py_object_type, error_type, CTypedefType, CFuncType
+-from Symtab import ModuleScope, LocalScope, GeneratorLocalScope, \
++from . import Code
++from .Errors import error, warning, InternalError
++from . import Naming
++from . import PyrexTypes
++from . import TypeSlots
++from .PyrexTypes import py_object_type, error_type, CTypedefType, CFuncType
++from .Symtab import ModuleScope, LocalScope, GeneratorLocalScope, \
+     StructOrUnionScope, PyClassScope, CClassScope
+ from Cython.Utils import open_new_file, replace_suffix, UtilityCode
+-from StringEncoding import EncodedString, escape_byte_string, split_docstring
+-import Options
+-import ControlFlow
++from .StringEncoding import EncodedString, escape_byte_string, split_docstring
++from . import Options
++from . import ControlFlow
+ 
+-from DebugFlags import debug_disposal_code
++from .DebugFlags import debug_disposal_code
+ 
+ absolute_path_length = 0
+ 
+@@ -45,7 +45,7 @@
+ def embed_position(pos, docstring):
+     if not Options.embed_pos_in_docstring:
+         return docstring
+-    pos_line = u'File: %s (starting at line %s)' % relative_position(pos)
++    pos_line = 'File: %s (starting at line %s)' % relative_position(pos)
+     if docstring is None:
+         # unicode string
+         return EncodedString(pos_line)
+@@ -63,7 +63,7 @@
+         # reuse the string encoding of the original docstring
+         doc = EncodedString(pos_line)
+     else:
+-        doc = EncodedString(pos_line + u'\n' + docstring)
++        doc = EncodedString(pos_line + '\n' + docstring)
+     doc.encoding = encoding
+     return doc
+ 
+@@ -192,7 +192,7 @@
+                 return repr(x)
+             
+         
+-        attrs = [(key, value) for key, value in self.__dict__.iteritems() if key not in filter_out]
++        attrs = [(key, value) for key, value in self.__dict__.items() if key not in filter_out]
+         if len(attrs) == 0:
+             return "<%s (%d)>" % (self.__class__.__name__, id(self))
+         else:
+@@ -683,7 +683,7 @@
+     def analyse(self, env, could_be_name = False):
+         base_type = self.base_type_node.analyse(env)
+         if base_type.is_error: return base_type
+-        import Buffer
++        from . import Buffer
+ 
+         options = Buffer.analyse_buffer_options(
+             self.pos,
+@@ -957,7 +957,7 @@
+         return lenv
+                 
+     def generate_function_definitions(self, env, code):
+-        import Buffer
++        from . import Buffer
+ 
+         lenv = self.local_scope
+ 
+@@ -1237,7 +1237,7 @@
+         self.return_type = type.return_type
+         
+         if self.overridable:
+-            import ExprNodes
++            from . import ExprNodes
+             py_func_body = self.call_self_node(is_module_scope = env.is_module_scope)
+             self.py_func = DefNode(pos = self.pos, 
+                                    name = self.entry.name,
+@@ -1259,7 +1259,7 @@
+                 self.body = StatListNode(self.pos, stats=[self.override, self.body])
+     
+     def call_self_node(self, omit_optional_args=0, is_module_scope=0):
+-        import ExprNodes
++        from . import ExprNodes
+         args = self.type.args
+         if omit_optional_args:
+             args = args[:len(args) - self.type.optional_arg_count]
+@@ -1493,7 +1493,7 @@
+             if type is PyrexTypes.py_object_type or formal_arg.is_self:
+                 formal_arg.type = type_arg.type
+                 formal_arg.name_declarator = name_declarator
+-        import ExprNodes
++        from . import ExprNodes
+         if cfunc.type.exception_value is None:
+             exception_value = None
+         else:
+@@ -1703,7 +1703,7 @@
+             self.synthesize_assignment_node(env)
+     
+     def synthesize_assignment_node(self, env):
+-        import ExprNodes
++        from . import ExprNodes
+         self.assmt = SingleAssignmentNode(self.pos,
+             lhs = ExprNodes.NameNode(self.pos, name = self.name),
+             rhs = ExprNodes.UnboundMethodNode(self.pos, 
+@@ -2255,7 +2255,7 @@
+             first_arg = 0
+         else:
+             first_arg = 1
+-        import ExprNodes
++        from . import ExprNodes
+         self.func_node = ExprNodes.PyTempNode(self.pos, env)
+         call_tuple = ExprNodes.TupleNode(self.pos, args=[ExprNodes.NameNode(self.pos, name=arg.name) for arg in self.args[first_arg:]])
+         call_node = ExprNodes.SimpleCallNode(self.pos,
+@@ -2314,7 +2314,7 @@
+         self.name = name
+         self.doc = doc
+         self.body = body
+-        import ExprNodes
++        from . import ExprNodes
+         self.dict = ExprNodes.DictNode(pos, key_value_pairs = [])
+         if self.doc and Options.docstrings:
+             doc = embed_position(self.pos, self.doc)
+@@ -2343,7 +2343,7 @@
+                 path.insert(0, base.name)
+                 base_class_name = path[-1]
+                 if len(path) > 1:
+-                    base_class_module = u'.'.join(path[:-1])
++                    base_class_module = '.'.join(path[:-1])
+                 else:
+                     base_class_module = None
+             else:
+@@ -2434,7 +2434,7 @@
+         #print "...visibility =", self.visibility
+         #print "...module_name =", self.module_name
+ 
+-        import Buffer
++        from . import Buffer
+         if self.buffer_defaults_node:
+             buffer_defaults = Buffer.analyse_buffer_options(self.buffer_defaults_pos,
+                                                             env, [], self.buffer_defaults_node,
+@@ -2589,10 +2589,10 @@
+     child_attrs = ["expr"]
+     
+     def analyse_declarations(self, env):
+-        import ExprNodes
++        from . import ExprNodes
+         if isinstance(self.expr, ExprNodes.GeneralCallNode):
+             func = self.expr.function.as_cython_attribute()
+-            if func == u'declare':
++            if func == 'declare':
+                 args, kwds = self.expr.explicit_args_kwds()
+                 if len(args):
+                     error(self.expr.pos, "Variable names must be specified.")
+@@ -2655,7 +2655,7 @@
+     declaration_only = False
+ 
+     def analyse_declarations(self, env):
+-        import ExprNodes
++        from . import ExprNodes
+         
+         # handle declarations of the form x = cython.foo()
+         if isinstance(self.rhs, ExprNodes.CallNode):
+@@ -2785,7 +2785,7 @@
+             self.rhs = self.rhs.coerce_to_temp(env)
+         else:
+             self.rhs = self.rhs.coerce_to_simple(env)
+-        from ExprNodes import CloneNode
++        from .ExprNodes import CloneNode
+         self.coerced_rhs_list = []
+         for lhs in self.lhs_list:
+             lhs.analyse_target_types(env)
+@@ -2923,7 +2923,7 @@
+             self.dup = self.dup.coerce_to_temp(env)
+         
+     def allocate_rhs_temps(self, env):
+-        import ExprNodes
++        from . import ExprNodes
+         if self.lhs.type.is_pyobject:
+             self.rhs = self.rhs.coerce_to_pyobject(env)
+         elif self.rhs.type.is_pyobject:
+@@ -2955,7 +2955,7 @@
+             extra = ", Py_None"
+         else:
+             extra = ""
+-        import ExprNodes
++        from . import ExprNodes
+         if self.lhs.type.is_pyobject:
+             if isinstance(self.lhs, ExprNodes.IndexNode) and self.lhs.is_buffer_access:
+                 error(self.pos, "In-place operators not allowed on object buffers in this release.")
+@@ -2992,7 +2992,7 @@
+             self.dup.generate_subexpr_disposal_code(code)
+             
+     def create_dup_node(self, env): 
+-        import ExprNodes
++        from . import ExprNodes
+         self.dup = self.lhs
+         self.dup.analyse_types(env)
+         if isinstance(self.lhs, ExprNodes.NameNode):
+@@ -3560,7 +3560,7 @@
+ 
+ 
+ def ForStatNode(pos, **kw):
+-    if kw.has_key('iterator'):
++    if 'iterator' in kw:
+         return ForInStatNode(pos, **kw)
+     else:
+         return ForFromStatNode(pos, **kw)
+@@ -3584,7 +3584,7 @@
+             self.else_clause.analyse_declarations(env)
+             
+     def analyse_range_step(self, args):
+-        import ExprNodes
++        from . import ExprNodes
+         # The direction must be determined at compile time to set relations. 
+         # Otherwise, return False. 
+         if len(args) < 3:
+@@ -3612,7 +3612,7 @@
+                 
+     
+     def analyse_expressions(self, env):
+-        import ExprNodes
++        from . import ExprNodes
+         self.target.analyse_target_types(env)
+         if Options.convert_range and self.target.type.is_int:
+             sequence = self.iterator.sequence
+@@ -3701,7 +3701,7 @@
+             self.else_clause.analyse_declarations(env)
+     
+     def analyse_expressions(self, env):
+-        import ExprNodes
++        from . import ExprNodes
+         self.target.analyse_target_types(env)
+         self.bound1.analyse_types(env)
+         self.bound2.analyse_types(env)
+@@ -3979,7 +3979,7 @@
+         self.body.analyse_declarations(env)
+     
+     def analyse_expressions(self, env):
+-        import ExprNodes
++        from . import ExprNodes
+         genv = env.global_scope()
+         self.function_name = env.qualified_name
+         if self.pattern:
+@@ -3988,13 +3988,13 @@
+             self.match_flag = env.allocate_temp(PyrexTypes.c_int_type)
+             self.pattern.release_temp(env)
+             env.release_temp(self.match_flag)
+-        self.exc_vars = [env.allocate_temp(py_object_type) for i in xrange(3)]
++        self.exc_vars = [env.allocate_temp(py_object_type) for i in range(3)]
+         if self.target:
+             self.exc_value = ExprNodes.ExcValueNode(self.pos, env, self.exc_vars[1])
+             self.exc_value.allocate_temps(env)
+             self.target.analyse_target_expression(env, self.exc_value)
+         if self.excinfo_target is not None:
+-            import ExprNodes
++            from . import ExprNodes
+             self.excinfo_tuple = ExprNodes.TupleNode(pos=self.pos, args=[
+                 ExprNodes.ExcValueNode(pos=self.pos, env=env, var=self.exc_vars[0]),
+                 ExprNodes.ExcValueNode(pos=self.pos, env=env, var=self.exc_vars[1]),
+@@ -4349,7 +4349,7 @@
+         env.add_imported_module(module_scope)
+         for pos, name, as_name, kind in self.imported_names:
+             if name == "*":
+-                for local_name, entry in module_scope.entries.items():
++                for local_name, entry in list(module_scope.entries.items()):
+                     env.add_imported_entry(local_name, entry, pos)
+             else:
+                 entry = module_scope.lookup(name)
+@@ -4381,7 +4381,7 @@
+ 		else:
+ 			if not type.is_struct_or_union:
+ 				return 0
+-			if kind <> type.kind:
++			if kind != type.kind:
+ 				return 0
+ 		return 1
+ 
+@@ -4416,14 +4416,14 @@
+                 target.analyse_target_declaration(env)
+     
+     def analyse_expressions(self, env):
+-        import ExprNodes
++        from . import ExprNodes
+         self.module.analyse_expressions(env)
+         self.item = ExprNodes.PyTempNode(self.pos, env)
+         self.item.allocate_temp(env)
+         self.interned_items = []
+         for name, target in self.items:
+             if name == '*':
+-                for _, entry in env.entries.items():
++                for _, entry in list(env.entries.items()):
+                     if not entry.is_type and entry.type.is_extension_type:
+                         env.use_utility_code(ExprNodes.type_test_utility_code)
+                         break
+Only in Cython-0.10.3/Cython/Compiler: Nodes.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Optimize.py Cython-0.10.3/Cython/Compiler/Optimize.py
+--- Cython-0.10.3.orig/Cython/Compiler/Optimize.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Optimize.py	2009-01-16 21:36:19.026658204 -0500
+@@ -1,7 +1,7 @@
+-import Nodes
+-import ExprNodes
+-import PyrexTypes
+-import Visitor
++from . import Nodes
++from . import ExprNodes
++from . import PyrexTypes
++from . import Visitor
+ 
+ def unwrap_node(node):
+     while isinstance(node, ExprNodes.PersistentNode):
+Only in Cython-0.10.3/Cython/Compiler: Optimize.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/ParseTreeTransforms.py Cython-0.10.3/Cython/Compiler/ParseTreeTransforms.py
+--- Cython-0.10.3.orig/Cython/Compiler/ParseTreeTransforms.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/ParseTreeTransforms.py	2009-01-16 21:36:20.986655860 -0500
+@@ -191,7 +191,7 @@
+                 newdecls.append(decl)
+             node.declarators = newdecls
+             return stats
+-        except PostParseError, e:
++        except PostParseError as e:
+             # An error in a cdef clause is ok, simply remove the declaration
+             # and try to move on to report more errors
+             self.context.nonfatal_error(e)
+@@ -289,16 +289,16 @@
+ 
+     # Track cimports of the cython module.
+     def visit_CImportStatNode(self, node):
+-        if node.module_name == u"cython":
++        if node.module_name == "cython":
+             if node.as_name:
+                 modname = node.as_name
+             else:
+-                modname = u"cython"
++                modname = "cython"
+             self.cython_module_names.add(modname)
+         return node
+     
+     def visit_FromCImportStatNode(self, node):
+-        if node.module_name == u"cython":
++        if node.module_name == "cython":
+             newimp = []
+             for pos, name, as_name, kind in node.imported_names:
+                 if (name in Options.option_types or 
+@@ -318,7 +318,7 @@
+         return node
+         
+     def visit_FromImportStatNode(self, node):
+-        if node.module.module_name.value == u"cython":
++        if node.module.module_name.value == "cython":
+             newimp = []
+             for name, name_node in node.items:
+                 if (name in Options.option_types or 
+@@ -334,9 +334,9 @@
+ 
+     def visit_SingleAssignmentNode(self, node):
+         if (isinstance(node.rhs, ImportNode) and
+-                node.rhs.module_name.value == u'cython'):
++                node.rhs.module_name.value == 'cython'):
+             node = CImportStatNode(node.pos, 
+-                                   module_name = u'cython',
++                                   module_name = 'cython',
+                                    as_name = node.lhs.name)
+             self.visit_CImportStatNode(node)
+         else:
+@@ -436,7 +436,7 @@
+     # EXCINFO is manually set to a variable that contains
+     # the exc_info() tuple that can be generated by the enclosing except
+     # statement.
+-    template_without_target = TreeFragment(u"""
++    template_without_target = TreeFragment("""
+         MGR = EXPR
+         EXIT = MGR.__exit__
+         MGR.__enter__()
+@@ -451,10 +451,10 @@
+         finally:
+             if EXC:
+                 EXIT(None, None, None)
+-    """, temps=[u'MGR', u'EXC', u"EXIT"],
++    """, temps=['MGR', 'EXC', "EXIT"],
+     pipeline=[NormalizeTree(None)])
+ 
+-    template_with_target = TreeFragment(u"""
++    template_with_target = TreeFragment("""
+         MGR = EXPR
+         EXIT = MGR.__exit__
+         VALUE = MGR.__enter__()
+@@ -470,26 +470,26 @@
+         finally:
+             if EXC:
+                 EXIT(None, None, None)
+-    """, temps=[u'MGR', u'EXC', u"EXIT", u"VALUE"],
++    """, temps=['MGR', 'EXC', "EXIT", "VALUE"],
+     pipeline=[NormalizeTree(None)])
+ 
+     def visit_WithStatNode(self, node):
+         excinfo_temp = TempHandle(PyrexTypes.py_object_type)
+         if node.target is not None:
+             result = self.template_with_target.substitute({
+-                u'EXPR' : node.manager,
+-                u'BODY' : node.body,
+-                u'TARGET' : node.target,
+-                u'EXCINFO' : excinfo_temp.ref(node.pos)
++                'EXPR' : node.manager,
++                'BODY' : node.body,
++                'TARGET' : node.target,
++                'EXCINFO' : excinfo_temp.ref(node.pos)
+                 }, pos=node.pos)
+             # Set except excinfo target to EXCINFO
+             result.body.stats[4].body.stats[0].except_clauses[0].excinfo_target = (
+                 excinfo_temp.ref(node.pos))
+         else:
+             result = self.template_without_target.substitute({
+-                u'EXPR' : node.manager,
+-                u'BODY' : node.body,
+-                u'EXCINFO' : excinfo_temp.ref(node.pos)
++                'EXPR' : node.manager,
++                'BODY' : node.body,
++                'EXCINFO' : excinfo_temp.ref(node.pos)
+                 }, pos=node.pos)
+             # Set except excinfo target to EXCINFO
+             result.body.stats[4].body.stats[0].except_clauses[0].excinfo_target = (
+@@ -519,7 +519,7 @@
+ 
+ class AnalyseDeclarationsTransform(CythonTransform):
+ 
+-    basic_property = TreeFragment(u"""
++    basic_property = TreeFragment("""
+ property NAME:
+     def __get__(self):
+         return ATTR
+@@ -540,7 +540,7 @@
+         lenv = node.create_local_scope(self.env_stack[-1])
+         node.body.analyse_control_flow(lenv) # this will be totally refactored
+         node.declare_arguments(lenv)
+-        for var, type_node in node.directive_locals.items():
++        for var, type_node in list(node.directive_locals.items()):
+             if not lenv.lookup_here(var):   # don't redeclare args
+                 type = type_node.analyse_as_type(lenv)
+                 if type:
+@@ -574,7 +574,7 @@
+             
+     def create_Property(self, entry):
+         property = self.basic_property.substitute({
+-                u"ATTR": AttributeNode(pos=entry.pos,
++                "ATTR": AttributeNode(pos=entry.pos,
+                                        obj=NameNode(pos=entry.pos, name="self"), 
+                                        attribute=entry.name),
+             }, pos=entry.pos).stats[0]
+@@ -676,7 +676,7 @@
+         entry = target_module_scope.declare_c_class(name = as_name,
+             pos = node.pos, defining = True, implementing = True)
+         class_scope = entry.type.scope
+-        for entry in func_scope.entries.values():
++        for entry in list(func_scope.entries.values()):
+             class_scope.declare_var(pos=node.pos,
+                                     name=entry.name,
+                                     cname=entry.cname,
+@@ -721,12 +721,12 @@
+     def visit_cython_attribute(self, node):
+         attribute = node.as_cython_attribute()
+         if attribute:
+-            if attribute == u'compiled':
++            if attribute == 'compiled':
+                 node = BoolNode(node.pos, value=True)
+-            elif attribute == u'NULL':
++            elif attribute == 'NULL':
+                 node = NullNode(node.pos)
+             elif not PyrexTypes.parse_basic_type(attribute):
+-                error(node.pos, u"'%s' not a valid cython attribute or is being used incorrectly" % attribute)
++                error(node.pos, "'%s' not a valid cython attribute or is being used incorrectly" % attribute)
+         return node
+ 
+     def visit_SimpleCallNode(self, node):
+@@ -744,18 +744,18 @@
+         # cython.foo
+         function = node.function.as_cython_attribute()
+         if function:
+-            if function == u'cast':
++            if function == 'cast':
+                 if len(node.args) != 2:
+-                    error(node.function.pos, u"cast takes exactly two arguments")
++                    error(node.function.pos, "cast takes exactly two arguments")
+                 else:
+                     type = node.args[0].analyse_as_type(self.env_stack[-1])
+                     if type:
+                         node = TypecastNode(node.function.pos, type=type, operand=node.args[1])
+                     else:
+                         error(node.args[0].pos, "Not a type")
+-            elif function == u'sizeof':
++            elif function == 'sizeof':
+                 if len(node.args) != 1:
+-                    error(node.function.pos, u"sizeof takes exactly one argument" % function)
++                    error(node.function.pos, "sizeof takes exactly one argument" % function)
+                 else:
+                     type = node.args[0].analyse_as_type(self.env_stack[-1])
+                     if type:
+@@ -764,11 +764,11 @@
+                         node = SizeofVarNode(node.function.pos, operand=node.args[0])
+             elif function == 'address':
+                 if len(node.args) != 1:
+-                    error(node.function.pos, u"sizeof takes exactly one argument" % function)
++                    error(node.function.pos, "sizeof takes exactly one argument" % function)
+                 else:
+                     node = AmpersandNode(node.function.pos, operand=node.args[0])
+             else:
+-                error(node.function.pos, u"'%s' not a valid cython language construct" % function)
++                error(node.function.pos, "'%s' not a valid cython language construct" % function)
+         
+         self.visitchildren(node)
+         return node
+Only in Cython-0.10.3/Cython/Compiler: ParseTreeTransforms.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Parsing.py Cython-0.10.3/Cython/Compiler/Parsing.py
+--- Cython-0.10.3.orig/Cython/Compiler/Parsing.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Parsing.py	2009-01-16 21:36:27.806654726 -0500
+@@ -6,16 +6,16 @@
+ import re
+ import sys
+ from types import ListType, TupleType
+-from Scanning import PyrexScanner, FileSourceDescriptor
+-import Nodes
+-import ExprNodes
+-import StringEncoding
+-from StringEncoding import EncodedString, BytesLiteral
+-from ModuleNode import ModuleNode
+-from Errors import error, warning, InternalError
++from .Scanning import PyrexScanner, FileSourceDescriptor
++from . import Nodes
++from . import ExprNodes
++from . import StringEncoding
++from .StringEncoding import EncodedString, BytesLiteral
++from .ModuleNode import ModuleNode
++from .Errors import error, warning, InternalError
+ from Cython import Utils
+-import Future
+-import Options
++from . import Future
++from . import Options
+ 
+ class Ctx(object):
+     #  Parsing context
+@@ -40,7 +40,7 @@
+ def p_ident(s, message = "Expected an identifier"):
+     if s.sy == 'IDENT':
+         name = s.systring
+-        s.next()
++        next(s)
+         return name
+     else:
+         s.error(message)
+@@ -49,10 +49,10 @@
+     names = []
+     while s.sy == 'IDENT':
+         names.append(s.systring)
+-        s.next()
++        next(s)
+         if s.sy != ',':
+             break
+-        s.next()
++        next(s)
+     return names
+ 
+ #------------------------------------------
+@@ -66,7 +66,7 @@
+     while s.sy in ops:
+         op = s.sy
+         pos = s.position()
+-        s.next()
++        next(s)
+         n2 = p_sub_expr(s)
+         n1 = ExprNodes.binop_node(pos, op, n1, n2)
+     return n1
+@@ -77,10 +77,10 @@
+     pos = s.position()
+     expr = p_or_test(s)
+     if s.sy == 'if':
+-        s.next()
++        next(s)
+         test = p_or_test(s)
+         if s.sy == 'else':
+-            s.next()
++            next(s)
+             other = p_test(s)
+             return ExprNodes.CondExprNode(pos, test=test, true_val=expr, false_val=other)
+         else:
+@@ -103,7 +103,7 @@
+     if s.sy in ops:
+         pos = s.position()
+         op = s.sy
+-        s.next()
++        next(s)
+         n2 = p_rassoc_binop_expr(s, ops, p_subexpr)
+         n1 = ExprNodes.binop_node(pos, op, n1, n2)
+     return n1
+@@ -119,7 +119,7 @@
+ def p_not_test(s):
+     if s.sy == 'not':
+         pos = s.position()
+-        s.next()
++        next(s)
+         return ExprNodes.NotNode(pos, operand = p_not_test(s))
+     else:
+         return p_comparison(s)
+@@ -151,19 +151,19 @@
+ 
+ def p_cmp_op(s):
+     if s.sy == 'not':
+-        s.next()
++        next(s)
+         s.expect('in')
+         op = 'not_in'
+     elif s.sy == 'is':
+-        s.next()
++        next(s)
+         if s.sy == 'not':
+-            s.next()
++            next(s)
+             op = 'is_not'
+         else:
+             op = 'is'
+     else:
+         op = s.sy
+-        s.next()
++        next(s)
+     if op == '<>':
+         op = '!='
+     return op
+@@ -210,11 +210,11 @@
+     if sy in ('+', '-', '~'):
+         op = s.sy
+         pos = s.position()
+-        s.next()
++        next(s)
+         return ExprNodes.unop_node(pos, op, p_factor(s))
+     elif sy == '&':
+         pos = s.position()
+-        s.next()
++        next(s)
+         arg = p_factor(s)
+         return ExprNodes.AmpersandNode(pos, operand = arg)
+     elif sy == "<":
+@@ -227,13 +227,13 @@
+ def p_typecast(s):
+     # s.sy == "<"
+     pos = s.position()
+-    s.next()
++    next(s)
+     base_type = p_c_base_type(s)
+     if base_type.name is None:
+         s.error("Unknown type")
+     declarator = p_c_declarator(s, empty = 1)
+     if s.sy == '?':
+-        s.next()
++        next(s)
+         typecheck = 1
+     else:
+         typecheck = 0
+@@ -248,7 +248,7 @@
+ def p_sizeof(s):
+     # s.sy == ident "sizeof"
+     pos = s.position()
+-    s.next()
++    next(s)
+     s.expect('(')
+     # Here we decide if we are looking at an expression or type
+     # If it is actually a type, but parsable as an expression, 
+@@ -272,7 +272,7 @@
+         n1 = p_trailer(s, n1)
+     if s.sy == '**':
+         pos = s.position()
+-        s.next()
++        next(s)
+         n2 = p_factor(s)
+         n1 = ExprNodes.binop_node(pos, '**', n1, n2)
+     return n1
+@@ -286,7 +286,7 @@
+     elif s.sy == '[':
+         return p_index(s, node1)
+     else: # s.sy == '.'
+-        s.next()
++        next(s)
+         name = EncodedString( p_ident(s) )
+         return ExprNodes.AttributeNode(pos, 
+             obj = node1, attribute = name)
+@@ -297,7 +297,7 @@
+ def p_call(s, function):
+     # s.sy == '('
+     pos = s.position()
+-    s.next()
++    next(s)
+     positional_args = []
+     keyword_args = []
+     star_arg = None
+@@ -307,12 +307,12 @@
+             if star_arg:
+                 s.error("only one star-arg parameter allowed",
+                     pos = s.position())
+-            s.next()
++            next(s)
+             star_arg = p_simple_expr(s)
+         else:
+             arg = p_simple_expr(s)
+             if s.sy == '=':
+-                s.next()
++                next(s)
+                 if not arg.is_name:
+                     s.error("Expected an identifier before '='",
+                         pos = arg.pos)
+@@ -331,13 +331,13 @@
+                 positional_args.append(arg)
+         if s.sy != ',':
+             break
+-        s.next()
++        next(s)
+ 
+     if s.sy == '**':
+-        s.next()
++        next(s)
+         starstar_arg = p_simple_expr(s)
+         if s.sy == ',':
+-            s.next()
++            next(s)
+     s.expect(')')
+     if not (keyword_args or star_arg or starstar_arg):
+         return ExprNodes.SimpleCallNode(pos,
+@@ -375,7 +375,7 @@
+ def p_index(s, base):
+     # s.sy == '['
+     pos = s.position()
+-    s.next()
++    next(s)
+     subscripts = p_subscript_list(s)
+     if len(subscripts) == 1 and len(subscripts[0]) == 2:
+         start, stop = subscripts[0]
+@@ -395,7 +395,7 @@
+ def p_subscript_list(s):
+     items = [p_subscript(s)]
+     while s.sy == ',':
+-        s.next()
++        next(s)
+         if s.sy == ']':
+             break
+         items.append(p_subscript(s))
+@@ -415,11 +415,11 @@
+         start = p_slice_element(s, (':',))
+         if s.sy != ':':
+             return [start]
+-        s.next()
++        next(s)
+         stop = p_slice_element(s, (':', ',', ']'))
+         if s.sy != ':':
+             return [start, stop]
+-        s.next()
++        next(s)
+         step = p_slice_element(s, (':', ',', ']'))
+         return [start, stop, step]
+ 
+@@ -465,7 +465,7 @@
+     pos = s.position()
+     sy = s.sy
+     if sy == '(':
+-        s.next()
++        next(s)
+         if s.sy == ')':
+             result = ExprNodes.TupleNode(pos, args = [])
+         else:
+@@ -480,7 +480,7 @@
+         return p_backquote_expr(s)
+     elif sy == 'INT':
+         value = s.systring
+-        s.next()
++        next(s)
+         unsigned = ""
+         longness = ""
+         while value[-1] in "UuLl":
+@@ -495,11 +495,11 @@
+                                  longness = longness)
+     elif sy == 'FLOAT':
+         value = s.systring
+-        s.next()
++        next(s)
+         return ExprNodes.FloatNode(pos, value = value)
+     elif sy == 'IMAG':
+         value = s.systring[:-1]
+-        s.next()
++        next(s)
+         return ExprNodes.ImagNode(pos, value = value)
+     elif sy == 'BEGIN_STRING':
+         kind, value = p_cat_string_literal(s)
+@@ -511,7 +511,7 @@
+             return ExprNodes.StringNode(pos, value = value)
+     elif sy == 'IDENT':
+         name = EncodedString( s.systring )
+-        s.next()
++        next(s)
+         if name == "None":
+             return ExprNodes.NoneNode(pos)
+         elif name == "True":
+@@ -538,11 +538,11 @@
+                 return ExprNodes.BoolNode(pos, value = value)
+             elif isinstance(value, int):
+                 return ExprNodes.IntNode(pos, value = rep)
+-            elif isinstance(value, long):
++            elif isinstance(value, int):
+                 return ExprNodes.IntNode(pos, value = rep, longness = "L")
+             elif isinstance(value, float):
+                 return ExprNodes.FloatNode(pos, value = rep)
+-            elif isinstance(value, (str, unicode)):
++            elif isinstance(value, (str, str)):
+                 return ExprNodes.StringNode(pos, value = value)
+             else:
+                 error(pos, "Invalid type for compile-time constant: %s"
+@@ -564,7 +564,7 @@
+                 # we have to switch to unicode now
+                 if kind == 'b':
+                     # concatenating a unicode string to byte strings
+-                    strings = [u''.join([s.decode(s.encoding) for s in strings])]
++                    strings = [''.join([s.decode(s.encoding) for s in strings])]
+                 elif kind == 'u':
+                     # concatenating a byte string to unicode strings
+                     strings.append(next_value.decode(next_value.encoding))
+@@ -572,7 +572,7 @@
+             else:
+                 strings.append(next_value)
+         if kind == 'u':
+-            value = EncodedString( u''.join(strings) )
++            value = EncodedString( ''.join(strings) )
+         else:
+             value = BytesLiteral( ''.join(strings) )
+             value.encoding = s.source_encoding
+@@ -608,7 +608,7 @@
+     else:
+         chars = StringEncoding.BytesLiteralBuilder(s.source_encoding)
+     while 1:
+-        s.next()
++        next(s)
+         sy = s.sy
+         #print "p_string_literal: sy =", sy, repr(s.systring) ###
+         if sy == 'CHARS':
+@@ -617,26 +617,26 @@
+             has_escape = True
+             systr = s.systring
+             if is_raw:
+-                if systr == u'\\\n':
+-                    chars.append(u'\\\n')
+-                elif systr == u'\\\"':
+-                    chars.append(u'"')
+-                elif systr == u'\\\'':
+-                    chars.append(u"'")
++                if systr == '\\\n':
++                    chars.append('\\\n')
++                elif systr == '\\\"':
++                    chars.append('"')
++                elif systr == '\\\'':
++                    chars.append("'")
+                 else:
+                     chars.append(systr)
+             else:
+                 c = systr[1]
+-                if c in u"01234567":
++                if c in "01234567":
+                     chars.append_charval( int(systr[1:], 8) )
+-                elif c in u"'\"\\":
++                elif c in "'\"\\":
+                     chars.append(c)
+-                elif c in u"abfnrtv":
++                elif c in "abfnrtv":
+                     chars.append(
+                         StringEncoding.char_from_escape_sequence(systr))
+-                elif c == u'\n':
++                elif c == '\n':
+                     pass
+-                elif c in u'Uux':
++                elif c in 'Uux':
+                     if kind == 'u' or c == 'x':
+                         chrval = int(systr[2:], 16)
+                         if chrval > 1114111: # sys.maxunicode:
+@@ -651,9 +651,9 @@
+                         # unicode escapes in plain byte strings are not unescaped
+                         chars.append(systr)
+                 else:
+-                    chars.append(u'\\' + systr[1:])
++                    chars.append('\\' + systr[1:])
+         elif sy == 'NEWLINE':
+-            chars.append(u'\n')
++            chars.append('\n')
+         elif sy == 'END_STRING':
+             break
+         elif sy == 'EOF':
+@@ -665,10 +665,10 @@
+     if kind == 'c':
+         value = chars.getchar()
+         if len(value) != 1:
+-            error(pos, u"invalid character literal: %r" % value)
++            error(pos, "invalid character literal: %r" % value)
+     else:
+         value = chars.getstring()
+-    s.next()
++    next(s)
+     #print "p_string_literal: value =", repr(value) ###
+     return kind, value
+ 
+@@ -681,7 +681,7 @@
+ def p_list_maker(s):
+     # s.sy == '['
+     pos = s.position()
+-    s.next()
++    next(s)
+     if s.sy == ']':
+         s.expect(']')
+         return ExprNodes.ListNode(pos, args = [])
+@@ -700,7 +700,7 @@
+     else:
+         exprs = [expr]
+         if s.sy == ',':
+-            s.next()
++            next(s)
+             exprs += p_simple_expr_list(s)
+         s.expect(']')
+         return ExprNodes.ListNode(pos, args = exprs)
+@@ -716,7 +716,7 @@
+ def p_list_for(s):
+     # s.sy == 'for'
+     pos = s.position()
+-    s.next()
++    next(s)
+     kw = p_for_bounds(s)
+     kw['else_clause'] = None
+     kw['body'] = p_list_iter(s)
+@@ -725,7 +725,7 @@
+ def p_list_if(s):
+     # s.sy == 'if'
+     pos = s.position()
+-    s.next()
++    next(s)
+     test = p_test(s)
+     return Nodes.IfStatNode(pos, 
+         if_clauses = [Nodes.IfClauseNode(pos, condition = test, body = p_list_iter(s))],
+@@ -736,13 +736,13 @@
+ def p_dict_maker(s):
+     # s.sy == '{'
+     pos = s.position()
+-    s.next()
++    next(s)
+     items = []
+     while s.sy != '}':
+         items.append(p_dict_item(s))
+         if s.sy != ',':
+             break
+-        s.next()
++        next(s)
+     s.expect('}')
+     return ExprNodes.DictNode(pos, key_value_pairs = items)
+     
+@@ -755,7 +755,7 @@
+ def p_backquote_expr(s):
+     # s.sy == '`'
+     pos = s.position()
+-    s.next()
++    next(s)
+     arg = p_expr(s)
+     s.expect('`')
+     return ExprNodes.BackquoteNode(pos, arg = arg)
+@@ -766,14 +766,14 @@
+         exprs.append(p_simple_expr(s))
+         if s.sy != ',':
+             break
+-        s.next()
++        next(s)
+     return exprs
+ 
+ def p_expr(s):
+     pos = s.position()
+     expr = p_simple_expr(s)
+     if s.sy == ',':
+-        s.next()
++        next(s)
+         exprs = [expr] + p_simple_expr_list(s)
+         return ExprNodes.TupleNode(pos, args = exprs)
+     else:
+@@ -789,7 +789,7 @@
+     if s.sy == ',':
+         exprs = [expr]
+         while s.sy == ',':
+-            s.next()
++            next(s)
+             exprs.append(p_test(s))
+         return ExprNodes.TupleNode(pos, args = exprs)
+     else:
+@@ -806,14 +806,14 @@
+ def p_global_statement(s):
+     # assume s.sy == 'global'
+     pos = s.position()
+-    s.next()
++    next(s)
+     names = p_ident_list(s)
+     return Nodes.GlobalNode(pos, names = names)
+ 
+ def p_expression_or_assignment(s):
+     expr_list = [p_expr(s)]
+     while s.sy == '=':
+-        s.next()
++        next(s)
+         expr_list.append(p_expr(s))
+     if len(expr_list) == 1:
+         if re.match(r"([+*/\%^\&|-]|<<|>>|\*\*|//)=", s.sy):
+@@ -821,7 +821,7 @@
+             if not isinstance(lhs, (ExprNodes.AttributeNode, ExprNodes.IndexNode, ExprNodes.NameNode) ):
+                 error(lhs.pos, "Illegal operand for inplace operation.")
+             operator = s.sy[:-1]
+-            s.next()
++            next(s)
+             rhs = p_expr(s)
+             return Nodes.InPlaceAssignmentNode(lhs.pos, operator = operator, lhs = lhs, rhs = rhs)
+         expr = expr_list[0]
+@@ -885,7 +885,7 @@
+ def p_print_statement(s):
+     # s.sy == 'print'
+     pos = s.position()
+-    s.next()
++    next(s)
+     if s.sy == '>>':
+         s.error("'print >>' not yet implemented")
+     args = []
+@@ -893,7 +893,7 @@
+     if s.sy not in ('NEWLINE', 'EOF'):
+         args.append(p_simple_expr(s))
+         while s.sy == ',':
+-            s.next()
++            next(s)
+             if s.sy in ('NEWLINE', 'EOF'):
+                 ends_with_comma = 1
+                 break
+@@ -905,7 +905,7 @@
+ def p_del_statement(s):
+     # s.sy == 'del'
+     pos = s.position()
+-    s.next()
++    next(s)
+     args = p_simple_expr_list(s)
+     return Nodes.DelStatNode(pos, args = args)
+ 
+@@ -919,19 +919,19 @@
+ def p_break_statement(s):
+     # s.sy == 'break'
+     pos = s.position()
+-    s.next()
++    next(s)
+     return Nodes.BreakStatNode(pos)
+ 
+ def p_continue_statement(s):
+     # s.sy == 'continue'
+     pos = s.position()
+-    s.next()
++    next(s)
+     return Nodes.ContinueStatNode(pos)
+ 
+ def p_return_statement(s):
+     # s.sy == 'return'
+     pos = s.position()
+-    s.next()
++    next(s)
+     if s.sy not in statement_terminators:
+         value = p_expr(s)
+     else:
+@@ -941,17 +941,17 @@
+ def p_raise_statement(s):
+     # s.sy == 'raise'
+     pos = s.position()
+-    s.next()
++    next(s)
+     exc_type = None
+     exc_value = None
+     exc_tb = None
+     if s.sy not in statement_terminators:
+         exc_type = p_simple_expr(s)
+         if s.sy == ',':
+-            s.next()
++            next(s)
+             exc_value = p_simple_expr(s)
+             if s.sy == ',':
+-                s.next()
++                next(s)
+                 exc_tb = p_simple_expr(s)
+     if exc_type or exc_value or exc_tb:
+         return Nodes.RaiseStatNode(pos, 
+@@ -965,10 +965,10 @@
+     # s.sy in ('import', 'cimport')
+     pos = s.position()
+     kind = s.sy
+-    s.next()
++    next(s)
+     items = [p_dotted_name(s, as_allowed = 1)]
+     while s.sy == ',':
+-        s.next()
++        next(s)
+         items.append(p_dotted_name(s, as_allowed = 1))
+     stats = []
+     for pos, target_name, dotted_name, as_name in items:
+@@ -996,22 +996,22 @@
+ def p_from_import_statement(s, first_statement = 0):
+     # s.sy == 'from'
+     pos = s.position()
+-    s.next()
++    next(s)
+     (dotted_name_pos, _, dotted_name, _) = \
+         p_dotted_name(s, as_allowed = 0)
+     if s.sy in ('import', 'cimport'):
+         kind = s.sy
+-        s.next()
++        next(s)
+     else:
+         s.error("Expected 'import' or 'cimport'")
+     is_cimport = kind == 'cimport'
+     if s.sy == '*':
+         imported_names = [(s.position(), "*", None, None)]
+-        s.next()
++        next(s)
+     else:
+         imported_names = [p_imported_name(s, is_cimport)]
+     while s.sy == ',':
+-        s.next()
++        next(s)
+         imported_names.append(p_imported_name(s, is_cimport))
+     dotted_name = EncodedString(dotted_name)
+     if dotted_name == '__future__':
+@@ -1060,7 +1060,7 @@
+     kind = None
+     if is_cimport and s.systring in imported_name_kinds:
+         kind = s.systring
+-        s.next()
++        next(s)
+     name = p_ident(s)
+     as_name = p_as_name(s)
+     return (pos, name, as_name, kind)
+@@ -1071,15 +1071,15 @@
+     as_name = None
+     names = [target_name]
+     while s.sy == '.':
+-        s.next()
++        next(s)
+         names.append(p_ident(s))
+     if as_allowed:
+         as_name = p_as_name(s)
+-    return (pos, target_name, u'.'.join(names), as_name)
++    return (pos, target_name, '.'.join(names), as_name)
+ 
+ def p_as_name(s):
+     if s.sy == 'IDENT' and s.systring == 'as':
+-        s.next()
++        next(s)
+         return p_ident(s)
+     else:
+         return None
+@@ -1087,10 +1087,10 @@
+ def p_assert_statement(s):
+     # s.sy == 'assert'
+     pos = s.position()
+-    s.next()
++    next(s)
+     cond = p_simple_expr(s)
+     if s.sy == ',':
+-        s.next()
++        next(s)
+         value = p_simple_expr(s)
+     else:
+         value = None
+@@ -1101,10 +1101,10 @@
+ def p_if_statement(s):
+     # s.sy == 'if'
+     pos = s.position()
+-    s.next()
++    next(s)
+     if_clauses = [p_if_clause(s)]
+     while s.sy == 'elif':
+-        s.next()
++        next(s)
+         if_clauses.append(p_if_clause(s))
+     else_clause = p_else_clause(s)
+     return Nodes.IfStatNode(pos,
+@@ -1119,7 +1119,7 @@
+ 
+ def p_else_clause(s):
+     if s.sy == 'else':
+-        s.next()
++        next(s)
+         return p_suite(s)
+     else:
+         return None
+@@ -1127,7 +1127,7 @@
+ def p_while_statement(s):
+     # s.sy == 'while'
+     pos = s.position()
+-    s.next()
++    next(s)
+     test = p_simple_expr(s)
+     body = p_suite(s)
+     else_clause = p_else_clause(s)
+@@ -1138,7 +1138,7 @@
+ def p_for_statement(s):
+     # s.sy == 'for'
+     pos = s.position()
+-    s.next()
++    next(s)
+     kw = p_for_bounds(s)
+     kw['body'] = p_suite(s)
+     kw['else_clause'] = p_else_clause(s)
+@@ -1147,12 +1147,12 @@
+ def p_for_bounds(s):
+     target = p_for_target(s)
+     if s.sy == 'in':
+-        s.next()
++        next(s)
+         iterator = p_for_iterator(s)
+         return { 'target': target, 'iterator': iterator }
+     else:
+         if s.sy == 'from':
+-            s.next()
++            next(s)
+             bound1 = p_bit_expr(s)
+         else:
+             # Support shorter "for a <= x < b" syntax
+@@ -1186,14 +1186,14 @@
+ def p_for_from_relation(s):
+     if s.sy in inequality_relations:
+         op = s.sy
+-        s.next()
++        next(s)
+         return op
+     else:
+         s.error("Expected one of '<', '<=', '>' '>='")
+ 
+ def p_for_from_step(s):
+     if s.sy == 'by':
+-        s.next()
++        next(s)
+         step = p_bit_expr(s)
+         return step
+     else:
+@@ -1205,13 +1205,13 @@
+     pos = s.position()
+     expr = p_bit_expr(s)
+     if s.sy == ',':
+-        s.next()
++        next(s)
+         exprs = [expr]
+         while s.sy != terminator:
+             exprs.append(p_bit_expr(s))
+             if s.sy != ',':
+                 break
+-            s.next()
++            next(s)
+         return ExprNodes.TupleNode(pos, args = exprs)
+     else:
+         return expr
+@@ -1227,7 +1227,7 @@
+ def p_try_statement(s):
+     # s.sy == 'try'
+     pos = s.position()
+-    s.next()
++    next(s)
+     body = p_suite(s)
+     except_clauses = []
+     else_clause = None
+@@ -1235,7 +1235,7 @@
+         while s.sy == 'except':
+             except_clauses.append(p_except_clause(s))
+         if s.sy == 'else':
+-            s.next()
++            next(s)
+             else_clause = p_suite(s)
+         body = Nodes.TryExceptStatNode(pos,
+             body = body, except_clauses = except_clauses,
+@@ -1244,7 +1244,7 @@
+             return body
+         # try-except-finally is equivalent to nested try-except/try-finally
+     if s.sy == 'finally':
+-        s.next()
++        next(s)
+         finally_clause = p_suite(s)
+         return Nodes.TryFinallyStatNode(pos,
+             body = body, finally_clause = finally_clause)
+@@ -1254,13 +1254,13 @@
+ def p_except_clause(s):
+     # s.sy == 'except'
+     pos = s.position()
+-    s.next()
++    next(s)
+     exc_type = None
+     exc_value = None
+     if s.sy != ':':
+         exc_type = p_simple_expr(s)
+         if s.sy == ',':
+-            s.next()
++            next(s)
+             exc_value = p_simple_expr(s)
+     body = p_suite(s)
+     return Nodes.ExceptClauseNode(pos,
+@@ -1268,7 +1268,7 @@
+ 
+ def p_include_statement(s, ctx):
+     pos = s.position()
+-    s.next() # 'include'
++    next(s) # 'include'
+     _, include_file_name = p_string_literal(s)
+     s.expect_newline("Syntax error in include statement")
+     if s.compile_time_eval:
+@@ -1290,18 +1290,18 @@
+ 
+ def p_with_statement(s):
+     pos = s.position()
+-    s.next() # 'with'
++    next(s) # 'with'
+ #	if s.sy == 'IDENT' and s.systring in ('gil', 'nogil'):
+     if s.sy == 'IDENT' and s.systring == 'nogil':
+         state = s.systring
+-        s.next()
++        next(s)
+         body = p_suite(s)
+         return Nodes.GILStatNode(pos, state = state, body = body)
+     else:
+         manager = p_expr(s)
+         target = None
+         if s.sy == 'IDENT' and s.systring == 'as':
+-            s.next()
++            next(s)
+             allow_multi = (s.sy == '(')
+             target = p_target(s, ':')
+             if not allow_multi and isinstance(target, ExprNodes.TupleNode):
+@@ -1346,7 +1346,7 @@
+         stats = [stat]
+         while s.sy == ';':
+             #print "p_simple_statement_list: maybe more to follow" ###
+-            s.next()
++            next(s)
+             if s.sy in ('NEWLINE', 'EOF'):
+                 break
+             stats.append(p_simple_statement(s))
+@@ -1364,7 +1364,7 @@
+ def p_DEF_statement(s):
+     pos = s.position()
+     denv = s.compile_time_env
+-    s.next() # 'DEF'
++    next(s) # 'DEF'
+     name = p_ident(s)
+     s.expect('=')
+     expr = p_compile_time_expr(s)
+@@ -1381,7 +1381,7 @@
+     denv = s.compile_time_env
+     result = None
+     while 1:
+-        s.next() # 'IF' or 'ELIF'
++        next(s) # 'IF' or 'ELIF'
+         expr = p_compile_time_expr(s)
+         s.compile_time_eval = current_eval and bool(expr.compile_time_value(denv))
+         body = p_suite(s, ctx)
+@@ -1391,7 +1391,7 @@
+         if s.sy != 'ELIF':
+             break
+     if s.sy == 'ELSE':
+-        s.next()
++        next(s)
+         s.compile_time_eval = current_eval
+         body = p_suite(s, ctx)
+         if current_eval:
+@@ -1425,11 +1425,11 @@
+         overridable = 0
+         if s.sy == 'cdef':
+             cdef_flag = 1
+-            s.next()
++            next(s)
+         if s.sy == 'cpdef':
+             cdef_flag = 1
+             overridable = 1
+-            s.next()
++            next(s)
+         if cdef_flag:
+             if ctx.level not in ('module', 'module_pxd', 'function', 'c_class', 'c_class_pxd'):
+                 s.error('cdef statement not allowed here')
+@@ -1490,7 +1490,7 @@
+     doc = None
+     stmts = []
+     if s.sy == 'NEWLINE':
+-        s.next()
++        next(s)
+         s.expect_indent()
+         if with_doc or with_pseudo_doc:
+             doc = p_doc_string(s)
+@@ -1536,9 +1536,9 @@
+             # we use a strategy of looking an extra step forward for a '=' and
+             # if it is a positional arg we backtrack.
+             ident = s.systring
+-            s.next()
++            next(s)
+             if s.sy == '=':
+-                s.next()
++                next(s)
+                 # Is keyword arg
+                 if ident in type_keywords:
+                     arg = p_c_base_type(s)
+@@ -1571,7 +1571,7 @@
+                 else:
+                     s.error("Expected: expression")
+             break
+-        s.next()
++        next(s)
+     return positional_args, keyword_args
+ 
+ def p_c_base_type(s, self_flag = 0, nonempty = 0):
+@@ -1585,7 +1585,7 @@
+ def p_calling_convention(s):
+     if s.sy == 'IDENT' and s.systring in calling_convention_words:
+         result = s.systring
+-        s.next()
++        next(s)
+         return result
+     else:
+         return ""
+@@ -1595,7 +1595,7 @@
+ def p_c_complex_base_type(s):
+     # s.sy == '('
+     pos = s.position()
+-    s.next()
++    next(s)
+     base_type = p_c_base_type(s)
+     declarator = p_c_declarator(s, empty = 1)
+     s.expect(')')
+@@ -1615,24 +1615,24 @@
+         signed, longness = p_sign_and_longness(s)
+         if s.sy == 'IDENT' and s.systring in basic_c_type_names:
+             name = s.systring
+-            s.next()
++            next(s)
+         else:
+             name = 'int'
+     elif looking_at_dotted_name(s):
+         #print "p_c_simple_base_type: looking_at_type_name at", s.position()
+         name = s.systring
+-        s.next()
++        next(s)
+         while s.sy == '.':
+             module_path.append(name)
+-            s.next()
++            next(s)
+             name = p_ident(s)
+     else:
+         name = s.systring
+-        s.next()
++        next(s)
+         if nonempty and s.sy != 'IDENT':
+             # Make sure this is not a declaration of a variable or function.  
+             if s.sy == '(':
+-                s.next()
++                next(s)
+                 if s.sy == '*' or s.sy == '**':
+                     s.put_back('(', '(')
+                 else:
+@@ -1663,7 +1663,7 @@
+ def p_buffer_access(s, base_type_node):
+     # s.sy == '['
+     pos = s.position()
+-    s.next()
++    next(s)
+     positional_args, keyword_args = (
+         p_positional_and_keyword_args(s, (']',), (0,), ('dtype',))
+     )
+@@ -1692,24 +1692,24 @@
+         is_type = False
+         name = s.systring
+         dotted_path = []
+-        s.next()
++        next(s)
+         while s.sy == '.':
+-            s.next()
++            next(s)
+             dotted_path.append(s.systring)
+             s.expect('IDENT')
+         saved = s.sy, s.systring
+         if s.sy == 'IDENT':
+             is_type = True
+         elif s.sy == '*' or s.sy == '**':
+-            s.next()
++            next(s)
+             is_type = s.sy == ')'
+             s.put_back(*saved)
+         elif s.sy == '(':
+-            s.next()
++            next(s)
+             is_type = s.sy == '*'
+             s.put_back(*saved)
+         elif s.sy == '[':
+-            s.next()
++            next(s)
+             is_type = s.sy == ']'
+             s.put_back(*saved)
+         dotted_path.reverse()
+@@ -1728,7 +1728,7 @@
+ def looking_at_dotted_name(s):
+     if s.sy == 'IDENT':
+         name = s.systring
+-        s.next()
++        next(s)
+         result = s.sy == '.'
+         s.put_back('IDENT', name)
+         return result
+@@ -1754,7 +1754,7 @@
+             longness = -1
+         elif s.systring == 'long':
+             longness += 1
+-        s.next()
++        next(s)
+     return signed, longness
+ 
+ def p_opt_cname(s):
+@@ -1774,9 +1774,9 @@
+     # a function, it's a C method of an extension type.
+     pos = s.position()
+     if s.sy == '(':
+-        s.next()
++        next(s)
+         if s.sy == ')' or looking_at_name(s):
+-            base = Nodes.CNameDeclaratorNode(pos, name = EncodedString(u""), cname = None)
++            base = Nodes.CNameDeclaratorNode(pos, name = EncodedString(""), cname = None)
+             result = p_c_func_declarator(s, pos, ctx, base, cmethod_flag)
+         else:
+             result = p_c_declarator(s, ctx, empty = empty, is_type = is_type,
+@@ -1795,14 +1795,14 @@
+         if s.sy == '[':
+             result = p_c_array_declarator(s, result)
+         else: # sy == '('
+-            s.next()
++            next(s)
+             result = p_c_func_declarator(s, pos, ctx, result, cmethod_flag)
+         cmethod_flag = 0
+     return result
+ 
+ def p_c_array_declarator(s, base):
+     pos = s.position()
+-    s.next() # '['
++    next(s) # '['
+     if s.sy != ']':
+         dim = p_expr(s)
+     else:
+@@ -1829,14 +1829,14 @@
+     pos = s.position()
+     calling_convention = p_calling_convention(s)
+     if s.sy == '*':
+-        s.next()
++        next(s)
+         base = p_c_declarator(s, ctx, empty = empty, is_type = is_type,
+                               cmethod_flag = cmethod_flag,
+                               assignable = assignable, nonempty = nonempty)
+         result = Nodes.CPtrDeclaratorNode(pos, 
+             base = base)
+     elif s.sy == '**': # scanner returns this as a single token
+-        s.next()
++        next(s)
+         base = p_c_declarator(s, ctx, empty = empty, is_type = is_type,
+                               cmethod_flag = cmethod_flag,
+                               assignable = assignable, nonempty = nonempty)
+@@ -1849,10 +1849,10 @@
+             name = EncodedString(s.systring)
+             if empty:
+                 error(s.position(), "Declarator should be empty")
+-            s.next()
++            next(s)
+             cname = p_opt_cname(s)
+             if s.sy == '=' and assignable:
+-                s.next()
++                next(s)
+                 rhs = p_simple_expr(s)
+         else:
+             if nonempty:
+@@ -1866,14 +1866,14 @@
+ 
+ def p_nogil(s):
+     if s.sy == 'IDENT' and s.systring == 'nogil':
+-        s.next()
++        next(s)
+         return 1
+     else:
+         return 0
+ 
+ def p_with_gil(s):
+     if s.sy == 'with':
+-        s.next()
++        next(s)
+         s.expect_keyword('gil')
+         return 1
+     else:
+@@ -1883,21 +1883,21 @@
+     exc_val = None
+     exc_check = 0
+     if s.sy == 'except':
+-        s.next()
++        next(s)
+         if s.sy == '*':
+             exc_check = 1
+-            s.next()
++            next(s)
+         elif s.sy == '+':
+             exc_check = '+'
+-            s.next()
++            next(s)
+             if s.sy == 'IDENT':
+                 name = s.systring
+-                s.next()
++                next(s)
+                 exc_val = p_name(s, name)
+         else:
+             if s.sy == '?':
+                 exc_check = 1
+-                s.next()
++                next(s)
+             exc_val = p_simple_expr(s)
+     return exc_val, exc_check
+ 
+@@ -1914,7 +1914,7 @@
+             nonempty = nonempty_declarators, kw_only = kw_only))
+         if s.sy != ',':
+             break
+-        s.next()
++        next(s)
+         is_self_arg = 0
+     return args
+ 
+@@ -1932,21 +1932,21 @@
+     base_type = p_c_base_type(s, cmethod_flag, nonempty = nonempty)
+     declarator = p_c_declarator(s, ctx, nonempty = nonempty)
+     if s.sy == 'not':
+-        s.next()
++        next(s)
+         if s.sy == 'IDENT' and s.systring == 'None':
+-            s.next()
++            next(s)
+         else:
+             s.error("Expected 'None'")
+         if not in_pyfunc:
+             error(pos, "'not None' only allowed in Python functions")
+         not_none = 1
+     if s.sy == '=':
+-        s.next()
++        next(s)
+         if 'pxd' in s.level:
+             if s.sy not in ['*', '?']:
+                 error(pos, "default values cannot be specified in pxd files, use ? or *")
+             default = ExprNodes.BoolNode(1)
+-            s.next()
++            next(s)
+         else:
+             default = p_simple_expr(s)
+     return Nodes.CArgDeclNode(pos,
+@@ -1958,7 +1958,7 @@
+ 
+ def p_api(s):
+     if s.sy == 'IDENT' and s.systring == 'api':
+-        s.next()
++        next(s)
+         return 1
+     else:
+         return 0
+@@ -1973,7 +1973,7 @@
+     if (ctx.visibility == 'extern') and s.sy == 'from':
+         return p_cdef_extern_block(s, pos, ctx)
+     elif s.sy == 'import':
+-        s.next()
++        next(s)
+         return p_cdef_extern_block(s, pos, ctx)
+     if p_nogil(s):
+         ctx.nogil = 1
+@@ -2010,7 +2010,7 @@
+     include_file = None
+     s.expect('from')
+     if s.sy == '*':
+-        s.next()
++        next(s)
+     else:
+         _, include_file = p_string_literal(s)
+     ctx = ctx(cdef_flag = 1, visibility = 'extern')
+@@ -2027,10 +2027,10 @@
+ 
+ def p_c_enum_definition(s, pos, ctx):
+     # s.sy == ident 'enum'
+-    s.next()
++    next(s)
+     if s.sy == 'IDENT':
+         name = s.systring
+-        s.next()
++        next(s)
+         cname = p_opt_cname(s)
+     else:
+         name = None
+@@ -2041,7 +2041,7 @@
+     if s.sy != 'NEWLINE':
+         p_c_enum_line(s, items)
+     else:
+-        s.next() # 'NEWLINE'
++        next(s) # 'NEWLINE'
+         s.expect_indent()
+         while s.sy not in ('DEDENT', 'EOF'):
+             p_c_enum_line(s, items)
+@@ -2055,12 +2055,12 @@
+     if s.sy != 'pass':
+         p_c_enum_item(s, items)
+         while s.sy == ',':
+-            s.next()
++            next(s)
+             if s.sy in ('NEWLINE', 'EOF'):
+                 break
+             p_c_enum_item(s, items)
+     else:
+-        s.next()
++        next(s)
+     s.expect_newline("Syntax error in enum item list")
+ 
+ def p_c_enum_item(s, items):
+@@ -2069,7 +2069,7 @@
+     cname = p_opt_cname(s)
+     value = None
+     if s.sy == '=':
+-        s.next()
++        next(s)
+         value = p_simple_expr(s)
+     items.append(Nodes.CEnumDefItemNode(pos, 
+         name = name, cname = cname, value = value))
+@@ -2077,12 +2077,12 @@
+ def p_c_struct_or_union_definition(s, pos, ctx):
+     # s.sy == ident 'struct' or 'union'
+     kind = s.systring
+-    s.next()
++    next(s)
+     name = p_ident(s)
+     cname = p_opt_cname(s)
+     attributes = None
+     if s.sy == ':':
+-        s.next()
++        next(s)
+         s.expect('NEWLINE')
+         s.expect_indent()
+         attributes = []
+@@ -2092,7 +2092,7 @@
+                 attributes.append(
+                     p_c_func_or_var_declaration(s, s.position(), body_ctx))
+             else:
+-                s.next()
++                next(s)
+                 s.expect_newline("Expected a newline")
+         s.expect_dedent()
+     else:
+@@ -2110,13 +2110,13 @@
+         if prev_visibility != 'private' and visibility != prev_visibility:
+             s.error("Conflicting visibility options '%s' and '%s'"
+                 % (prev_visibility, visibility))
+-        s.next()
++        next(s)
+     return visibility
+     
+ def p_c_modifiers(s):
+     if s.sy == 'IDENT' and s.systring in ('inline',):
+         modifier = s.systring
+-        s.next()
++        next(s)
+         return [modifier] + p_c_modifiers(s)
+     return []
+ 
+@@ -2145,7 +2145,7 @@
+         #    error(s.pos, "'api' not allowed with variable declaration")
+         declarators = [declarator]
+         while s.sy == ',':
+-            s.next()
++            next(s)
+             if s.sy == 'NEWLINE':
+                 break
+             declarator = p_c_declarator(s, ctx, cmethod_flag = cmethod_flag,
+@@ -2164,7 +2164,7 @@
+ def p_ctypedef_statement(s, ctx):
+     # s.sy == 'ctypedef'
+     pos = s.position()
+-    s.next()
++    next(s)
+     visibility = p_visibility(s, ctx.visibility)
+     api = p_api(s)
+     ctx = ctx(typedef_flag = 1, visibility = visibility)
+@@ -2192,7 +2192,7 @@
+     decorators = []
+     while s.sy == 'DECORATOR':
+         pos = s.position()
+-        s.next()
++        next(s)
+         decstring = p_dotted_name(s, as_allowed=0)[2]
+         names = decstring.split('.')
+         decorator = ExprNodes.NameNode(pos, name=EncodedString(names[0]))
+@@ -2209,7 +2209,7 @@
+ def p_def_statement(s, decorators=None):
+     # s.sy == 'def'
+     pos = s.position()
+-    s.next()
++    next(s)
+     name = EncodedString( p_ident(s) )
+     #args = []
+     s.expect('(');
+@@ -2217,17 +2217,17 @@
+     star_arg = None
+     starstar_arg = None
+     if s.sy == '*':
+-        s.next()
++        next(s)
+         if s.sy == 'IDENT':
+             star_arg = p_py_arg_decl(s)
+         if s.sy == ',':
+-            s.next()
++            next(s)
+             args.extend(p_c_arg_list(s, in_pyfunc = 1,
+                 nonempty_declarators = 1, kw_only = 1))
+         elif s.sy != ')':
+             s.error("Syntax error in Python function argument list")
+     if s.sy == '**':
+-        s.next()
++        next(s)
+         starstar_arg = p_py_arg_decl(s)
+     s.expect(')')
+     if p_nogil(s):
+@@ -2245,11 +2245,11 @@
+ def p_class_statement(s):
+     # s.sy == 'class'
+     pos = s.position()
+-    s.next()
++    next(s)
+     class_name = EncodedString( p_ident(s) )
+     class_name.encoding = s.source_encoding
+     if s.sy == '(':
+-        s.next()
++        next(s)
+         base_list = p_simple_expr_list(s)
+         s.expect(')')
+     else:
+@@ -2262,17 +2262,17 @@
+ 
+ def p_c_class_definition(s, pos,  ctx):
+     # s.sy == 'class'
+-    s.next()
++    next(s)
+     module_path = []
+     class_name = p_ident(s)
+     while s.sy == '.':
+-        s.next()
++        next(s)
+         module_path.append(class_name)
+         class_name = p_ident(s)
+     if module_path and ctx.visibility != 'extern':
+         error(pos, "Qualified class name only allowed for 'extern' C class")
+     if module_path and s.sy == 'IDENT' and s.systring == 'as':
+-        s.next()
++        next(s)
+         as_name = p_ident(s)
+     else:
+         as_name = class_name
+@@ -2281,10 +2281,10 @@
+     base_class_module = None
+     base_class_name = None
+     if s.sy == '(':
+-        s.next()
++        next(s)
+         base_class_path = [p_ident(s)]
+         while s.sy == '.':
+-            s.next()
++            next(s)
+             base_class_path.append(p_ident(s))
+         if s.sy == ',':
+             s.error("C class may only have one base class")
+@@ -2343,20 +2343,20 @@
+         if s.sy != 'IDENT':
+             break
+         if s.systring == 'object':
+-            s.next()
++            next(s)
+             objstruct_name = p_ident(s)
+         elif s.systring == 'type':
+-            s.next()
++            next(s)
+             typeobj_name = p_ident(s)
+         if s.sy != ',':
+             break
+-        s.next()
++        next(s)
+     s.expect(']', "Expected 'object' or 'type'")
+     return objstruct_name, typeobj_name
+ 
+ def p_property_decl(s):
+     pos = s.position()
+-    s.next() # 'property'
++    next(s) # 'property'
+     name = p_ident(s)
+     doc, body = p_suite(s, Ctx(level = 'property'), with_doc = 1)
+     return Nodes.PropertyNode(pos, name = name, doc = doc, body = body)
+@@ -2392,11 +2392,11 @@
+             name = m.group(1)
+             try:
+                 value = Options.parse_option_value(str(name), str(m.group(2).strip()))
+-            except ValueError, e:
++            except ValueError as e:
+                 s.error(e.args[0], fatal=False)
+             if value is not None: # can be False!
+                 result[name] = value
+-        s.next()
++        next(s)
+     return result
+ 
+ def p_module(s, pxd, full_module_name):
+@@ -2426,7 +2426,7 @@
+ #----------------------------------------------
+ 
+ def print_parse_tree(f, node, level, key = None):
+-    from Nodes import Node
++    from .Nodes import Node
+     ind = "  " * level
+     if node:
+         f.write(ind)
+@@ -2435,7 +2435,7 @@
+         t = type(node)
+         if t == TupleType:
+             f.write("(%s @ %s\n" % (node[0], node[1]))
+-            for i in xrange(2, len(node)):
++            for i in range(2, len(node)):
+                 print_parse_tree(f, node[i], level+1)
+             f.write("%s)\n" % ind)
+             return
+@@ -2445,13 +2445,13 @@
+             except AttributeError:
+                 tag = node.__class__.__name__
+             f.write("%s @ %s\n" % (tag, node.pos))
+-            for name, value in node.__dict__.items():
++            for name, value in list(node.__dict__.items()):
+                 if name != 'tag' and name != 'pos':
+                     print_parse_tree(f, value, level+1, name)
+             return
+         elif t == ListType:
+             f.write("[\n")
+-            for i in xrange(len(node)):
++            for i in range(len(node)):
+                 print_parse_tree(f, node[i], level+1)
+             f.write("%s]\n" % ind)
+             return
+Only in Cython-0.10.3/Cython/Compiler: Parsing.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/PyrexTypes.py Cython-0.10.3/Cython/Compiler/PyrexTypes.py
+--- Cython-0.10.3.orig/Cython/Compiler/PyrexTypes.py	2008-12-17 03:56:17.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/PyrexTypes.py	2009-01-16 21:36:30.446655857 -0500
+@@ -3,8 +3,8 @@
+ #
+ 
+ from Cython.Utils import UtilityCode
+-import StringEncoding
+-import Naming
++from . import StringEncoding
++from . import Naming
+ import copy
+ 
+ class BaseType:
+@@ -513,7 +513,7 @@
+         c_type = self.sign_and_name()
+         c_name = c_type.replace(' ', '_');
+         func_name = "__pyx_PyInt_%s" % c_name;
+-        if not int_conversion_list.has_key(func_name):
++        if func_name not in int_conversion_list:
+             # no env to add utility code to
+             global type_conversion_predeclarations, type_conversion_functions
+             if self.signed:
+@@ -723,7 +723,7 @@
+         self.is_overridable = is_overridable
+     
+     def __repr__(self):
+-        arg_reprs = map(repr, self.args)
++        arg_reprs = list(map(repr, self.args))
+         if self.has_varargs:
+             arg_reprs.append("...")
+         return "<CFuncType %s %s[%s]>" % (
+@@ -951,7 +951,7 @@
+         if env.outer_scope is None:
+             return False
+         if self._convert_code is None:
+-            import Code
++            from . import Code
+             code = Code.CCodeWriter()
+             header = "static PyObject* %s(%s)" % (self.to_py_function, self.declaration_code('s'))
+             code.putln("%s {" % header)
+@@ -1321,7 +1321,7 @@
+         return CPtrType(base_type)
+         
+ def Node_to_type(node, env):
+-    from ExprNodes import NameNode, AttributeNode, StringNode, error
++    from .ExprNodes import NameNode, AttributeNode, StringNode, error
+     if isinstance(node, StringNode):
+         node = NameNode(node.pos, name=node.value)
+     if isinstance(node, NameNode) and node.name in rank_to_type_name:
+Only in Cython-0.10.3/Cython/Compiler: PyrexTypes.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Scanning.py Cython-0.10.3/Cython/Compiler/Scanning.py
+--- Cython-0.10.3.orig/Cython/Compiler/Scanning.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Scanning.py	2009-01-16 21:36:31.426658612 -0500
+@@ -3,7 +3,7 @@
+ #
+ 
+ #import pickle
+-import cPickle as pickle
++import pickle as pickle
+ 
+ import os
+ import platform
+@@ -14,10 +14,10 @@
+ from Cython import Plex, Utils
+ from Cython.Plex import Scanner
+ from Cython.Plex.Errors import UnrecognizedInput
+-from Errors import CompileError, error
+-from Lexicon import string_prefixes, raw_prefixes, make_lexicon
++from .Errors import CompileError, error
++from .Lexicon import string_prefixes, raw_prefixes, make_lexicon
+ 
+-from StringEncoding import EncodedString
++from .StringEncoding import EncodedString
+ 
+ plex_version = getattr(Plex, '_version', None)
+ #print "Plex version:", plex_version ###
+@@ -46,8 +46,8 @@
+         try:
+             f = open(path, "rU")
+             text = f.read()
+-        except IOError, e:
+-            print("Unable to hash scanner source file (%s)" % e)
++        except IOError as e:
++            print(("Unable to hash scanner source file (%s)" % e))
+             return ""
+     finally:
+         f.close()
+@@ -76,10 +76,10 @@
+                 f = None
+             else:
+                 print("Lexicon hash mismatch:")       ###
+-                print("   expected " + expected_hash) ###
+-                print("   got     " + actual_hash)    ###
+-        except IOError, e:
+-            print("Warning: Unable to read pickled lexicon " + lexicon_pickle)
++                print(("   expected " + expected_hash)) ###
++                print(("   got     " + actual_hash))    ###
++        except IOError as e:
++            print(("Warning: Unable to read pickled lexicon " + lexicon_pickle))
+             print(e)
+     if f:
+         f.close()
+@@ -100,7 +100,7 @@
+         f.close()
+         if notify_lexicon_unpickling:
+             t1 = time()
+-            print("Done (%.2f seconds)" % (t1 - t0))
++            print(("Done (%.2f seconds)" % (t1 - t0)))
+ 
+ def create_new_lexicon():
+     global lexicon
+@@ -108,14 +108,14 @@
+     print("Creating lexicon...")
+     lexicon = make_lexicon()
+     t1 = time()
+-    print("Done (%.2f seconds)" % (t1 - t0))
++    print(("Done (%.2f seconds)" % (t1 - t0)))
+ 
+ def pickle_lexicon():
+     f = None
+     try:
+         f = open(lexicon_pickle, "wb")
+     except IOError:
+-        print("Warning: Unable to save pickled lexicon in " + lexicon_pickle)
++        print(("Warning: Unable to save pickled lexicon in " + lexicon_pickle))
+     if f:
+         if notify_lexicon_pickling:
+             t0 = time()
+@@ -125,7 +125,7 @@
+         f.close()
+         if notify_lexicon_pickling:
+             t1 = time()
+-            print("Done (%.2f seconds)" % (t1 - t0))
++            print(("Done (%.2f seconds)" % (t1 - t0)))
+ 
+ def get_lexicon():
+     global lexicon
+@@ -195,7 +195,7 @@
+         'UNAME_VERSION', 'UNAME_MACHINE')
+     for name, value in zip(names, platform.uname()):
+         benv.declare(name, value)
+-    import __builtin__
++    import builtins
+     names = ('False', 'True',
+         'abs', 'bool', 'chr', 'cmp', 'complex', 'dict', 'divmod', 'enumerate',
+         'float', 'hash', 'hex', 'int', 'len', 'list', 'long', 'map', 'max', 'min',
+@@ -311,7 +311,7 @@
+         self.bracket_nesting_level = 0
+         self.begin('INDENT')
+         self.sy = ''
+-        self.next()
++        next(self)
+ 
+     def commentline(self, text):
+         if self.parse_comments:
+@@ -398,7 +398,7 @@
+             self.indentation_stack.pop()
+         self.produce('EOF', '')
+ 
+-    def next(self):
++    def __next__(self):
+         try:
+             sy, systring = self.read()
+         except UnrecognizedInput:
+@@ -417,7 +417,7 @@
+                 t = self.sy
+             else:
+                 t = "%s %s" % (self.sy, self.systring)
+-            print("--- %3d %2d %s" % (line, col, t))
++            print(("--- %3d %2d %s" % (line, col, t)))
+     
+     def put_back(self, sy, systring):
+         self.unread(self.sy, self.systring)
+@@ -438,13 +438,13 @@
+         
+     def expect(self, what, message = None):
+         if self.sy == what:
+-            self.next()
++            next(self)
+         else:
+             self.expected(what, message)
+     
+     def expect_keyword(self, what, message = None):
+         if self.sy == 'IDENT' and self.systring == what:
+-            self.next()
++            next(self)
+         else:
+             self.expected(what, message)
+     
+Only in Cython-0.10.3/Cython/Compiler: Scanning.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/StringEncoding.py Cython-0.10.3/Cython/Compiler/StringEncoding.py
+--- Cython-0.10.3.orig/Cython/Compiler/StringEncoding.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/StringEncoding.py	2009-01-16 21:36:31.746655451 -0500
+@@ -14,14 +14,14 @@
+         if isinstance(characters, str):
+             # this came from a Py2 string literal in the parser code
+             characters = characters.decode("ASCII")
+-        assert isinstance(characters, unicode), str(type(characters))
++        assert isinstance(characters, str), str(type(characters))
+         self.chars.append(characters)
+ 
+     def append_charval(self, char_number):
+-        self.chars.append( unichr(char_number) )
++        self.chars.append( chr(char_number) )
+ 
+     def getstring(self):
+-        return EncodedString(u''.join(self.chars))
++        return EncodedString(''.join(self.chars))
+ 
+ 
+ class BytesLiteralBuilder(object):
+@@ -32,7 +32,7 @@
+         self.target_encoding = target_encoding
+ 
+     def append(self, characters):
+-        if isinstance(characters, unicode):
++        if isinstance(characters, str):
+             characters = characters.encode(self.target_encoding)
+         assert isinstance(characters, str), str(type(characters))
+         self.chars.append(characters)
+@@ -50,7 +50,7 @@
+         # this *must* return a byte string! => fix it in Py3k!!
+         return self.getstring()
+ 
+-class EncodedString(unicode):
++class EncodedString(str):
+     # unicode string subclass to keep track of the original encoding.
+     # 'encoding' is None for unicode strings and the source encoding
+     # otherwise
+@@ -81,13 +81,13 @@
+     is_unicode = False
+ 
+ char_from_escape_sequence = {
+-    r'\a' : u'\a',
+-    r'\b' : u'\b',
+-    r'\f' : u'\f',
+-    r'\n' : u'\n',
+-    r'\r' : u'\r',
+-    r'\t' : u'\t',
+-    r'\v' : u'\v',
++    r'\a' : '\a',
++    r'\b' : '\b',
++    r'\f' : '\f',
++    r'\n' : '\n',
++    r'\r' : '\r',
++    r'\t' : '\t',
++    r'\v' : '\v',
+     }.get
+ 
+ def _to_escape_sequence(s):
+@@ -100,7 +100,7 @@
+         return ''.join(['\\%03o' % ord(c) for c in s])
+ 
+ _c_special = ('\0', '\n', '\r', '\t', '??', '"')
+-_c_special_replacements = zip(_c_special, map(_to_escape_sequence, _c_special))
++_c_special_replacements = list(zip(_c_special, list(map(_to_escape_sequence, _c_special))))
+ 
+ def _build_specials_test():
+     subexps = []
+Only in Cython-0.10.3/Cython/Compiler: StringEncoding.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Symtab.py Cython-0.10.3/Cython/Compiler/Symtab.py
+--- Cython-0.10.3.orig/Cython/Compiler/Symtab.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Symtab.py	2009-01-16 21:36:35.706655363 -0500
+@@ -4,23 +4,23 @@
+ 
+ import re
+ from Cython import Utils
+-from Errors import warning, error, InternalError
+-from StringEncoding import EncodedString
++from .Errors import warning, error, InternalError
++from .StringEncoding import EncodedString
+ import Options, Naming
+-import PyrexTypes
+-from PyrexTypes import py_object_type
+-import TypeSlots
+-from TypeSlots import \
++from . import PyrexTypes
++from .PyrexTypes import py_object_type
++from . import TypeSlots
++from .TypeSlots import \
+     pyfunction_signature, pymethod_signature, \
+     get_special_method_signature, get_property_accessor_signature
+-import ControlFlow
+-import __builtin__
++from . import ControlFlow
++import builtins
+ try:
+     set
+ except NameError:
+     from sets import Set as set
+ 
+-possible_identifier = re.compile(ur"(?![0-9])\w+$", re.U).match
++possible_identifier = re.compile(r"(?![0-9])\w+$", re.U).match
+ nice_identifier = re.compile('^[a-zA-Z0-0_]+$').match
+ 
+ class BufferAux:
+@@ -278,7 +278,7 @@
+             # See http://www.gnu.org/software/libc/manual/html_node/Reserved-Names.html#Reserved-Names 
+             warning(pos, "'%s' is a reserved name in C." % cname, -1)
+         dict = self.entries
+-        if name and dict.has_key(name):
++        if name and name in dict:
+             if visibility == 'extern':
+                 warning(pos, "'%s' redeclared " % name, 0)
+             elif visibility != 'ignore':
+@@ -680,7 +680,7 @@
+             Scope.__init__(self, "__builtin__", PreImportScope(), None)
+         self.type_names = {}
+         
+-        for name, definition in self.builtin_entries.iteritems():
++        for name, definition in self.builtin_entries.items():
+             cname, type = definition
+             self.declare_var(name, type, None, cname)
+         
+@@ -1092,12 +1092,12 @@
+         #
+         debug_check_c_classes = 0
+         if debug_check_c_classes:
+-            print("Scope.check_c_classes: checking scope " + self.qualified_name)
++            print(("Scope.check_c_classes: checking scope " + self.qualified_name))
+         for entry in self.c_class_entries:
+             if debug_check_c_classes:
+-                print("...entry %s %s" % (entry.name, entry))
+-                print("......type = ",  entry.type)
+-                print("......visibility = ", entry.visibility)
++                print(("...entry %s %s" % (entry.name, entry)))
++                print(("......type = ",  entry.type))
++                print(("......visibility = ", entry.visibility))
+             type = entry.type
+             name = entry.name
+             visibility = entry.visibility
+@@ -1123,7 +1123,7 @@
+     def check_c_functions(self):
+         # Performs post-analysis checking making sure all 
+         # defined c functions are actually implemented.
+-        for name, entry in self.entries.items():
++        for name, entry in list(self.entries.items()):
+             if entry.is_cfunction:
+                 if (entry.defined_in_pxd 
+                         and entry.scope is self
+@@ -1139,7 +1139,7 @@
+         # variable entry attached to it. For the variable entry,
+         # we use a read-only C global variable whose name is an
+         # expression that refers to the type object.
+-        import Builtin
++        from . import Builtin
+         var_entry = Entry(name = entry.name,
+             type = Builtin.type_type,
+             pos = entry.pos,
+@@ -1201,7 +1201,7 @@
+             return (self.outer_scope and self.outer_scope.lookup_from_inner(name)) or None
+             
+     def mangle_closure_cnames(self, scope_var):
+-        for entry in self.entries.values():
++        for entry in list(self.entries.values()):
+             if entry.in_closure:
+                 if not hasattr(entry, 'orig_cname'):
+                     entry.orig_cname = entry.cname
+@@ -1213,7 +1213,7 @@
+     temp_prefix = Naming.cur_scope_cname + "->" + LocalScope.temp_prefix
+     
+     def mangle_closure_cnames(self, scope_var):
+-        for entry in self.entries.values() + self.temp_entries:
++        for entry in list(self.entries.values()) + self.temp_entries:
+             entry.in_closure = 1
+         LocalScope.mangle_closure_cnames(self, scope_var)
+     
+Only in Cython-0.10.3/Cython/Compiler: Symtab.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Tests/TestBuffer.py Cython-0.10.3/Cython/Compiler/Tests/TestBuffer.py
+--- Cython-0.10.3.orig/Cython/Compiler/Tests/TestBuffer.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Tests/TestBuffer.py	2009-01-16 21:36:38.716656053 -0500
+@@ -19,7 +19,7 @@
+         self.assertEqual(expected_error, e.message_only)
+     
+     def test_basic(self):
+-        t = self.parse(u"cdef object[float, 4, ndim=2, foo=foo] x")
++        t = self.parse("cdef object[float, 4, ndim=2, foo=foo] x")
+         bufnode = t.stats[0].base_type
+         self.assert_(isinstance(bufnode, CBufferAccessTypeNode))
+         self.assertEqual(2, len(bufnode.positional_args))
+@@ -27,22 +27,22 @@
+         # should put more here...
+         
+     def test_type_pos(self):
+-        self.parse(u"cdef object[short unsigned int, 3] x")
++        self.parse("cdef object[short unsigned int, 3] x")
+ 
+     def test_type_keyword(self):
+-        self.parse(u"cdef object[foo=foo, dtype=short unsigned int] x")
++        self.parse("cdef object[foo=foo, dtype=short unsigned int] x")
+ 
+     def test_notype_as_expr1(self):
+         self.not_parseable("Expected: expression",
+-                           u"cdef object[foo2=short unsigned int] x")
++                           "cdef object[foo2=short unsigned int] x")
+ 
+     def test_notype_as_expr2(self):
+         self.not_parseable("Expected: expression",
+-                           u"cdef object[int, short unsigned int] x")
++                           "cdef object[int, short unsigned int] x")
+ 
+     def test_pos_after_key(self):
+         self.not_parseable("Non-keyword arg following keyword arg",
+-                           u"cdef object[foo=1, 2] x")
++                           "cdef object[foo=1, 2] x")
+ 
+ 
+ # See also tests/error/e_bufaccess.pyx and tets/run/bufaccess.pyx
+@@ -58,7 +58,7 @@
+ 
+     def parse_opts(self, opts, expect_error=False):
+         assert opts != ""
+-        s = u"def f():\n  cdef object[%s] x" % opts
++        s = "def f():\n  cdef object[%s] x" % opts
+         self.expect_error = expect_error
+         root = self.fragment(s, pipeline=[NormalizeTree(self), PostParse(self)]).root
+         if not expect_error:
+@@ -67,7 +67,7 @@
+             buftype = vardef.base_type
+             self.assert_(isinstance(buftype, CBufferAccessTypeNode))
+             self.assert_(isinstance(buftype.base_type_node, CSimpleBaseTypeNode))
+-            self.assertEqual(u"object", buftype.base_type_node.name)
++            self.assertEqual("object", buftype.base_type_node.name)
+             return buftype
+         else:
+             self.assert_(len(root.stats[0].body.stats) == 0)
+@@ -78,24 +78,24 @@
+         self.assertEqual(expected_err, self.error.message_only)
+         
+     def __test_basic(self):
+-        buf = self.parse_opts(u"unsigned short int, 3")
++        buf = self.parse_opts("unsigned short int, 3")
+         self.assert_(isinstance(buf.dtype_node, CSimpleBaseTypeNode))
+         self.assert_(buf.dtype_node.signed == 0 and buf.dtype_node.longness == -1)
+         self.assertEqual(3, buf.ndim)
+ 
+     def __test_dict(self):
+-        buf = self.parse_opts(u"ndim=3, dtype=unsigned short int")
++        buf = self.parse_opts("ndim=3, dtype=unsigned short int")
+         self.assert_(isinstance(buf.dtype_node, CSimpleBaseTypeNode))
+         self.assert_(buf.dtype_node.signed == 0 and buf.dtype_node.longness == -1)
+         self.assertEqual(3, buf.ndim)
+         
+     def __test_ndim(self):
+-        self.parse_opts(u"int, 2")
+-        self.non_parse(ERR_BUF_NDIM, u"int, 'a'")
+-        self.non_parse(ERR_BUF_NDIM, u"int, -34")
++        self.parse_opts("int, 2")
++        self.non_parse(ERR_BUF_NDIM, "int, 'a'")
++        self.non_parse(ERR_BUF_NDIM, "int, -34")
+ 
+     def __test_use_DEF(self):
+-        t = self.fragment(u"""
++        t = self.fragment("""
+         DEF ndim = 3
+         def f():
+             cdef object[int, ndim] x
+Only in Cython-0.10.3/Cython/Compiler/Tests: TestBuffer.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Tests/TestDecorators.py Cython-0.10.3/Cython/Compiler/Tests/TestDecorators.py
+--- Cython-0.10.3.orig/Cython/Compiler/Tests/TestDecorators.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Tests/TestDecorators.py	2009-01-16 21:36:38.746656349 -0500
+@@ -5,7 +5,7 @@
+ class TestDecorator(TransformTest):
+ 
+     def test_decorator(self):
+-        t = self.run_pipeline([DecoratorTransform(None)], u"""
++        t = self.run_pipeline([DecoratorTransform(None)], """
+         def decorator(fun):
+             return fun
+         @decorator
+@@ -13,7 +13,7 @@
+             pass
+         """)
+         
+-        self.assertCode(u"""
++        self.assertCode("""
+         def decorator(fun):
+             return fun
+         def decorated():
+Only in Cython-0.10.3/Cython/Compiler/Tests: TestDecorators.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Tests/TestParseTreeTransforms.py Cython-0.10.3/Cython/Compiler/Tests/TestParseTreeTransforms.py
+--- Cython-0.10.3.orig/Cython/Compiler/Tests/TestParseTreeTransforms.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Tests/TestParseTreeTransforms.py	2009-01-16 21:36:38.906656958 -0500
+@@ -4,8 +4,8 @@
+ 
+ class TestNormalizeTree(TransformTest):
+     def test_parserbehaviour_is_what_we_coded_for(self):
+-        t = self.fragment(u"if x: y").root
+-        self.assertLines(u"""
++        t = self.fragment("if x: y").root
++        self.assertLines("""
+ (root): StatListNode
+   stats[0]: IfStatNode
+     if_clauses[0]: IfClauseNode
+@@ -15,8 +15,8 @@
+ """, self.treetypes(t))
+         
+     def test_wrap_singlestat(self):
+-    	t = self.run_pipeline([NormalizeTree(None)], u"if x: y")
+-        self.assertLines(u"""
++    	t = self.run_pipeline([NormalizeTree(None)], "if x: y")
++        self.assertLines("""
+ (root): StatListNode
+   stats[0]: IfStatNode
+     if_clauses[0]: IfClauseNode
+@@ -27,12 +27,12 @@
+ """, self.treetypes(t))
+ 
+     def test_wrap_multistat(self):
+-        t = self.run_pipeline([NormalizeTree(None)], u"""
++        t = self.run_pipeline([NormalizeTree(None)], """
+             if z:
+                 x
+                 y
+         """)
+-        self.assertLines(u"""
++        self.assertLines("""
+ (root): StatListNode
+   stats[0]: IfStatNode
+     if_clauses[0]: IfClauseNode
+@@ -45,10 +45,10 @@
+ """, self.treetypes(t))
+ 
+     def test_statinexpr(self):
+-        t = self.run_pipeline([NormalizeTree(None)], u"""
++        t = self.run_pipeline([NormalizeTree(None)], """
+             a, b = x, y
+         """)
+-        self.assertLines(u"""
++        self.assertLines("""
+ (root): StatListNode
+   stats[0]: ParallelAssignmentNode
+     stats[0]: SingleAssignmentNode
+@@ -60,13 +60,13 @@
+ """, self.treetypes(t))
+ 
+     def test_wrap_offagain(self):
+-        t = self.run_pipeline([NormalizeTree(None)], u"""
++        t = self.run_pipeline([NormalizeTree(None)], """
+             x
+             y
+             if z:
+                 x
+         """)
+-        self.assertLines(u"""
++        self.assertLines("""
+ (root): StatListNode
+   stats[0]: ExprStatNode
+     expr: NameNode
+@@ -82,18 +82,18 @@
+         
+ 
+     def test_pass_eliminated(self):
+-        t = self.run_pipeline([NormalizeTree(None)], u"pass")
++        t = self.run_pipeline([NormalizeTree(None)], "pass")
+         self.assert_(len(t.stats) == 0)
+ 
+ class TestWithTransform(TransformTest):
+ 
+     def test_simplified(self):
+-        t = self.run_pipeline([WithTransform(None)], u"""
++        t = self.run_pipeline([WithTransform(None)], """
+         with x:
+             y = z ** 3
+         """)
+ 
+-        self.assertCode(u"""
++        self.assertCode("""
+ 
+         $1_0 = x
+         $1_2 = $1_0.__exit__
+@@ -113,11 +113,11 @@
+         """, t)
+ 
+     def test_basic(self):
+-        t = self.run_pipeline([WithTransform(None)], u"""
++        t = self.run_pipeline([WithTransform(None)], """
+         with x as y:
+             y = z ** 3
+         """)
+-        self.assertCode(u"""
++        self.assertCode("""
+ 
+         $1_0 = x
+         $1_2 = $1_0.__exit__
+Only in Cython-0.10.3/Cython/Compiler/Tests: TestParseTreeTransforms.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Tests/TestTreeFragment.py Cython-0.10.3/Cython/Compiler/Tests/TestTreeFragment.py
+--- Cython-0.10.3.orig/Cython/Compiler/Tests/TestTreeFragment.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Tests/TestTreeFragment.py	2009-01-16 21:36:39.186657220 -0500
+@@ -7,12 +7,12 @@
+ class TestTreeFragments(CythonTest):
+     
+     def test_basic(self):
+-        F = self.fragment(u"x = 4")
++        F = self.fragment("x = 4")
+         T = F.copy()
+-        self.assertCode(u"x = 4", T)
++        self.assertCode("x = 4", T)
+     
+     def test_copy_is_taken(self):
+-        F = self.fragment(u"if True: x = 4")
++        F = self.fragment("if True: x = 4")
+         T1 = F.root
+         T2 = F.copy()
+         self.assertEqual("x", T2.stats[0].if_clauses[0].body.lhs.name)
+@@ -20,25 +20,25 @@
+         self.assertEqual("x", T1.stats[0].if_clauses[0].body.lhs.name)
+ 
+     def test_substitutions_are_copied(self):
+-        T = self.fragment(u"y + y").substitute({"y": NameNode(pos=None, name="x")})
++        T = self.fragment("y + y").substitute({"y": NameNode(pos=None, name="x")})
+         self.assertEqual("x", T.stats[0].expr.operand1.name)
+         self.assertEqual("x", T.stats[0].expr.operand2.name)
+         self.assert_(T.stats[0].expr.operand1 is not T.stats[0].expr.operand2)
+ 
+     def test_substitution(self):
+-        F = self.fragment(u"x = 4")
+-        y = NameNode(pos=None, name=u"y")
++        F = self.fragment("x = 4")
++        y = NameNode(pos=None, name="y")
+         T = F.substitute({"x" : y})
+-        self.assertCode(u"y = 4", T)
++        self.assertCode("y = 4", T)
+ 
+     def test_exprstat(self):
+-        F = self.fragment(u"PASS")
++        F = self.fragment("PASS")
+         pass_stat = PassStatNode(pos=None)
+         T = F.substitute({"PASS" : pass_stat})
+         self.assert_(isinstance(T.stats[0], PassStatNode), T)
+ 
+     def test_pos_is_transferred(self):
+-        F = self.fragment(u"""
++        F = self.fragment("""
+         x = y
+         x = u * v ** w
+         """)
+@@ -50,11 +50,11 @@
+     def test_temps(self):
+         import Cython.Compiler.Visitor as v
+         v.tmpnamectr = 0
+-        F = self.fragment(u"""
++        F = self.fragment("""
+             TMP
+             x = TMP
+         """)
+-        T = F.substitute(temps=[u"TMP"])
++        T = F.substitute(temps=["TMP"])
+         s = T.body.stats
+         self.assert_(isinstance(s[0].expr, TempRefNode))
+         self.assert_(isinstance(s[1].rhs, TempRefNode))
+Only in Cython-0.10.3/Cython/Compiler/Tests: TestTreeFragment.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/TreeFragment.py Cython-0.10.3/Cython/Compiler/TreeFragment.py
+--- Cython-0.10.3.orig/Cython/Compiler/TreeFragment.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/TreeFragment.py	2009-01-16 21:36:36.196656967 -0500
+@@ -3,17 +3,17 @@
+ #
+ 
+ import re
+-from cStringIO import StringIO
+-from Scanning import PyrexScanner, StringSourceDescriptor
+-from Symtab import BuiltinScope, ModuleScope
+-import Symtab
+-import PyrexTypes
+-from Visitor import VisitorTransform
+-from Nodes import Node, StatListNode
+-from ExprNodes import NameNode
+-import Parsing
+-import Main
+-import UtilNodes
++from io import StringIO
++from .Scanning import PyrexScanner, StringSourceDescriptor
++from .Symtab import BuiltinScope, ModuleScope
++from . import Symtab
++from . import PyrexTypes
++from .Visitor import VisitorTransform
++from .Nodes import Node, StatListNode
++from .ExprNodes import NameNode
++from . import Parsing
++from . import Main
++from . import UtilNodes
+ 
+ """
+ Support for parsing strings into code trees.
+@@ -43,7 +43,7 @@
+     # to use a unicode string so that code fragments don't have to bother
+     # with encoding. This means that test code passed in should not have an
+     # encoding header.
+-    assert isinstance(code, unicode), "unicode code snippets only please"
++    assert isinstance(code, str), "unicode code snippets only please"
+     encoding = "UTF-8"
+ 
+     module_name = name
+@@ -172,23 +172,23 @@
+ def copy_code_tree(node):
+     return TreeCopier()(node)
+ 
+-INDENT_RE = re.compile(ur"^ *")
++INDENT_RE = re.compile(r"^ *")
+ def strip_common_indent(lines):
+     "Strips empty lines and common indentation from the list of strings given in lines"
+     # TODO: Facilitate textwrap.indent instead
+-    lines = [x for x in lines if x.strip() != u""]
++    lines = [x for x in lines if x.strip() != ""]
+     minindent = min([len(INDENT_RE.match(x).group(0)) for x in lines])
+     lines = [x[minindent:] for x in lines]
+     return lines
+     
+ class TreeFragment(object):
+     def __init__(self, code, name="(tree fragment)", pxds={}, temps=[], pipeline=[], level=None, initial_pos=None):
+-        if isinstance(code, unicode):
+-            def fmt(x): return u"\n".join(strip_common_indent(x.split(u"\n"))) 
++        if isinstance(code, str):
++            def fmt(x): return "\n".join(strip_common_indent(x.split("\n"))) 
+             
+             fmt_code = fmt(code)
+             fmt_pxds = {}
+-            for key, value in pxds.iteritems():
++            for key, value in pxds.items():
+                 fmt_pxds[key] = fmt(value)
+             mod = t = parse_from_strings(name, fmt_code, fmt_pxds, level=level, initial_pos=initial_pos)
+             if level is None:
+Only in Cython-0.10.3/Cython/Compiler: TreeFragment.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/TypeSlots.py Cython-0.10.3/Cython/Compiler/TypeSlots.py
+--- Cython-0.10.3.orig/Cython/Compiler/TypeSlots.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/TypeSlots.py	2009-01-16 21:36:37.716657873 -0500
+@@ -3,9 +3,9 @@
+ #           and associated know-how.
+ #
+ 
+-import Naming
+-import PyrexTypes
+-import StringEncoding
++from . import Naming
++from . import PyrexTypes
++from . import StringEncoding
+ import sys
+ 
+ class Signature:
+@@ -97,7 +97,7 @@
+     def function_type(self):
+         #  Construct a C function type descriptor for this signature
+         args = []
+-        for i in xrange(self.num_fixed_args()):
++        for i in range(self.num_fixed_args()):
+             arg_type = self.fixed_arg_type(i)
+             args.append(PyrexTypes.CFuncTypeArg("", arg_type, None))
+         ret_type = self.return_type()
+Only in Cython-0.10.3/Cython/Compiler: TypeSlots.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/UtilNodes.py Cython-0.10.3/Cython/Compiler/UtilNodes.py
+--- Cython-0.10.3.orig/Cython/Compiler/UtilNodes.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/UtilNodes.py	2009-01-16 21:36:37.896655799 -0500
+@@ -4,10 +4,10 @@
+ # so it is convenient to have them in a seperate module.
+ #
+ 
+-import Nodes
+-import ExprNodes
+-from Nodes import Node
+-from ExprNodes import ExprNode
++from . import Nodes
++from . import ExprNodes
++from .Nodes import Node
++from .ExprNodes import ExprNode
+ 
+ class TempHandle(object):
+     temp = None
+Only in Cython-0.10.3/Cython/Compiler: UtilNodes.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Compiler/Visitor.py Cython-0.10.3/Cython/Compiler/Visitor.py
+--- Cython-0.10.3.orig/Cython/Compiler/Visitor.py	2008-12-14 05:37:53.000000000 -0500
++++ Cython-0.10.3/Cython/Compiler/Visitor.py	2009-01-16 21:36:38.376658391 -0500
+@@ -2,10 +2,10 @@
+ #   Tree visitor and transform framework
+ #
+ import inspect
+-import Nodes
+-import ExprNodes
+-import Naming
+-from StringEncoding import EncodedString
++from . import Nodes
++from . import ExprNodes
++from . import Naming
++from .StringEncoding import EncodedString
+ 
+ class BasicVisitor(object):
+     """A generic visitor base class which can be used for visiting any kind of object."""
+@@ -31,12 +31,12 @@
+                     handler_method = getattr(self, pattern % mro_cls.__name__)
+                     break
+             if handler_method is None:
+-                print type(self), type(obj)
++                print(type(self), type(obj))
+                 if hasattr(self, 'access_path'):
+-                    print self.access_path
++                    print(self.access_path)
+                     if self.access_path:
+-                        print self.access_path[-1][0].pos
+-                        print self.access_path[-1][0].__dict__
++                        print(self.access_path[-1][0].pos)
++                        print(self.access_path[-1][0].__dict__)
+                 raise RuntimeError("Visitor does not accept object: %s" % obj)
+             #print "Caching " + cls.__name__
+             self.dispatch_table[cls] = handler_method
+@@ -144,7 +144,7 @@
+     """
+     def visitchildren(self, parent, attrs=None):
+         result = super(VisitorTransform, self).visitchildren(parent, attrs)
+-        for attr, newnode in result.iteritems():
++        for attr, newnode in result.items():
+             if not isinstance(newnode, list):
+                 setattr(parent, attr, newnode)
+             else:
+@@ -171,7 +171,7 @@
+         self.context = context
+ 
+     def __call__(self, node):
+-        import ModuleNode
++        from . import ModuleNode
+         if isinstance(node, ModuleNode.ModuleNode):
+             self.current_directives = node.directives
+         return super(CythonTransform, self).__call__(node)
+@@ -220,7 +220,7 @@
+         self._indent = self._indent[:-2]
+ 
+     def __call__(self, tree, phase=None):
+-        print("Parse tree dump at phase '%s'" % phase)
++        print(("Parse tree dump at phase '%s'" % phase))
+         self.visit(tree)
+         return tree
+ 
+@@ -237,7 +237,7 @@
+                 name = "%s[%d]" % (attr, idx)
+             else:
+                 name = attr
+-        print("%s- %s: %s" % (self._indent, name, self.repr_of(node)))
++        print(("%s- %s: %s" % (self._indent, name, self.repr_of(node))))
+         self.indent()
+         self.visitchildren(node)
+         self.unindent()
+Only in Cython-0.10.3/Cython/Compiler: Visitor.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Debugging.py Cython-0.10.3/Cython/Debugging.py
+--- Cython-0.10.3.orig/Cython/Debugging.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Debugging.py	2009-01-16 21:35:36.936655289 -0500
+@@ -6,7 +6,7 @@
+ 
+ def print_call_chain(*args):
+     import sys
+-    print(" ".join(map(str, args)))
++    print((" ".join(map(str, args))))
+     f = sys._getframe(1)
+     while f:
+         name = f.f_code.co_name
+@@ -15,6 +15,6 @@
+             c = getattr(s, "__class__", None)
+             if c:
+                 name = "%s.%s" % (c.__name__, name)
+-        print("Called from: %s %s" % (name, f.f_lineno))
++        print(("Called from: %s %s" % (name, f.f_lineno)))
+         f = f.f_back
+-    print("-" * 70)
++    print(("-" * 70))
+Only in Cython-0.10.3/Cython: Debugging.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Distutils/build_ext.py Cython-0.10.3/Cython/Distutils/build_ext.py
+--- Cython-0.10.3.orig/Cython/Distutils/build_ext.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Distutils/build_ext.py	2009-01-16 21:36:39.576656837 -0500
+@@ -21,7 +21,7 @@
+                default_options as pyrex_default_options, \
+                compile as cython_compile
+     from Cython.Compiler.Errors import PyrexError
+-except ImportError, e:
++except ImportError as e:
+     PyrexError = None
+ 
+ from distutils.command import build_ext as _build_ext
+@@ -91,9 +91,8 @@
+         """
+ 
+         if PyrexError == None:
+-            raise DistutilsPlatformError, \
+-                  ("Cython does not appear to be installed "
+-                   "on platform '%s'") % os.name
++            raise DistutilsPlatformError(("Cython does not appear to be installed "
++                   "on platform '%s'") % os.name)
+ 
+         new_sources = []
+         pyrex_sources = []
+Only in Cython-0.10.3/Cython/Distutils: build_ext.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Distutils/__init__.py Cython-0.10.3/Cython/Distutils/__init__.py
+--- Cython-0.10.3.orig/Cython/Distutils/__init__.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Distutils/__init__.py	2009-01-16 21:36:39.196657513 -0500
+@@ -7,5 +7,5 @@
+ # and keep the old one under the module name _build_ext,
+ # so that *our* build_ext can make use of it.
+ 
+-from build_ext import build_ext
++from .build_ext import build_ext
+ # from extension import Extension
+Only in Cython-0.10.3/Cython/Distutils: __init__.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/__init__.py Cython-0.10.3/Cython/__init__.py
+--- Cython-0.10.3.orig/Cython/__init__.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/__init__.py	2009-01-16 21:28:12.545957810 -0500
+@@ -1,2 +1,2 @@
+ # Void cython.* directives (for case insensitive operating systems). 
+-from Shadow import *
++from Cython.Shadow import *
+diff -u -r Cython-0.10.3.orig/Cython/Mac/DarwinSystem.py Cython-0.10.3/Cython/Mac/DarwinSystem.py
+--- Cython-0.10.3.orig/Cython/Mac/DarwinSystem.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Mac/DarwinSystem.py	2009-01-16 21:36:39.836656733 -0500
+@@ -69,7 +69,7 @@
+     compiler = compilers[bool(cplus)]
+     args = [compiler] + compiler_options + include_options + [c_file, "-o", o_file]
+     if verbose_flag or verbose:
+-        print(" ".join(args))
++        print((" ".join(args)))
+     #print compiler, args ###
+     status = os.spawnvp(os.P_WAIT, compiler, args)
+     if status != 0:
+@@ -87,7 +87,7 @@
+     linker = linkers[bool(cplus)]
+     args = [linker] + linker_options + obj_files + ["-o", out_file]
+     if verbose_flag or verbose:
+-        print(" ".join(args))
++        print((" ".join(args)))
+     status = os.spawnvp(os.P_WAIT, linker, args)
+     if status != 0:
+         raise CCompilerError("Linker returned status %s" % status)
+Only in Cython-0.10.3/Cython/Mac: DarwinSystem.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Mac/MacSystem.py Cython-0.10.3/Cython/Mac/MacSystem.py
+--- Cython-0.10.3.orig/Cython/Mac/MacSystem.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Mac/MacSystem.py	2009-01-16 21:36:40.046657384 -0500
+@@ -40,7 +40,7 @@
+ 
+ #---------------- ToolServer ---------------------------
+ 
+-from TS_Misc_Suite import TS_Misc_Suite
++from .TS_Misc_Suite import TS_Misc_Suite
+ 
+ class ToolServer(Standard_Suite, TS_Misc_Suite, TalkTo):
+     pass
+@@ -52,7 +52,7 @@
+ def do_toolserver_command(command):
+     try:
+         result = send_toolserver_command(command)
+-    except aetools.Error, e:
++    except aetools.Error as e:
+         raise CCompilerError("Apple Event error: %s" % e)
+     errn, stat, stdout, stderr = result
+     if errn:
+@@ -121,11 +121,11 @@
+         if arg.endswith(".c"):
+             try:
+                 obj = c_compile(arg)
+-            except PyrexError, e:
++            except PyrexError as e:
+                 #print "Caught a PyrexError:" ###
+                 #print repr(e) ###
+-                print("%s.%s: %s" % (e.__class__.__module__,
+-                    e.__class__.__name__, e))
++                print(("%s.%s: %s" % (e.__class__.__module__,
++                    e.__class__.__name__, e)))
+                 sys.exit(1)
+         else:
+             obj = arg
+Only in Cython-0.10.3/Cython/Mac: MacSystem.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Mac/MacUtils.py Cython-0.10.3/Cython/Mac/MacUtils.py
+--- Cython-0.10.3.orig/Cython/Mac/MacUtils.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Mac/MacUtils.py	2009-01-16 21:36:40.106655126 -0500
+@@ -10,7 +10,7 @@
+     fsspec = macfs.FSSpec(path)
+     try:
+         old_finfo = fsspec.GetFInfo()
+-    except MacOS.Error, e:
++    except MacOS.Error as e:
+         #print "MacUtils.open_new_file:", e ###
+         old_finfo = None
+     try:
+Only in Cython-0.10.3/Cython/Mac: MacUtils.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Mac/TS_Misc_Suite.py Cython-0.10.3/Cython/Mac/TS_Misc_Suite.py
+--- Cython-0.10.3.orig/Cython/Mac/TS_Misc_Suite.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Mac/TS_Misc_Suite.py	2009-01-16 21:36:40.176655476 -0500
+@@ -20,7 +20,7 @@
+         _code = 'misc'
+         _subcode = 'dosc'
+ 
+-        if _arguments: raise TypeError, 'No optional args expected'
++        if _arguments: raise TypeError('No optional args expected')
+         _arguments['----'] = _object
+ 
+ 
+@@ -35,15 +35,15 @@
+         stat = 0
+         stdout = ""
+         stderr = ""
+-        if _arguments.has_key('errn'):
++        if 'errn' in _arguments:
+             errn = _arguments['errn']
+             if errn:
+                 errn = aetools.decodeerror(_arguments)
+-        if _arguments.has_key('stat'):
++        if 'stat' in _arguments:
+             stat = _arguments['stat']
+-        if _arguments.has_key('----'):
++        if '----' in _arguments:
+             stdout = _arguments['----']
+-        if _arguments.has_key('diag'):
++        if 'diag' in _arguments:
+             stderr = _arguments['diag']
+         return (errn, stat, stdout, stderr)
+ 
+Only in Cython-0.10.3/Cython/Mac: TS_Misc_Suite.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Plex/DFA.py Cython-0.10.3/Cython/Plex/DFA.py
+--- Cython-0.10.3.orig/Cython/Plex/DFA.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Plex/DFA.py	2009-01-16 21:36:40.586655324 -0500
+@@ -6,9 +6,9 @@
+ #
+ #=======================================================================
+ 
+-import Machines
+-from Machines import LOWEST_PRIORITY
+-from Transitions import TransitionMap
++from . import Machines
++from .Machines import LOWEST_PRIORITY
++from .Transitions import TransitionMap
+ 
+ def nfa_to_dfa(old_machine, debug = None):
+   """
+@@ -29,18 +29,18 @@
+   # Seed the process using the initial states of the old machine.
+   # Make the corresponding new states into initial states of the new
+   # machine with the same names.
+-  for (key, old_state) in old_machine.initial_states.items():
++  for (key, old_state) in list(old_machine.initial_states.items()):
+     new_state = state_map.old_to_new(epsilon_closure(old_state))
+     new_machine.make_initial_state(key, new_state)
+   # Tricky bit here: we add things to the end of this list while we're
+   # iterating over it. The iteration stops when closure is achieved.
+   for new_state in new_machine.states:
+     transitions = TransitionMap()
+-    for old_state in state_map.new_to_old(new_state).keys():
+-      for event, old_target_states in old_state.transitions.items():
++    for old_state in list(state_map.new_to_old(new_state).keys()):
++      for event, old_target_states in list(old_state.transitions.items()):
+         if event and old_target_states:
+           transitions.add_set(event, set_epsilon_closure(old_target_states))
+-    for event, old_states in transitions.items():
++    for event, old_states in list(transitions.items()):
+       new_machine.add_transitions(new_state, event, state_map.old_to_new(old_states))
+   if debug:
+     debug.write("\n===== State Mapping =====\n")
+@@ -53,8 +53,8 @@
+   closures of its member states.
+   """
+   result = {}
+-  for state1 in state_set.keys():
+-    for state2 in epsilon_closure(state1).keys():
++  for state1 in list(state_set.keys()):
++    for state2 in list(epsilon_closure(state1).keys()):
+       result[state2] = 1
+   return result
+ 
+@@ -80,7 +80,7 @@
+     state_set[state] = 1
+     state_set_2 = state.transitions.get_epsilon()
+     if state_set_2:
+-      for state2 in state_set_2.keys():
++      for state2 in list(state_set_2.keys()):
+         add_to_epsilon_closure(state_set, state2)
+ 
+ class StateMap:
+@@ -119,7 +119,7 @@
+   def highest_priority_action(self, state_set):
+     best_action = None
+     best_priority = LOWEST_PRIORITY
+-    for state in state_set.keys():
++    for state in list(state_set.keys()):
+       priority = state.action_priority
+       if priority > best_priority:
+         best_action = state.action
+@@ -142,12 +142,12 @@
+     Convert a set of states into a uniquified
+     sorted tuple suitable for use as a dictionary key.
+     """
+-    lst = state_set.keys()
++    lst = list(state_set.keys())
+     lst.sort()
+     return tuple(lst)
+ 
+   def dump(self, file):
+-    from Transitions import state_set_str
++    from .Transitions import state_set_str
+     for new_state in self.new_machine.states:
+       old_state_set = self.new_to_old_dict[id(new_state)]
+       file.write("   State %s <-- %s\n" % (
+Only in Cython-0.10.3/Cython/Plex: DFA.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Plex/__init__.py Cython-0.10.3/Cython/Plex/__init__.py
+--- Cython-0.10.3.orig/Cython/Plex/__init__.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Plex/__init__.py	2009-01-16 21:36:44.256656362 -0500
+@@ -30,11 +30,11 @@
+         creating a Lexicon.
+ """
+ 
+-from Actions import TEXT, IGNORE, Begin
+-from Lexicons import Lexicon, State
+-from Regexps import RE, Seq, Alt, Rep1, Empty, Str, Any, AnyBut, AnyChar, Range
+-from Regexps import Opt, Rep, Bol, Eol, Eof, Case, NoCase
+-from Scanners import Scanner
++from .Actions import TEXT, IGNORE, Begin
++from .Lexicons import Lexicon, State
++from .Regexps import RE, Seq, Alt, Rep1, Empty, Str, Any, AnyBut, AnyChar, Range
++from .Regexps import Opt, Rep, Bol, Eol, Eof, Case, NoCase
++from .Scanners import Scanner
+ 
+ 
+ 
+Only in Cython-0.10.3/Cython/Plex: __init__.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Plex/Lexicons.py Cython-0.10.3/Cython/Plex/Lexicons.py
+--- Cython-0.10.3.orig/Cython/Plex/Lexicons.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Plex/Lexicons.py	2009-01-16 21:36:40.956657364 -0500
+@@ -8,11 +8,11 @@
+ 
+ import types
+ 
+-import Actions
+-import DFA
+-import Errors
+-import Machines
+-import Regexps
++from . import Actions
++from . import DFA
++from . import Errors
++from . import Machines
++from . import Regexps
+ 
+ # debug_flags for Lexicon constructor
+ DUMP_NFA = 1
+@@ -111,10 +111,10 @@
+   tables = None # StateTableMachine
+ 
+   def __init__(self, specifications, debug = None, debug_flags = 7, timings = None):
+-    if type(specifications) != types.ListType:
++    if type(specifications) != list:
+       raise Errors.InvalidScanner("Scanner definition is not a list")
+     if timings:
+-      from Timing import time
++      from .Timing import time
+       total_time = 0.0
+       time1 = time()
+     nfa = Machines.Machine()
+@@ -127,7 +127,7 @@
+           self.add_token_to_machine(
+             nfa, user_initial_state, token, token_number)
+           token_number = token_number + 1
+-      elif type(spec) == types.TupleType:
++      elif type(spec) == tuple:
+         self.add_token_to_machine(
+           nfa, default_initial_state, spec, token_number)
+         token_number = token_number + 1
+@@ -164,7 +164,7 @@
+       #    token_number, "Pattern can match 0 input symbols")
+       if isinstance(action_spec, Actions.Action):
+         action = action_spec
+-      elif callable(action_spec):
++      elif hasattr(action_spec, '__call__'):
+         action = Actions.Call(action_spec)
+       else:
+         action = Actions.Return(action_spec)
+@@ -172,11 +172,11 @@
+       re.build_machine(machine, initial_state, final_state, 
+                        match_bol = 1, nocase = 0)
+       final_state.set_action(action, priority = -token_number)
+-    except Errors.PlexError, e:
++    except Errors.PlexError as e:
+       raise e.__class__("Token number %d: %s" % (token_number, e))
+ 
+   def parse_token_definition(self, token_spec):
+-    if type(token_spec) != types.TupleType:
++    if type(token_spec) != tuple:
+       raise Errors.InvalidToken("Token definition is not a tuple")
+     if len(token_spec) != 2:
+       raise Errors.InvalidToken("Wrong number of items in token definition")
+Only in Cython-0.10.3/Cython/Plex: Lexicons.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Plex/Machines.py Cython-0.10.3/Cython/Plex/Machines.py
+--- Cython-0.10.3.orig/Cython/Plex/Machines.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Plex/Machines.py	2009-01-16 21:36:41.676657557 -0500
+@@ -8,12 +8,12 @@
+ 
+ import string
+ import sys
+-from sys import maxint
++from sys import maxsize
+ from types import TupleType
+ 
+-from Transitions import TransitionMap
++from .Transitions import TransitionMap
+ 
+-LOWEST_PRIORITY = -sys.maxint
++LOWEST_PRIORITY = -sys.maxsize
+ 
+ class Machine:
+   """A collection of Nodes representing an NFA or DFA."""
+@@ -54,7 +54,7 @@
+     file.write("Plex.Machine:\n")
+     if self.initial_states is not None:
+       file.write("   Initial states:\n")
+-      for (name, state) in self.initial_states.items():
++      for (name, state) in list(self.initial_states.items()):
+         file.write("      '%s': %d\n" % (name, state.number))
+     for s in self.states:
+       s.dump(file)
+@@ -150,13 +150,13 @@
+       for old_state in old_machine.states:
+         new_state = self.new_state()
+         old_to_new[old_state] = new_state
+-      for name, old_state in old_machine.initial_states.items():
++      for name, old_state in list(old_machine.initial_states.items()):
+         initial_states[name] = old_to_new[old_state]
+       for old_state in old_machine.states:
+         new_state = old_to_new[old_state]
+-        for event, old_state_set in old_state.transitions.items():
++        for event, old_state_set in list(old_state.transitions.items()):
+           if old_state_set:
+-            new_state[event] = old_to_new[old_state_set.keys()[0]]
++            new_state[event] = old_to_new[list(old_state_set.keys())[0]]
+           else:
+             new_state[event] = None
+         new_state['action'] = old_state.action
+@@ -195,7 +195,7 @@
+   def dump(self, file):
+     file.write("Plex.FastMachine:\n")
+     file.write("   Initial states:\n")
+-    for name, state in self.initial_states.items():
++    for name, state in list(self.initial_states.items()):
+       file.write("      %s: %s\n" % (repr(name), state['number']))
+     for state in self.states:
+       self.dump_state(state, file)
+@@ -214,7 +214,7 @@
+   def dump_transitions(self, state, file):
+     chars_leading_to_state = {}
+     special_to_state = {}
+-    for (c, s) in state.items():
++    for (c, s) in list(state.items()):
+       if len(c) == 1:
+         chars = chars_leading_to_state.get(id(s), None)
+         if chars is None:
+@@ -229,7 +229,7 @@
+       if char_list:
+         ranges = self.chars_to_ranges(char_list)
+         ranges_to_state[ranges] = state
+-    ranges_list = ranges_to_state.keys()
++    ranges_list = list(ranges_to_state.keys())
+     ranges_list.sort()
+     for ranges in ranges_list:
+       key = self.ranges_to_string(ranges)
+@@ -256,7 +256,7 @@
+     return tuple(result)
+   
+   def ranges_to_string(self, range_list):
+-    return string.join(map(self.range_to_string, range_list), ",")
++    return string.join(list(map(self.range_to_string, range_list)), ",")
+   
+   def range_to_string(self, range_tuple):
+     (c1, c2) = range_tuple
+Only in Cython-0.10.3/Cython/Plex: Machines.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Plex/Regexps.py Cython-0.10.3/Cython/Plex/Regexps.py
+--- Cython-0.10.3.orig/Cython/Plex/Regexps.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Plex/Regexps.py	2009-01-16 21:36:42.786657233 -0500
+@@ -9,9 +9,9 @@
+ import array
+ import string
+ import types
+-from sys import maxint
++from sys import maxsize
+ 
+-import Errors
++from . import Errors
+ 
+ #
+ #	 Constants
+@@ -81,9 +81,9 @@
+     an RE which will match a character in any of the ranges.
+     """
+     re_list = []
+-    for i in xrange(0, len(code_list), 2):
++    for i in range(0, len(code_list), 2):
+         re_list.append(CodeRange(code_list[i], code_list[i + 1]))
+-    return apply(Alt, tuple(re_list))
++    return Alt(*tuple(re_list))
+ 
+ def CodeRange(code1, code2):
+     """
+@@ -294,7 +294,7 @@
+ 
+     def __init__(self, *re_list):
+         nullable = 1
+-        for i in xrange(len(re_list)):
++        for i in range(len(re_list)):
+             re = re_list[i]
+             self.check_re(i, re)
+             nullable = nullable and re.nullable
+@@ -319,7 +319,7 @@
+         else:
+             s1 = initial_state
+             n = len(re_list)
+-            for i in xrange(n):
++            for i in range(n):
+                 if i < n - 1:
+                     s2 = m.new_state()
+                 else:
+@@ -330,7 +330,7 @@
+                 match_bol = re.match_nl or (match_bol and re.nullable)
+ 
+     def calc_str(self):
+-        return "Seq(%s)" % string.join(map(str, self.re_list), ",")
++        return "Seq(%s)" % string.join(list(map(str, self.re_list)), ",")
+ 
+ 
+ class Alt(RE):
+@@ -369,7 +369,7 @@
+                 re.build_machine(m, initial_state, final_state, 0, nocase)
+ 
+     def calc_str(self):
+-        return "Alt(%s)" % string.join(map(str, self.re_list), ",")
++        return "Alt(%s)" % string.join(list(map(str, self.re_list)), ",")
+ 
+ 
+ class Rep1(RE):
+@@ -437,7 +437,7 @@
+     """
+     Str1(s) is an RE which matches the literal string |s|.
+     """
+-    result = apply(Seq, tuple(map(Char, s)))
++    result = Seq(*tuple(map(Char, s)))
+     result.str = "Str(%s)" % repr(s)
+     return result
+ 
+@@ -449,8 +449,8 @@
+     if len(strs) == 1:
+         return Str1(strs[0])
+     else:
+-        result = apply(Alt, tuple(map(Str1, strs)))
+-        result.str = "Str(%s)" % string.join(map(repr, strs), ",")
++        result = Alt(*tuple(map(Str1, strs)))
++        result.str = "Str(%s)" % string.join(list(map(repr, strs)), ",")
+         return result
+ 
+ def Any(s):
+@@ -495,7 +495,7 @@
+         ranges = []
+         for i in range(0, len(s1), 2):
+             ranges.append(CodeRange(ord(s1[i]), ord(s1[i+1]) + 1))
+-        result = apply(Alt, tuple(ranges))
++        result = Alt(*tuple(ranges))
+         result.str = "Range(%s)" % repr(s1)
+     return result
+ 
+Only in Cython-0.10.3/Cython/Plex: Regexps.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Plex/Scanners.py Cython-0.10.3/Cython/Plex/Scanners.py
+--- Cython-0.10.3.orig/Cython/Plex/Scanners.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Plex/Scanners.py	2009-01-16 21:36:43.386658062 -0500
+@@ -7,8 +7,8 @@
+ #
+ #=======================================================================
+ 
+-import Errors
+-from Regexps import BOL, EOL, EOF
++from . import Errors
++from .Regexps import BOL, EOL, EOF
+ 
+ class Scanner:
+   """
+@@ -124,8 +124,8 @@
+     action = self.run_machine_inlined()
+     if action:
+       if self.trace:
+-        print("Scanner: read: Performing %s %d:%d" % (
+-          action, self.start_pos, self.cur_pos))
++        print(("Scanner: read: Performing %s %d:%d" % (
++          action, self.start_pos, self.cur_pos)))
+       base = self.buf_start_pos
+       text = self.buffer[self.start_pos - base : self.cur_pos - base]
+       return (text, action)
+@@ -165,8 +165,8 @@
+     trace = self.trace
+     while 1:
+       if trace: #TRACE#
+-        print("State %d, %d/%d:%s -->" % ( #TRACE#
+-          state['number'], input_state, cur_pos, repr(cur_char)))  #TRACE#
++        print(("State %d, %d/%d:%s -->" % ( #TRACE#
++          state['number'], input_state, cur_pos, repr(cur_char))))  #TRACE#
+       # Begin inlined self.save_for_backup()
+       #action = state.action #@slow
+       action = state['action'] #@fast
+@@ -181,7 +181,7 @@
+         new_state = c and state.get('else') #@fast
+       if new_state:
+         if trace: #TRACE#
+-          print("State %d" % new_state['number'])  #TRACE#
++          print(("State %d" % new_state['number']))  #TRACE#
+         state = new_state
+         # Begin inlined: self.next_char()
+         if input_state == 1:
+@@ -247,7 +247,7 @@
+     self.next_pos	 = next_pos
+     if trace: #TRACE#
+       if action: #TRACE#
+-        print("Doing " + action) #TRACE#
++        print(("Doing " + action)) #TRACE#
+     return action
+     
+ #	def transition(self):
+@@ -290,7 +290,7 @@
+   def next_char(self):
+     input_state = self.input_state
+     if self.trace:
+-      print("Scanner: next: %s [%d] %d" % (" "*20, input_state, self.cur_pos))
++      print(("Scanner: next: %s [%d] %d" % (" "*20, input_state, self.cur_pos)))
+     if input_state == 1:
+       self.cur_pos = self.next_pos
+       c = self.read_char()
+@@ -316,7 +316,7 @@
+     else: # input_state = 5
+       self.cur_char = ''
+     if self.trace:
+-      print("--> [%d] %d %s" % (input_state, self.cur_pos, repr(self.cur_char)))
++      print(("--> [%d] %d %s" % (input_state, self.cur_pos, repr(self.cur_char))))
+     
+ #	def read_char(self):
+ #		"""
+Only in Cython-0.10.3/Cython/Plex: Scanners.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Plex/test_tm.py Cython-0.10.3/Cython/Plex/test_tm.py
+--- Cython-0.10.3.orig/Cython/Plex/test_tm.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Plex/test_tm.py	2009-01-16 21:36:44.316655227 -0500
+@@ -4,14 +4,14 @@
+ from TransitionMaps import TransitionMap
+ 
+ m = TransitionMap()
+-print m
++print(m)
+ 
+ def add(c, s):
+-  print
+-  print "adding", repr(c), "-->", repr(s)
++  print()
++  print("adding", repr(c), "-->", repr(s))
+   m.add_transition(c, s)
+-  print m
+-  print "keys:", m.keys()
++  print(m)
++  print("keys:", list(m.keys()))
+ 
+ add('a','alpha')
+ add('e', 'eta')
+Only in Cython-0.10.3/Cython/Plex: test_tm.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Plex/Traditional.py Cython-0.10.3/Cython/Plex/Traditional.py
+--- Cython-0.10.3.orig/Cython/Plex/Traditional.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Plex/Traditional.py	2009-01-16 21:36:43.816656445 -0500
+@@ -6,8 +6,8 @@
+ #
+ #=======================================================================
+ 
+-from Regexps import Alt, Seq, Rep, Rep1, Opt, Any, AnyBut, Bol, Eol, Char
+-from Errors import PlexError
++from .Regexps import Alt, Seq, Rep, Rep1, Opt, Any, AnyBut, Bol, Eol, Char
++from .Errors import PlexError
+ 
+ class RegexpSyntaxError(PlexError):
+   pass
+@@ -25,7 +25,7 @@
+     self.s = s
+     self.i = -1
+     self.end = 0
+-    self.next()
++    next(self)
+   
+   def parse_re(self):
+     re = self.parse_alt()
+@@ -39,9 +39,9 @@
+     if self.c == '|':
+       re_list = [re]
+       while self.c == '|':
+-        self.next()
++        next(self)
+         re_list.append(self.parse_seq())
+-      re = apply(Alt, tuple(re_list))
++      re = Alt(*tuple(re_list))
+     return re
+       
+   def parse_seq(self):
+@@ -49,7 +49,7 @@
+     re_list = []
+     while not self.end and not self.c in "|)":
+       re_list.append(self.parse_mod())
+-    return apply(Seq, tuple(re_list))
++    return Seq(*tuple(re_list))
+   
+   def parse_mod(self):
+     """Parse a primitive regexp followed by *, +, ? modifiers."""
+@@ -61,7 +61,7 @@
+         re = Rep1(re)
+       else: # self.c == '?'
+         re = Opt(re)
+-      self.next()
++      next(self)
+     return re
+ 
+   def parse_prim(self):
+@@ -91,16 +91,16 @@
+     invert = 0
+     if self.c == '^':
+       invert = 1
+-      self.next()
++      next(self)
+     if self.c == ']':
+       char_list.append(']')
+-      self.next()
++      next(self)
+     while not self.end and self.c != ']':
+       c1 = self.get()
+       if self.c == '-' and self.lookahead(1) != ']':
+-        self.next()
++        next(self)
+         c2 = self.get()
+-        for a in xrange(ord(c1), ord(c2) + 1):
++        for a in range(ord(c1), ord(c2) + 1):
+           char_list.append(chr(a))
+       else:
+         char_list.append(c1)
+@@ -110,7 +110,7 @@
+     else:
+       return Any(chars)
+   
+-  def next(self):
++  def __next__(self):
+     """Advance to the next char."""
+     s = self.s
+     i = self.i = self.i + 1
+@@ -124,7 +124,7 @@
+     if self.end:
+       self.error("Premature end of string")
+     c = self.c
+-    self.next()
++    next(self)
+     return c
+     
+   def lookahead(self, n):
+@@ -141,7 +141,7 @@
+     Raises an exception otherwise.
+     """
+     if self.c == c:
+-      self.next()
++      next(self)
+     else:
+       self.error("Missing %s" % repr(c))
+   
+Only in Cython-0.10.3/Cython/Plex: Traditional.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Plex/Transitions.py Cython-0.10.3/Cython/Plex/Transitions.py
+--- Cython-0.10.3.orig/Cython/Plex/Transitions.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Plex/Transitions.py	2009-01-16 21:36:44.236655666 -0500
+@@ -7,7 +7,7 @@
+ 
+ from copy import copy
+ import string
+-from sys import maxint
++from sys import maxsize
+ from types import TupleType
+ 
+ class TransitionMap:
+@@ -108,7 +108,7 @@
+         result.append(((code0, code1), set))
+       code0 = code1
+       i = i + 2
+-    for event, set in self.special.items():
++    for event, set in list(self.special.items()):
+       if set:
+         result.append((event, set))
+     return result
+@@ -178,7 +178,7 @@
+         map_strs.append(state_set_str(map[i]))
+       i = i + 1
+     special_strs = {}
+-    for event, set in self.special.items():
++    for event, set in list(self.special.items()):
+       special_strs[event] = state_set_str(set)
+     return "[%s]+%s" % (
+       string.join(map_strs, ","), 
+@@ -200,7 +200,7 @@
+     while i < n:
+       self.dump_range(map[i], map[i + 2], map[i + 1], file)
+       i = i + 2
+-    for event, set in self.special.items():
++    for event, set in list(self.special.items()):
+       if set:
+         if not event:
+           event = 'empty'
+@@ -243,7 +243,7 @@
+ #			set1[state] = 1
+ 
+ def state_set_str(set):
+-  state_list = set.keys()
++  state_list = list(set.keys())
+   str_list = []
+   for state in state_list:
+     str_list.append("S%d" % state.number)
+Only in Cython-0.10.3/Cython/Plex: Transitions.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Shadow.py Cython-0.10.3/Cython/Shadow.py
+--- Cython-0.10.3.orig/Cython/Shadow.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Shadow.py	2009-01-16 21:35:37.276658109 -0500
+@@ -10,7 +10,7 @@
+ # Emulated language constructs
+ 
+ def cast(type, arg):
+-    if callable(type):
++    if hasattr(type, '__call__'):
+         return type(arg)
+     else:
+         return arg
+@@ -22,7 +22,7 @@
+     return pointer(type(arg))([arg])
+     
+ def declare(type=None, value=None, **kwds):
+-    if type and callable(type):
++    if type and hasattr(type, '__call__'):
+         if value:
+             return type(value)
+         else:
+@@ -57,12 +57,12 @@
+             
+     def __getitem__(self, ix):
+         if ix < 0:
+-            raise IndexError, "negative indexing not allowed in C"
++            raise IndexError("negative indexing not allowed in C")
+         return self._items[ix]
+         
+     def __setitem__(self, ix, value):
+         if ix < 0:
+-            raise IndexError, "negative indexing not allowed in C"
++            raise IndexError("negative indexing not allowed in C")
+         self._items[ix] = cast(self._basetype, value)
+         
+ class ArrayType(PointerType):
+@@ -74,22 +74,22 @@
+ class StructType(CythonType):
+     
+     def __init__(self, **data):
+-        for key, value in data.items():
++        for key, value in list(data.items()):
+             setattr(self, key, value)
+             
+     def __setattr__(self, key, value):
+         if key in self._members:
+             self.__dict__[key] = cast(self._members[key], value)
+         else:
+-            raise AttributeError, "Struct has no member '%s'" % key
++            raise AttributeError("Struct has no member '%s'" % key)
+     
+ 
+ class UnionType(CythonType):
+ 
+     def __init__(self, **data):
+         if len(data) > 0:
+-            raise AttributeError, "Union can only store one field at a time."
+-        for key, value in data.items():
++            raise AttributeError("Union can only store one field at a time.")
++        for key, value in list(data.items()):
+             setattr(self, key, value)
+             
+     def __setattr__(self, key, value):
+@@ -98,7 +98,7 @@
+         elif key in self._members:
+             self.__dict__ = {key: cast(self._members[key], value)}
+         else:
+-            raise AttributeError, "Union has no member '%s'" % key
++            raise AttributeError("Union has no member '%s'" % key)
+ 
+ def pointer(basetype):
+     class PointerInstance(PointerType):
+@@ -114,14 +114,14 @@
+ def struct(**members):
+     class StructInstance(StructType):
+         _members = members
+-    for key in members.keys():
++    for key in list(members.keys()):
+         setattr(StructInstance, key, None)
+     return StructInstance
+ 
+ def union(**members):
+     class UnionInstance(UnionType):
+         _members = members
+-    for key in members.keys():
++    for key in list(members.keys()):
+         setattr(UnionInstance, key, None)
+     return UnionInstance
+ 
+@@ -138,7 +138,7 @@
+ 
+ 
+ py_int = int
+-py_long = long
++py_long = int
+ py_float = float
+ 
+ 
+Only in Cython-0.10.3/Cython: Shadow.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/StringIOTree.py Cython-0.10.3/Cython/StringIOTree.py
+--- Cython-0.10.3.orig/Cython/StringIOTree.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/StringIOTree.py	2009-01-16 21:35:37.396655553 -0500
+@@ -1,4 +1,4 @@
+-from cStringIO import StringIO
++from io import StringIO
+ 
+ class StringIOTree(object):
+     """
+Only in Cython-0.10.3/Cython: StringIOTree.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Tests/TestCodeWriter.py Cython-0.10.3/Cython/Tests/TestCodeWriter.py
+--- Cython-0.10.3.orig/Cython/Tests/TestCodeWriter.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Tests/TestCodeWriter.py	2009-01-16 21:36:44.406656020 -0500
+@@ -18,17 +18,17 @@
+         self.assertCode(codestr, self.fragment(codestr).root)
+ 
+     def test_print(self):
+-        self.t(u"""
++        self.t("""
+                     print x, y
+                     print x + y ** 2
+                     print x, y, z,
+                """)
+ 
+     def test_if(self):
+-        self.t(u"if x:\n    pass")
++        self.t("if x:\n    pass")
+     
+     def test_ifelifelse(self):
+-        self.t(u"""
++        self.t("""
+                     if x:
+                         pass
+                     elif y:
+@@ -40,7 +40,7 @@
+                 """)
+                 
+     def test_def(self):
+-        self.t(u"""
++        self.t("""
+                     def f(x, y, z):
+                         pass
+                     def f(x = 34, y = 54, z):
+@@ -48,22 +48,22 @@
+                """)
+ 
+     def test_longness_and_signedness(self):
+-        self.t(u"def f(unsigned long long long long long int y):\n    pass")
++        self.t("def f(unsigned long long long long long int y):\n    pass")
+ 
+     def test_signed_short(self):
+-        self.t(u"def f(signed short int y):\n    pass")
++        self.t("def f(signed short int y):\n    pass")
+ 
+     def test_typed_args(self):
+-        self.t(u"def f(int x, unsigned long int y):\n    pass")
++        self.t("def f(int x, unsigned long int y):\n    pass")
+ 
+     def test_cdef_var(self):
+-        self.t(u"""
++        self.t("""
+                     cdef int hello
+                     cdef int hello = 4, x = 3, y, z
+                 """)
+     
+     def test_for_loop(self):
+-        self.t(u"""
++        self.t("""
+                     for x, y, z in f(g(h(34) * 2) + 23):
+                         print x, y, z
+                     else:
+@@ -71,10 +71,10 @@
+                 """)
+ 
+     def test_inplace_assignment(self):
+-        self.t(u"x += 43")
++        self.t("x += 43")
+ 
+     def test_attribute(self):
+-        self.t(u"a.x")
++        self.t("a.x")
+     
+ if __name__ == "__main__":
+     import unittest
+Only in Cython-0.10.3/Cython/Tests: TestCodeWriter.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/TestUtils.py Cython-0.10.3/Cython/TestUtils.py
+--- Cython-0.10.3.orig/Cython/TestUtils.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/TestUtils.py	2009-01-16 21:35:37.716656864 -0500
+@@ -13,16 +13,16 @@
+         self.result = []
+     def visit_Node(self, node):
+         if len(self.access_path) == 0:
+-            name = u"(root)"
++            name = "(root)"
+         else:
+             tip = self.access_path[-1]
+             if tip[2] is not None:
+-                name = u"%s[%d]" % tip[1:3]
++                name = "%s[%d]" % tip[1:3]
+             else:
+                 name = tip[1]
+             
+-        self.result.append(u"  " * self._indents +
+-                           u"%s: %s" % (name, node.__class__.__name__))
++        self.result.append("  " * self._indents +
++                           "%s: %s" % (name, node.__class__.__name__))
+         self._indents += 1
+         self.visitchildren(node)
+         self._indents -= 1
+@@ -34,18 +34,18 @@
+     cases look ok."""
+     w = NodeTypeWriter()
+     w.visit(root)
+-    return u"\n".join([u""] + w.result + [u""])
++    return "\n".join([""] + w.result + [""])
+ 
+ class CythonTest(unittest.TestCase):
+ 
+     def assertLines(self, expected, result):
+         "Checks that the given strings or lists of strings are equal line by line"
+-        if not isinstance(expected, list): expected = expected.split(u"\n")
+-        if not isinstance(result, list): result = result.split(u"\n")
+-        for idx, (expected_line, result_line) in enumerate(zip(expected, result)):
++        if not isinstance(expected, list): expected = expected.split("\n")
++        if not isinstance(result, list): result = result.split("\n")
++        for idx, (expected_line, result_line) in enumerate(list(zip(expected, result))):
+             self.assertEqual(expected_line, result_line, "Line %d:\nExp: %s\nGot: %s" % (idx, expected_line, result_line))
+         self.assertEqual(len(expected), len(result),
+-            "Unmatched lines. Got:\n%s\nExpected:\n%s" % ("\n".join(expected), u"\n".join(result)))
++            "Unmatched lines. Got:\n%s\nExpected:\n%s" % ("\n".join(expected), "\n".join(result)))
+ 
+     def codeToLines(self, tree):
+         writer = CodeWriter()
+@@ -60,7 +60,7 @@
+                 
+         expected_lines = strip_common_indent(expected.split("\n"))
+         
+-        for idx, (line, expected_line) in enumerate(zip(result_lines, expected_lines)):
++        for idx, (line, expected_line) in enumerate(list(zip(result_lines, expected_lines))):
+             self.assertEqual(expected_line, line, "Line %d:\nGot: %s\nExp: %s" % (idx, line, expected_line))
+         self.assertEqual(len(result_lines), len(expected_lines),
+             "Unmatched lines. Got:\n%s\nExpected:\n%s" % ("\n".join(result_lines), expected))
+@@ -82,7 +82,7 @@
+         try:
+             func()
+             self.fail("Expected an exception of type %r" % exc_type)
+-        except exc_type, e:
++        except exc_type as e:
+             self.assert_(isinstance(e, exc_type))
+             return e
+ 
+Only in Cython-0.10.3/Cython: TestUtils.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Unix/LinuxSystem.py Cython-0.10.3/Cython/Unix/LinuxSystem.py
+--- Cython-0.10.3.orig/Cython/Unix/LinuxSystem.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Unix/LinuxSystem.py	2009-01-16 21:36:44.566656380 -0500
+@@ -49,7 +49,7 @@
+     compiler = compilers[bool(cplus)]
+     args = [compiler] + compiler_options + include_options + [c_file, "-o", o_file]
+     if verbose_flag or verbose:
+-        print(" ".join(args))
++        print((" ".join(args)))
+     #print compiler, args ###
+     status = os.spawnvp(os.P_WAIT, compiler, args)
+     if status != 0:
+@@ -67,7 +67,7 @@
+     linker = linkers[bool(cplus)]
+     args = [linker] + linker_options + obj_files + ["-o", out_file]
+     if verbose_flag or verbose:
+-        print(" ".join(args))
++        print((" ".join(args)))
+     status = os.spawnvp(os.P_WAIT, linker, args)
+     if status != 0:
+         raise CCompilerError("Linker returned status %s" % status)
+Only in Cython-0.10.3/Cython/Unix: LinuxSystem.py.bak
+diff -u -r Cython-0.10.3.orig/Cython/Utils.py Cython-0.10.3/Cython/Utils.py
+--- Cython-0.10.3.orig/Cython/Utils.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Cython/Utils.py	2009-01-16 21:35:37.986655624 -0500
+@@ -43,7 +43,7 @@
+ # support for source file encoding detection
+ 
+ def encode_filename(filename):
+-    if isinstance(filename, unicode):
++    if isinstance(filename, str):
+         return filename
+     try:
+         filename_encoding = sys.getfilesystemencoding()
+@@ -54,7 +54,7 @@
+         pass
+     return filename
+ 
+-_match_file_encoding = re.compile(u"coding[:=]\s*([-\w.]+)").search
++_match_file_encoding = re.compile("coding[:=]\s*([-\w.]+)").search
+ 
+ def detect_file_encoding(source_filename):
+     # PEPs 263 and 3120
+@@ -63,10 +63,10 @@
+         chars = []
+         for i in range(2):
+             c = f.read(1)
+-            while c and c != u'\n':
++            while c and c != '\n':
+                 chars.append(c)
+                 c = f.read(1)
+-            encoding = _match_file_encoding(u''.join(chars))
++            encoding = _match_file_encoding(''.join(chars))
+             if encoding:
+                 return encoding.group(1)
+     finally:
+@@ -78,7 +78,7 @@
+     return codecs.open(source_filename, mode=mode, encoding=encoding)
+ 
+ def long_literal(value):
+-    if isinstance(value, basestring):
++    if isinstance(value, str):
+         if len(value) < 2:
+             value = int(value)
+         elif value[0] == 0:
+@@ -101,7 +101,7 @@
+     def write_init_code(self, writer, pos):
+         if not self.init:
+             return
+-        if callable(self.init):
++        if hasattr(self.init, '__call__'):
+             self.init(writer, pos)
+         else:
+             writer.put(self.init)
+@@ -109,7 +109,7 @@
+     def write_cleanup_code(self, writer, pos):
+         if not self.cleanup:
+             return
+-        if callable(self.cleanup):
++        if hasattr(self.cleanup, '__call__'):
+             self.cleanup(writer, pos)
+         else:
+             writer.put(self.cleanup)
+Only in Cython-0.10.3/Cython: Utils.py.bak
+diff -u -r Cython-0.10.3.orig/Demos/callback/run_cheese.py Cython-0.10.3/Demos/callback/run_cheese.py
+--- Cython-0.10.3.orig/Demos/callback/run_cheese.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Demos/callback/run_cheese.py	2009-01-16 21:36:44.746657608 -0500
+@@ -1,7 +1,7 @@
+ import cheese
+ 
+ def report_cheese(name):
+-    print("Found cheese: " + name)
++    print(("Found cheese: " + name))
+ 
+ cheese.find(report_cheese)
+ 
+Only in Cython-0.10.3/Demos/callback: run_cheese.py.bak
+diff -u -r Cython-0.10.3.orig/Demos/memleak_py.py Cython-0.10.3/Demos/memleak_py.py
+--- Cython-0.10.3.orig/Demos/memleak_py.py	2008-12-14 04:50:07.000000000 -0500
++++ Cython-0.10.3/Demos/memleak_py.py	2009-01-16 21:36:44.636656017 -0500
+@@ -2,13 +2,13 @@
+ from sage.all import get_memory_usage
+ 
+ def test():
+-    print get_memory_usage()
++    print(get_memory_usage())
+     for i in range(100000):
+         try:
+             foo()
+             raise TypeError
+         except TypeError:
+             pass
+-    print get_memory_usage()
++    print(get_memory_usage())
+ 
+ test()
+Only in Cython-0.10.3/Demos: memleak_py.py.bak
+diff -u -r Cython-0.10.3.orig/Demos/run_primes.py Cython-0.10.3/Demos/run_primes.py
+--- Cython-0.10.3.orig/Demos/run_primes.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Demos/run_primes.py	2009-01-16 21:36:44.696655061 -0500
+@@ -4,4 +4,4 @@
+     n = int(sys.argv[1])
+ else:
+     n = 1000
+-print primes(n)
++print(primes(n))
+Only in Cython-0.10.3/Demos: run_primes.py.bak
+diff -u -r Cython-0.10.3.orig/Demos/run_spam.py Cython-0.10.3/Demos/run_spam.py
+--- Cython-0.10.3.orig/Demos/run_spam.py	2008-12-14 04:25:14.000000000 -0500
++++ Cython-0.10.3/Demos/run_spam.py	2009-01-16 21:36:44.716656617 -0500
+@@ -1,8 +1,8 @@
+ from spam import Spam
+ 
+ s = Spam()
+-print "Created:", s
++print("Created:", s)
+ s.set_amount(42)
+-print "Amount =", s.get_amount()
++print("Amount =", s.get_amount())
+ s.describe()
+ s = None
+Only in Cython-0.10.3/Demos: run_spam.py.bak
+diff -u -r Cython-0.10.3.orig/pyximport/__init__.py Cython-0.10.3/pyximport/__init__.py
+--- Cython-0.10.3.orig/pyximport/__init__.py	2008-12-14 04:25:15.000000000 -0500
++++ Cython-0.10.3/pyximport/__init__.py	2009-01-16 21:36:44.866655306 -0500
+@@ -1 +1 @@
+-from pyximport import *
++from .pyximport import *
+Only in Cython-0.10.3/pyximport: __init__.py.bak
+diff -u -r Cython-0.10.3.orig/pyximport/pyxbuild.py Cython-0.10.3/pyximport/pyxbuild.py
+--- Cython-0.10.3.orig/pyximport/pyxbuild.py	2008-12-14 04:25:15.000000000 -0500
++++ Cython-0.10.3/pyximport/pyxbuild.py	2009-01-16 21:36:45.106657874 -0500
+@@ -43,11 +43,11 @@
+ 
+     try:
+         ok = dist.parse_command_line()
+-    except DistutilsArgError, msg:
++    except DistutilsArgError as msg:
+         raise
+ 
+     if DEBUG:
+-        print "options (after parsing command line):"
++        print("options (after parsing command line):")
+         dist.dump_option_dicts()
+     assert ok
+ 
+@@ -56,22 +56,22 @@
+         dist.run_commands()
+         return dist.get_command_obj("build_ext").get_outputs()[0]
+     except KeyboardInterrupt:
+-        raise SystemExit, "interrupted"
+-    except (IOError, os.error), exc:
++        raise SystemExit("interrupted")
++    except (IOError, os.error) as exc:
+         error = grok_environment_error(exc)
+ 
+         if DEBUG:
+             sys.stderr.write(error + "\n")
+             raise
+         else:
+-            raise SystemExit, error
++            raise SystemExit(error)
+ 
+     except (DistutilsError,
+-        CCompilerError), msg:
++        CCompilerError) as msg:
+         if DEBUG:
+             raise
+         else:
+-            raise SystemExit, "error: " + str(msg)
++            raise SystemExit("error: " + str(msg))
+ 
+ if __name__=="__main__":
+     pyx_to_dll("dummy.pyx")
+Only in Cython-0.10.3/pyximport: pyxbuild.py.bak
+diff -u -r Cython-0.10.3.orig/pyximport/pyximport.py Cython-0.10.3/pyximport/pyximport.py
+--- Cython-0.10.3.orig/pyximport/pyximport.py	2008-12-14 04:25:15.000000000 -0500
++++ Cython-0.10.3/pyximport/pyximport.py	2009-01-16 21:36:45.546658446 -0500
+@@ -21,8 +21,8 @@
+ """
+ import sys, os, shutil
+ import imp, ihooks, glob, md5
+-import __builtin__
+-import pyxbuild
++import builtins
++from . import pyxbuild
+ from distutils.dep_util import newer
+ from distutils.extension import Extension
+ 
+@@ -110,7 +110,7 @@
+ 	# be tricked into rebuilding it.
+ 	for file in files:
+ 	    if newer(file, pyxfilename):
+-		print "Rebuilding because of ", file
++		print("Rebuilding because of ", file)
+ 		filetime = os.path.getmtime(file)
+ 		os.utime(pyxfilename, (filetime, filetime))
+ 		_test_files.append(file)
+@@ -132,7 +132,7 @@
+ 	    try:
+ 		os.remove(path)
+ 	    except IOError:
+-		print "Couldn't remove ", path
++		print("Couldn't remove ", path)
+ 
+     return so_path
+ 
+@@ -179,14 +179,14 @@
+         return self.loader.load_module(fullname, stuff)
+ 
+     def install(self):
+-        self.save_import_module = __builtin__.__import__
+-        self.save_reload = __builtin__.reload
++        self.save_import_module = builtins.__import__
++        self.save_reload = builtins.reload
+         if not hasattr(__builtin__, 'unload'):
+-            __builtin__.unload = None
+-        self.save_unload = __builtin__.unload
+-        __builtin__.__import__ = cimport.import_module
+-        __builtin__.reload = cimport.reload_module
+-        __builtin__.unload = self.unload
++            builtins.unload = None
++        self.save_unload = builtins.unload
++        builtins.__import__ = cimport.import_module
++        builtins.reload = cimport.reload_module
++        builtins.unload = self.unload
+ 
+ _installed = 0
+ 
+@@ -208,10 +208,10 @@
+         _installed = 1
+ 
+ def on_remove_file_error(func, path, excinfo):
+-    print "Sorry! Could not remove a temp file:", path
+-    print "Extra information."
+-    print func, excinfo
+-    print "You may want to delete this yourself when you get a chance."
++    print("Sorry! Could not remove a temp file:", path)
++    print("Extra information.")
++    print(func, excinfo)
++    print("You may want to delete this yourself when you get a chance.")
+ 
+ def show_docs():
+     import __main__
+Only in Cython-0.10.3/pyximport: pyximport.py.bak
+diff -u -r Cython-0.10.3.orig/pyximport/Setup.py Cython-0.10.3/pyximport/Setup.py
+--- Cython-0.10.3.orig/pyximport/Setup.py	2008-12-14 04:25:15.000000000 -0500
++++ Cython-0.10.3/pyximport/Setup.py	2009-01-16 21:36:44.866655306 -0500
+@@ -1,6 +1,6 @@
+ from distutils.core import setup
+ import sys, os
+-from StringIO import StringIO
++from io import StringIO
+ 
+ if "sdist" in sys.argv:
+     try:
+Only in Cython-0.10.3/pyximport: Setup.py.bak
+diff -u -r Cython-0.10.3.orig/pyximport/test/test_pyximport.py Cython-0.10.3/pyximport/test/test_pyximport.py
+--- Cython-0.10.3.orig/pyximport/test/test_pyximport.py	2008-12-14 04:25:15.000000000 -0500
++++ Cython-0.10.3/pyximport/test/test_pyximport.py	2009-01-16 21:36:45.746655218 -0500
+@@ -15,10 +15,10 @@
+     shutil.rmtree(tempdir, 0, on_remove_file_error)
+ 
+ def on_remove_file_error(func, path, excinfo):
+-    print "Sorry! Could not remove a temp file:", path
+-    print "Extra information."
+-    print func, excinfo
+-    print "You may want to delete this yourself when you get a chance."
++    print("Sorry! Could not remove a temp file:", path)
++    print("Extra information.")
++    print(func, excinfo)
++    print("You may want to delete this yourself when you get a chance.")
+ 
+ def test():
+     tempdir = make_tempdir()
+@@ -51,7 +51,7 @@
+ 
+     time.sleep(1) # sleep a second to get safer mtimes
+     open(os.path.join(tempdir, "abc.txt"), "w").write(" ")
+-    print "Here goes the reolad"
++    print("Here goes the reolad")
+     reload(dummy)
+     assert len(pyximport._test_files) == 1, pyximport._test_files
+ 
+Only in Cython-0.10.3/pyximport/test: test_pyximport.py.bak
+diff -u -r Cython-0.10.3.orig/pyximport/test/test_reload.py Cython-0.10.3/pyximport/test/test_reload.py
+--- Cython-0.10.3.orig/pyximport/test/test_reload.py	2008-12-14 04:25:15.000000000 -0500
++++ Cython-0.10.3/pyximport/test/test_reload.py	2009-01-16 21:36:45.826655792 -0500
+@@ -10,7 +10,7 @@
+ 	except AttributeError:
+ 		pass
+ 	import pyxbuild
+-	print pyxbuild.distutils.sysconfig == sysconfig
++	print(pyxbuild.distutils.sysconfig == sysconfig)
+ 
+ def test():
+ 	tempdir = test_pyximport.make_tempdir()
+Only in Cython-0.10.3/pyximport/test: test_reload.py.bak
+diff -u -r Cython-0.10.3.orig/runtests.py Cython-0.10.3/runtests.py
+--- Cython-0.10.3.orig/runtests.py	2008-12-14 04:25:15.000000000 -0500
++++ Cython-0.10.3/runtests.py	2009-01-16 21:35:35.596657239 -0500
+@@ -409,7 +409,7 @@
+     def __init__(self, deps):
+         # deps: { module name : matcher func }
+         self.exclude_matchers = []
+-        for mod, matcher in deps.items():
++        for mod, matcher in list(deps.items()):
+             try:
+                 __import__(mod)
+             except ImportError:
+@@ -427,7 +427,7 @@
+         # deps: { version : matcher func }
+         from sys import version_info
+         self.exclude_matchers = []
+-        for ver, matcher in deps.items():
++        for ver, matcher in list(deps.items()):
+             if version_info < ver:
+                 self.exclude_matchers.append(matcher)
+         self.tests_missing_deps = []
+@@ -584,7 +584,7 @@
+     if options.coverage:
+         coverage.stop()
+         ignored_modules = ('Options', 'Version', 'DebugFlags', 'CmdLine')
+-        modules = [ module for name, module in sys.modules.items()
++        modules = [ module for name, module in list(sys.modules.items())
+                     if module is not None and
+                     name.startswith('Cython.Compiler.') and 
+                     name[len('Cython.Compiler.'):] not in ignored_modules ]
+Only in Cython-0.10.3: runtests.py.bak
+diff -u -r Cython-0.10.3.orig/setup.py Cython-0.10.3/setup.py
+--- Cython-0.10.3.orig/setup.py	2008-12-14 04:25:15.000000000 -0500
++++ Cython-0.10.3/setup.py	2009-01-16 21:35:35.776656683 -0500
+@@ -3,6 +3,10 @@
+ import os, os.path
+ import sys
+ from Cython.Compiler.Version import version
++try:
++    from distutils.command.build_py import build_py_2to3 as build_py
++except ImportError:
++    from distutils.command.build_py import build_py
+ 
+ compiler_dir = os.path.join(get_python_lib(prefix=''), 'Cython/Compiler')
+ if sys.platform == "win32":
+@@ -35,7 +39,7 @@
+         extensions = []
+         for module in compiled_modules:
+             source_file = os.path.join(source_root, *module.split('.'))
+-            print("Compiling module %s ..." % module)
++            print(("Compiling module %s ..." % module))
+             result = compile(source_file + ".py")
+             if result.c_file:
+                 extensions.append(
+@@ -46,7 +50,7 @@
+         if extensions:
+             setup_args['ext_modules'] = extensions
+     except Exception:
+-        print("ERROR: %s" % sys.exc_info()[1])
++        print(("ERROR: %s" % sys.exc_info()[1]))
+         print("Extension module compilation failed, using plain Python implementation")
+ 
+ 
+@@ -98,7 +102,9 @@
+     'Cython.Tests',
+     'Cython.Compiler.Tests',
+     ],
+-  
++    
++  cmdclass={'build_py': build_py},
++
+   # pyximport
+   py_modules = ["pyximport/__init__",
+                 "pyximport/pyximport",
+Only in Cython-0.10.3: setup.py.bak
