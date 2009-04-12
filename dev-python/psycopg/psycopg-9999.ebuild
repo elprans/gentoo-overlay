@@ -1,6 +1,7 @@
 # Copyright 1999-2008 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 # $Header: /var/cvsroot/gentoo-x86/dev-python/psycopg/psycopg-2.0.8.ebuild,v 1.1 2008/10/15 21:17:57 caleb Exp $
+EAPI="2"
 
 NEED_PYTHON=2.4
 
@@ -25,9 +26,7 @@ RDEPEND="${DEPEND}"
 
 PYTHON_MODNAME=${PN}2
 
-src_unpack() {
-	#unpack ${A}
-	bzr_src_unpack
+src_prepare() {
 	cd "${S}"
 
 	if use debug; then
@@ -38,8 +37,10 @@ src_unpack() {
 		sed -i 's/\(use_pydatetime=\)1/\10/' setup.cfg || die "sed failed"
 	fi
 
+	epatch "${FILESDIR}/${PN}-fixups.patch"
+
 	if [ "${PYTHON_SLOT_VERSION:0:1}" == "3" ]; then
-    	    epatch "${FILESDIR}/${PN}-py3k.patch"
+		epatch "${FILESDIR}/${PN}-py3k.patch"
 	fi
 }
 
