@@ -23,9 +23,9 @@ RESTRICT="nomirror"
 
 # php patch settings, general
 PHP_PATCHSET_REV="${PR/r/}"
-SUHOSIN_PATCH="suhosin-patch-5.2.8-0.9.6.3.patch.gz"
+SUHOSIN_PATCH="suhosin-patch-${PV}-0.9.7.patch.gz"
 MULTILIB_PATCH="${MY_PHP_PV}/opt/multilib-search-path.patch"
-FPM_PATCH="php-5.2.8-fpm-0.5.10.diff"
+FPM_PATCH="php-${PV}-fpm-0.5.10.patch"
 # php patch settings, ebuild specific
 FASTBUILD_PATCH="${MY_PHP_PV}/opt/fastbuild.patch"
 CONCURRENTMODPHP_PATCH="${MY_PHP_PV}/opt/concurrent_apache_modules.patch"
@@ -39,7 +39,7 @@ inherit versionator php5_2-sapi apache-module
 [[ -n "${SUHOSIN_PATCH}" ]] && SRC_URI="${SRC_URI} suhosin? ( http://gentoo.longitekk.com/${SUHOSIN_PATCH} )"
 
 # php-fpm patch support
-[[ -n "${FPM_PATCH}" ]] && SRC_URI="${SRC_URI} fpm? ( http://php-fpm.anight.org/downloads/archive/php-${PV%.*}/${FPM_PATCH}.gz )"
+#[[ -n "${FPM_PATCH}" ]] && SRC_URI="${SRC_URI} fpm? ( http://php-fpm.anight.org/downloads/archive/php-${PV%.*}/${FPM_PATCH}.gz )"
 
 DESCRIPTION="The PHP language runtime engine: CLI, CGI and Apache2 SAPIs."
 
@@ -150,7 +150,7 @@ src_unpack() {
 	cd "${S}"
 	
 	if use fpm ; then
-		EPATCH_OPTS="-p1 -d ${S}" epatch "${WORKDIR}/${FPM_PATCH}"
+		EPATCH_OPTS="-p1 -d ${S}" epatch "${FILESDIR}/${FPM_PATCH}"
 	fi
 
 	# Concurrent PHP Apache2 modules support
