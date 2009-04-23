@@ -87,6 +87,8 @@ pkg_setup() {
 src_unpack() {
 	unpack ${A}
 
+	cp "${FILESDIR}/kvm-ctl.c" "${S}"
+
 	cd "${S}"
 	# prevent docs to get automatically installed
 	sed -i '/$(DESTDIR)$(docdir)/d' qemu/Makefile
@@ -103,6 +105,8 @@ src_unpack() {
 		epatch "${FILESDIR}/oemid.patch"
 		sed -i 's/GCC = gcc -m32/GCC = gcc -m32 -DOEMID_ADDR=0xFE076 "-DOEMID_STR=\\"Dell System\\""/' bios/Makefile
 	fi
+	
+	epatch "${FILESDIR}/kvm-ctl.patch"
 
 	# apply patchset
 	EPATCH_SOURCE="${WORKDIR}/${PATCHSET}"
@@ -179,6 +183,7 @@ src_install() {
 	mv "${D}"/usr/share/man/man8/qemu-nbd.8 "${D}"/usr/share/man/man8/kvm-nbd.8
 	mv "${D}"/usr/bin/qemu-img "${D}"/usr/bin/kvm-img
 	mv "${D}"/usr/bin/qemu-nbd "${D}"/usr/bin/kvm-nbd
+	mv "${D}"/usr/bin/qemu-ctl "${D}"/usr/bin/kvm-ctl
 
 	insinto /etc/udev/rules.d/
 	doins scripts/65-kvm.rules
