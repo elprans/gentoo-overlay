@@ -24,7 +24,7 @@ DESCRIPTION="Python is an interpreted, interactive, object-oriented programming 
 HOMEPAGE="http://www.python.org/"
 #SRC_URI="http://www.python.org/ftp/python/3.0/${MY_P}.tar.bz2
 #	http://dev.gentoo.org/~hawking/py3k/patches/python-gentoo-patches-${PV/_r*/}-r1.tar.bz2"
-SRC_URI="http://gentoo.coderazor.org/python-gentoo-patches-${PV/_r*/}-r0.tar.bz2"
+SRC_URI="http://gentoo.coderazor.org/python-gentoo-patches-${PV/_r*/}-r1.tar.bz2"
 ESVN_REPO_URI="http://svn.python.org/projects/python/branches/py3k"
 
 # Remove when testing is done

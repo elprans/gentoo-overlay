@@ -37,8 +37,6 @@ src_prepare() {
 		sed -i 's/\(use_pydatetime=\)1/\10/' setup.cfg || die "sed failed"
 	fi
 
-	epatch "${FILESDIR}/${PN}-fixups.patch"
-
 	if [ "${PYTHON_SLOT_VERSION:0:1}" == "3" ]; then
 		epatch "${FILESDIR}/${PN}-py3k.patch"
 	fi

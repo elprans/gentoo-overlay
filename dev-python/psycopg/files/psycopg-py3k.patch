@@ -1,4 +1,4 @@
-From e250cc3deb2c2f85aca13b98e2015f4116676059 Mon Sep 17 00:00:00 2001
+From ff779fb4af2bcc056107b0979a1e21a8c0b9d43f Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elprans@sprymix.com>
 Date: Tue, 3 Feb 2009 18:00:27 -0500
 Subject: [PATCH] Python 3 compatibility
@@ -15,7 +15,7 @@ Subject: [PATCH] Python 3 compatibility
  psycopg/adapter_pfloat.c       |   11 +-
  psycopg/adapter_qstring.c      |   27 +++--
  psycopg/connection_int.c       |    5 +-
- psycopg/connection_type.c      |   25 +++--
+ psycopg/connection_type.c      |   31 +++---
  psycopg/cursor_type.c          |  218 +++++++++++++++++++++++++++++++---------
  psycopg/lobject_type.c         |   11 +-
  psycopg/microprotocols.c       |    8 +-
@@ -27,17 +27,17 @@ Subject: [PATCH] Python 3 compatibility
  psycopg/typecast_basic.c       |   25 ++++-
  psycopg/typecast_binary.c      |   25 ++++-
  runtests.py                    |   19 ++++-
- setup.py                       |   51 ++++++++-
+ setup.py                       |   49 ++++++++-
  tests/__init__.py              |   12 ++
  tests/extras_dictcursor.py     |    8 +-
  tests/test_connection.py       |    6 +-
  tests/test_dates.py            |    9 ++-
  tests/test_lobject.py          |   47 ++++++----
- tests/test_psycopg2_dbapi20.py |    7 +-
+ tests/test_psycopg2_dbapi20.py |    6 +-
  tests/test_quote.py            |   16 ++-
  tests/test_transaction.py      |    6 +-
  tests/types_basic.py           |   21 +++--
- 33 files changed, 717 insertions(+), 273 deletions(-)
+ 33 files changed, 719 insertions(+), 274 deletions(-)
 
 diff --git a/lib/__init__.py b/lib/__init__.py
 index e40caa3..8b5190d 100644
@@ -670,7 +670,7 @@ index 036ef40..a7172ce 100644
      if (!PyArg_ParseTuple(args, "O|s", &str, &enc))
          return NULL;
 diff --git a/psycopg/connection_int.c b/psycopg/connection_int.c
-index a2eda87..56483d4 100644
+index 8b54bad..176d318 100644
 --- a/psycopg/connection_int.c
 +++ b/psycopg/connection_int.c
 @@ -20,7 +20,7 @@
@@ -682,18 +682,18 @@ index a2eda87..56483d4 100644
  #include <string.h>
  
  #define PSYCOPG_MODULE
-@@ -46,7 +46,8 @@ conn_notice_callback(void *args, const char *message)
-     if (self->protocol < 3 && strncmp(message, "ERROR", 5) == 0)
-         pq_set_critical(self, message);
-     else {
--        PyObject *msg = PyString_FromString(message);
+@@ -69,7 +69,8 @@ conn_notice_process(connectionObject *self)
+     struct connectionObject_notice *notice =  self->notice_pending;
+     
+     while (notice != NULL) {
+-        PyObject *msg = PyString_FromString(notice->message);
 +	/* XXX is this guaranteed to be ASCII/UTF-8? */
-+        PyObject *msg = Text_FromUTF8(message);
++        PyObject *msg = Text_FromUTF8(notice->message);
  
-         PyList_Append(self->notice_list, msg);
-         Py_DECREF(msg);
+         Dprintf("conn_notice_process: %s", notice->message);
+ 
 diff --git a/psycopg/connection_type.c b/psycopg/connection_type.c
-index 8b4213c..3c6707b 100644
+index 4bba61c..f3827fd 100644
 --- a/psycopg/connection_type.c
 +++ b/psycopg/connection_type.c
 @@ -22,7 +22,9 @@
@@ -706,7 +706,16 @@ index 8b4213c..3c6707b 100644
  
  #include <string.h>
  #include <ctype.h>
-@@ -365,23 +367,23 @@ static struct PyMethodDef connectionObject_methods[] = {
+@@ -257,7 +259,7 @@ psyco_conn_get_parameter_status(connectionObject *self, PyObject *args)
+         Py_INCREF(Py_None);
+         return Py_None;
+     }
+-    return PyString_FromString(val);
++    return Text_FromUTF8(val);
+ }
+ 
+ 
+@@ -397,29 +399,29 @@ static struct PyMethodDef connectionObject_methods[] = {
  
  static struct PyMemberDef connectionObject_members[] = {
  #ifdef PSYCOPG_EXTENSIONS
@@ -737,9 +746,17 @@ index 8b4213c..3c6707b 100644
 -    {"binary_types", T_OBJECT, offsetof(connectionObject, binary_types), RO,
 +    {"binary_types", T_OBJECT, offsetof(connectionObject, binary_types), READONLY,
          "A set of typecasters to convert binary values."},
+     {"protocol_version", T_INT,
+-        offsetof(connectionObject, protocol), RO,
++        offsetof(connectionObject, protocol), READONLY,
+         "Protocol version (2 or 3) used for this connection."},
+     {"server_version", T_INT,
+-        offsetof(connectionObject, server_version), RO,
++        offsetof(connectionObject, server_version), READONLY,
+         "Server version."},
  #endif
      {NULL}
-@@ -479,7 +481,7 @@ connection_dealloc(PyObject* obj)
+@@ -523,7 +525,7 @@ connection_dealloc(PyObject* obj)
          obj, obj->ob_refcnt
        );
  
@@ -748,7 +765,7 @@ index 8b4213c..3c6707b 100644
  }
  
  static int
-@@ -536,8 +538,7 @@ connection_traverse(connectionObject *self, visitproc visit, void *arg)
+@@ -580,8 +582,7 @@ connection_traverse(connectionObject *self, visitproc visit, void *arg)
  "    ProgrammingError, IntegrityError, DataError, NotSupportedError"
  
  PyTypeObject connectionType = {
@@ -759,7 +776,7 @@ index 8b4213c..3c6707b 100644
      sizeof(connectionObject),
      0,
 diff --git a/psycopg/cursor_type.c b/psycopg/cursor_type.c
-index 586de89..5bd1fab 100644
+index d4f0baa..82355ed 100644
 --- a/psycopg/cursor_type.c
 +++ b/psycopg/cursor_type.c
 @@ -20,7 +20,7 @@
@@ -1160,16 +1177,16 @@ index 586de89..5bd1fab 100644
      {"string_types", T_OBJECT, OFFSETOF(string_types), 0},
      {"binary_types", T_OBJECT, OFFSETOF(binary_types), 0},
  #endif
-@@ -1737,7 +1858,7 @@ cursor_dealloc(PyObject* obj)
-         obj, obj->ob_refcnt
-       );
+@@ -1738,7 +1859,7 @@ cursor_dealloc(PyObject* obj)
+         FORMAT_CODE_PY_SSIZE_T,
+         obj, obj->ob_refcnt);
  
 -    obj->ob_type->tp_free(obj);
 +    Py_TYPE(obj)->tp_free(obj);
  }
  
  static int
-@@ -1795,8 +1916,7 @@ cursor_traverse(cursorObject *self, visitproc visit, void *arg)
+@@ -1796,8 +1917,7 @@ cursor_traverse(cursorObject *self, visitproc visit, void *arg)
  "A database cursor."
  
  PyTypeObject cursorType = {
@@ -1295,10 +1312,10 @@ index 7acef18..f098c9b 100644
      sizeof(isqlquoteObject),
      0,
 diff --git a/psycopg/pqpath.c b/psycopg/pqpath.c
-index 8b6633b..96576ab 100644
+index ea48e7e..e9316ab 100644
 --- a/psycopg/pqpath.c
 +++ b/psycopg/pqpath.c
-@@ -533,7 +533,8 @@ pq_is_busy(connectionObject *conn)
+@@ -537,7 +537,8 @@ pq_is_busy(connectionObject *conn)
          Py_BLOCK_THREADS;
          notify = PyTuple_New(2);
          PyTuple_SET_ITEM(notify, 0, PyInt_FromLong((long)pgn->be_pid));
@@ -1308,7 +1325,7 @@ index 8b6633b..96576ab 100644
          PyList_Append(conn->notifies, notify);
          Py_UNBLOCK_THREADS;
          free(pgn);
-@@ -740,15 +741,13 @@ _pq_fetch_tuples(cursorObject *curs)
+@@ -748,15 +749,13 @@ _pq_fetch_tuples(cursorObject *curs)
              cast = psyco_default_cast;
          }
  
@@ -1326,7 +1343,7 @@ index 8b6633b..96576ab 100644
          PyTuple_SET_ITEM(dtitem, 1, type);
  
          /* 2/ display size is the maximum size of this field result tuples. */
-@@ -818,13 +817,14 @@ _pq_copy_in_v3(cursorObject *curs)
+@@ -826,13 +825,14 @@ _pq_copy_in_v3(cursorObject *curs)
      while (1) {
          o = PyObject_CallMethod(curs->copyfile, "read",
              CONV_CODE_PY_SSIZE_T, curs->copysize);
@@ -1343,7 +1360,7 @@ index 8b6633b..96576ab 100644
              /* Py_ssize_t->int cast was validated above */
              (int) length);
          Dprintf("_pq_copy_in_v3: sent %d bytes of data; res = %d",
-@@ -895,8 +895,14 @@ _pq_copy_in(cursorObject *curs)
+@@ -903,8 +903,14 @@ _pq_copy_in(cursorObject *curs)
      while (1) {
          o = PyObject_CallMethod(curs->copyfile, "readline", NULL);
          if (o == NULL) return -1;
@@ -1360,7 +1377,7 @@ index 8b6633b..96576ab 100644
              Py_DECREF(o);
              return -1;
          }
-@@ -1089,7 +1095,8 @@ pq_fetch(cursorObject *curs)
+@@ -1097,7 +1103,8 @@ pq_fetch(cursorObject *curs)
  
      /* backend status message */
      Py_XDECREF(curs->pgstatus);
@@ -1978,12 +1995,12 @@ index 6124fad..07ee391 100644
  def test_suite():
      return tests.test_suite()
 diff --git a/setup.py b/setup.py
-index cc49e30..ec30d32 100644
+index 0550707..2a47859 100644
 --- a/setup.py
 +++ b/setup.py
-@@ -47,7 +47,28 @@ import os
- import os.path
+@@ -48,7 +48,28 @@ import os.path
  import sys
+ import re
  import subprocess
 -import ConfigParser
 +try:
@@ -2011,7 +2028,7 @@ index cc49e30..ec30d32 100644
  from distutils.core import setup, Extension
  from distutils.errors import DistutilsFileError
  from distutils.command.build_ext import build_ext
-@@ -68,6 +89,8 @@ def get_pg_config(kind, pg_config="pg_config"):
+@@ -69,6 +90,8 @@ def get_pg_config(kind, pg_config="pg_config"):
      r = p.stdout.readline().strip()
      if not r:
          raise Warning(p.stderr.readline())
@@ -2020,22 +2037,17 @@ index cc49e30..ec30d32 100644
      return r
  
  class psycopg_build_ext(build_ext):
-@@ -212,11 +235,12 @@ class psycopg_build_ext(build_ext):
-             except:
-                 # Mm.. development version?
-                 pgmajor, pgminor = pgversion.replace("devel", "").split('.')
--                pgminor = 0
-+                pgpatch = 0
+@@ -222,7 +245,8 @@ class psycopg_build_ext(build_ext):
  
              define_macros.append(("PG_VERSION_HEX", "0x%02X%02X%02X" %
                                    (int(pgmajor), int(pgminor), int(pgpatch))))
--        except Warning, w:
+-        except (Warning, w):
 +        except Warning:
 +            w = sys.exc_info()
              if self.pg_config == self.DEFAULT_PG_CONFIG:
                  sys.stderr.write("Warning: %s" % str(w))
              else:
-@@ -314,6 +338,18 @@ include_dirs = []
+@@ -320,6 +344,18 @@ include_dirs = []
  # gather information to build the extension module
  ext = [] ; data_files = []
  
@@ -2054,7 +2066,7 @@ index cc49e30..ec30d32 100644
  # sources
  
  sources = [
-@@ -384,12 +420,14 @@ else:
+@@ -390,12 +426,14 @@ else:
  
  # build the extension
  
@@ -2071,7 +2083,7 @@ index cc49e30..ec30d32 100644
  setup(name="psycopg2",
        version=PSYCOPG_VERSION,
        maintainer="Federico Di Gregorio",
-@@ -406,6 +444,7 @@ setup(name="psycopg2",
+@@ -412,6 +450,7 @@ setup(name="psycopg2",
        data_files=data_files,
        package_dir={'psycopg2':'lib'},
        packages=['psycopg2'],
@@ -2327,14 +2339,12 @@ index 799492c..9907a05 100644
  
  def test_suite():
 diff --git a/tests/test_psycopg2_dbapi20.py b/tests/test_psycopg2_dbapi20.py
-index 9b6b119..ac76c70 100755
+index 7363ad8..ac76c70 100755
 --- a/tests/test_psycopg2_dbapi20.py
 +++ b/tests/test_psycopg2_dbapi20.py
-@@ -2,9 +2,12 @@
- import dbapi20
+@@ -3,7 +3,11 @@ import dbapi20
  import unittest
  import psycopg2
--import popen2
  
 -import tests
 +import sys
