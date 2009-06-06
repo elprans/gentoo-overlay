@@ -120,7 +120,7 @@ pkg_setup() {
 		built_with_use dev-libs/libpcre unicode || \
 			die "Please rebuild dev-libs/libpcre with USE=unicode"
 	fi
-
+	depend.apache_pkg_setup
 	php5_2-sapi_pkg_setup
 }
 
