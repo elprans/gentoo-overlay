@@ -9,7 +9,7 @@
 
 EAPI=1
 
-inherit eutils autotools flag-o-matic python multilib versionator toolchain-funcs libtool
+inherit eutils autotools flag-o-matic python multilib versionator toolchain-funcs libtool subversion
 
 # we need this so that we don't depends on python.eclass
 PYVER_MAJOR=$(get_major_version)
@@ -24,7 +24,8 @@ DESCRIPTION="Python is an interpreted, interactive, object-oriented programming 
 HOMEPAGE="http://www.python.org/"
 #SRC_URI="http://www.python.org/ftp/python/3.0/${MY_P}.tar.bz2
 #	http://dev.gentoo.org/~hawking/py3k/patches/python-gentoo-patches-${PV/_r*/}-r1.tar.bz2"
-SRC_URI="http://www.python.org/ftp/python/3.1/Python-${PV}.tar.bz2 http://gentoo.coderazor.org/python-gentoo-patches-${PV/_r*/}-r2.tar.bz2"
+SRC_URI="http://gentoo.coderazor.org/python-gentoo-patches-${PV/_r*/}.tar.bz2"
+ESVN_REPO_URI="http://svn.python.org/projects/python/branches/py3k"
 
 # Remove when testing is done
 RESTRICT="mirror"
@@ -58,6 +59,7 @@ PROVIDE="virtual/python"
 
 src_unpack() {
 	unpack ${A}
+	subversion_src_unpack
 
 	cd "${S}"
 
