@@ -1,0 +1,7 @@
+SUBSYSTEM!="usb|usb_device", GOTO="mxrevolution_rules_end"
+ACTION!="add", GOTO="mxrevolution_rules_end"
+
+ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c51a", GROUP="plugdev", RUN+="/usr/bin/revoco auto=20"
+ATTRS{idVendor}=="046d", ATTRS{idProduct}=="c525", GROUP="plugdev", RUN+="/usr/bin/revoco auto=20"
+
+LABEL="mxrevolution_rules_end"
