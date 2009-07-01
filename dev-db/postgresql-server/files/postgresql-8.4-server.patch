@@ -1,10 +1,10 @@
-From 3e8c15f5e6764259b5860580d6fd8e3475ccc98d Mon Sep 17 00:00:00 2001
+From 37ca88345f62c5dfd71e2d0b965c3aef65b48285 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Sat, 20 Dec 2008 14:49:38 -0500
-Subject: [PATCH 2/2] [gentoo] Server patch
+Subject: [PATCH 3/3] [gentoo] Server patch
 
 ---
- GNUmakefile.in                 |    3 ---
+ GNUmakefile.in                 |    9 ---------
  contrib/Makefile               |    5 +----
  contrib/adminpack/Makefile     |    2 +-
  contrib/uuid-ossp/Makefile     |    4 +++-
@@ -17,32 +17,53 @@ Subject: [PATCH 2/2] [gentoo] Server patch
  src/port/Makefile              |    5 ++---
  src/test/regress/GNUmakefile   |    2 +-
  src/test/regress/pg_regress.c  |    3 ---
- 13 files changed, 16 insertions(+), 27 deletions(-)
+ 13 files changed, 16 insertions(+), 33 deletions(-)
 
 diff --git a/GNUmakefile.in b/GNUmakefile.in
-index 3045a4e..f42facd 100644
+index 3045a4e..a307c7c 100644
 --- a/GNUmakefile.in
 +++ b/GNUmakefile.in
-@@ -11,19 +11,16 @@ include $(top_builddir)/src/Makefile.global
+@@ -9,24 +9,17 @@ top_builddir = .
+ include $(top_builddir)/src/Makefile.global
+ 
  all:
- 	$(MAKE) -C doc all
+-	$(MAKE) -C doc all
  	$(MAKE) -C src all
 -	$(MAKE) -C config all
  	@echo "All of PostgreSQL successfully made. Ready to install."
  
  install:
- 	$(MAKE) -C doc $@
+-	$(MAKE) -C doc $@
  	$(MAKE) -C src $@
 -	$(MAKE) -C config $@
  	@echo "PostgreSQL installation complete."
  
  installdirs uninstall:
- 	$(MAKE) -C doc $@
+-	$(MAKE) -C doc $@
  	$(MAKE) -C src $@
 -	$(MAKE) -C config $@
  
  distprep:
- 	$(MAKE) -C doc $@
+-	$(MAKE) -C doc $@
+ 	$(MAKE) -C src $@
+ 	$(MAKE) -C config $@
+ 	$(MAKE) -C contrib $@
+@@ -34,7 +27,6 @@ distprep:
+ # clean, distclean, etc should apply to contrib too, even though
+ # it's not built by default
+ clean:
+-	$(MAKE) -C doc $@
+ 	$(MAKE) -C contrib $@
+ 	$(MAKE) -C src $@
+ 	$(MAKE) -C config $@
+@@ -44,7 +36,6 @@ clean:
+ # Important: distclean `src' last, otherwise Makefile.global
+ # will be gone too soon.
+ distclean maintainer-clean:
+-	$(MAKE) -C doc $@
+ 	$(MAKE) -C contrib $@
+ 	$(MAKE) -C config $@
+ 	$(MAKE) -C src $@
 diff --git a/contrib/Makefile b/contrib/Makefile
 index 738a28a..17b10c3 100644
 --- a/contrib/Makefile
@@ -139,10 +160,10 @@ index acefa75..de0ca00 100644
  install-local: installdirs-local
  	$(INSTALL_DATA) Makefile.global '$(DESTDIR)$(pgxsdir)/$(subdir)/Makefile.global'
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index 6244e8a..debe26d 100644
+index 6a3784b..7175b3b 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
-@@ -397,10 +397,8 @@ endif
+@@ -398,10 +398,8 @@ endif
  
  
  submake-libpq:
@@ -153,7 +174,7 @@ index 6244e8a..debe26d 100644
  
  .PHONY: submake-libpq submake-libpgport
  
-@@ -443,6 +441,8 @@ ifdef PROFILE
+@@ -444,6 +442,8 @@ ifdef PROFILE
     LDFLAGS += $(PROFILE)
  endif
  

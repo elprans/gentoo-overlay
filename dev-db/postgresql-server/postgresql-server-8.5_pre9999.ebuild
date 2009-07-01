@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: /var/cvsroot/gentoo-x86/dev-db/postgresql-server/postgresql-server-8.3.4.ebuild,v 1.1 2008/09/23 12:42:11 caleb Exp $
 
-EAPI="1"
+EAPI="2"
 
 WANT_AUTOCONF="latest"
 WANT_AUTOMAKE="none"
@@ -49,11 +49,7 @@ pkg_setup() {
 	enewuser postgres 70 /bin/bash /var/lib/postgresql postgres
 }
 
-src_unpack() {
-	#unpack ${A}
-	git_src_unpack
-	cd "${S}"
-
+src_prepare() {
 	epatch "${FILESDIR}/postgresql-${SLOT}-common.patch" \
 		"${FILESDIR}/postgresql-${SLOT}-server.patch"
 
@@ -66,7 +62,7 @@ src_unpack() {
 	eautoconf
 }
 
-src_compile() {
+src_configure() {
 	# TODO: test if PPC really cannot work with other CFLAGS settings
 	# use ppc && CFLAGS="-pipe -fsigned-char"
 
@@ -83,13 +79,15 @@ src_compile() {
 		--with-includes="/usr/include/postgresql-${SLOT}/" \
 		"$(built_with_use ~dev-db/postgresql-base-${PV} nls && use_enable nls nls "$(wanted_languages)")" \
 		|| die "configure failed"
+}
 
+src_compile() {
 	for bd in . contrib $(use xml && echo contrib/xml2); do
 		PATH="/usr/$(get_libdir)/postgresql-${SLOT}/bin:${PATH}" \
 			emake -C $bd -j1 LD="$(tc-getLD) $(get_abi_LDFLAGS)" \
 				PGXS=$(/usr/$(get_libdir)/postgresql-${SLOT}/bin/pg_config --pgxs) \
 				PGXS_IN_SERVER=1 PGXS_WITH_SERVER="${S}/src/backend/postgres" \
-				NO_PGXS=0 USE_PGXS=1 docdir=/usr/share/doc/${PF} || die "emake in $bd failed"
+				NO_PGXS=0 USE_PGXS=1 || die "emake in $bd failed"
 	done
 }
 

@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: /var/cvsroot/gentoo-x86/dev-db/postgresql-base/postgresql-base-8.3.4.ebuild,v 1.2 2008/09/28 22:39:56 caleb Exp $
 
-EAPI="1"
+EAPI="2"
 
 WANT_AUTOCONF="latest"
 WANT_AUTOMAKE="none"
@@ -49,10 +49,7 @@ PDEPEND="doc? ( dev-db/postgresql-docs:${SLOT} )"
 
 S="${WORKDIR}/postgresql-${PV}"
 
-src_unpack() {
-	unpack ${A}
-	cd "${S}"
-
+src_prepare() {
 	epatch \
 		"${FILESDIR}/postgresql-${SLOT}-common-fixes.patch" \
 		"${FILESDIR}/postgresql-${SLOT}-common.patch" \
@@ -67,14 +64,14 @@ src_unpack() {
 	eautoconf
 }
 
-src_compile() {
+src_configure() {
 	econf --prefix=/usr/$(get_libdir)/postgresql-${SLOT} \
 		--datadir=/usr/share/postgresql-${SLOT} \
 		--sysconfdir=/etc/postgresql-${SLOT} \
 		--includedir=/usr/include/postgresql-${SLOT} \
-		--with-locale-dir=/usr/share/postgresql-${SLOT}/locale \
+		--localedir=/usr/share/postgresql-${SLOT}/locale \
 		--mandir=/usr/share/postgresql-${SLOT}/man \
-		--without-docdir \
+		--docdir=/usr/share/doc/postgresql-${PV} \
 		--enable-depend \
 		--without-tcl \
 		--without-perl \
@@ -92,7 +89,9 @@ src_compile() {
 		$(use_with ldap) \
 		${myconf} \
 		|| die "configure failed"
+}
 
+src_compile() {
 	emake LD="$(tc-getLD) $(get_abi_LDFLAGS)" || die "emake failed"
 
 	cd "${S}/contrib"
