@@ -1,7 +1,7 @@
-From 81561fa19e15750e6c13ee84583ad83b43724ca6 Mon Sep 17 00:00:00 2001
+From b02d1a9550569e3583e110e7c3c8e73045967e22 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Tue, 6 Jan 2009 14:33:27 -0500
-Subject: [PATCH] [gentoo] Base patch
+Subject: [PATCH 2/2] [gentoo] Base patch
 
 ---
  contrib/Makefile               |   36 ------------------------------------
@@ -146,7 +146,7 @@ index ec82494..bdbd775 100644
  DIRS+=pgevent
  endif
 diff --git a/src/include/pg_config_manual.h b/src/include/pg_config_manual.h
-index 270face..2560016 100644
+index f034be9..c342204 100644
 --- a/src/include/pg_config_manual.h
 +++ b/src/include/pg_config_manual.h
 @@ -146,7 +146,7 @@
@@ -159,5 +159,5 @@ index 270face..2560016 100644
  /*
   * The random() function is expected to yield values between 0 and
 -- 
-1.6.0.6
+1.6.3.3
 
