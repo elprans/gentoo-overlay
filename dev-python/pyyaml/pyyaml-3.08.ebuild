@@ -2,32 +2,32 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: /var/cvsroot/gentoo-x86/dev-python/pyyaml/pyyaml-3.05.ebuild,v 1.4 2007/12/31 05:35:24 vapier Exp $
 
+EAPI="2"
+SUPPORT_PYTHON_ABIS="1"
 NEED_PYTHON="2.3"
 
 inherit distutils
 
-MY_P="PyYAML-${ORIG_PV}"
+MY_P="PyYAML-${PV}"
 
 DESCRIPTION="YAML parser and emitter for Python"
 HOMEPAGE="http://pyyaml.org/wiki/PyYAML"
 SRC_URI="http://pyyaml.org/download/${PN}/${MY_P}.tar.gz"
 
 LICENSE="MIT"
-SLOT="0:${PYTHON_SLOT_VERSION}"
+SLOT="0"
 KEYWORDS="~amd64 ~ppc ~ppc64 ~x86"
 IUSE="examples libyaml"
 
 DEPEND="libyaml? ( dev-libs/libyaml dev-python/pyrex )"
 RDEPEND="libyaml? ( dev-libs/libyaml )"
 
-S="${WORKDIR}/${MY_P}"
-
 PYTHON_MODNAME="yaml"
 
-src_unpack() {
-	distutils_src_unpack
+S="${WORKDIR}/${MY_P}"
+
+src_prepare() {
 	if use libyaml; then
-		cd "${S}"
 		epatch "${FILESDIR}/${P}-libyaml.diff"
 	fi
 }
