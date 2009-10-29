@@ -11,6 +11,18 @@ index f0fe132..f233ae7 100644
     AC_MSG_ERROR([avcodec.h not found... Must have ffmpeg installed])])
  dnl  AC_CHECK_LIB(avcodec,avcodec_find_decoder,,echo "Must have libavcodec";exit)
  
+diff --git a/src/mp3-scanner.c b/src/mp3-scanner.c
+index 803c292..761de52 100644
+--- a/src/mp3-scanner.c
++++ b/src/mp3-scanner.c
+@@ -141,6 +141,7 @@ static TAGHANDLER taghandlers[] = {
+ #ifdef FLAC
+     { "flac", scan_get_flacinfo, "flac","flac", 0, "FLAC audio file" },
+     { "fla", scan_get_flacinfo,  "flac","flac", 0, "FLAC audio file" },
++    { "oga", scan_get_flacinfo,  "flac","flac", 0, "Ogg FLAC audio file" },
+ #endif
+ #ifdef MUSEPACK
+     { "mpc", scan_get_mpcinfo, "mpc", "mpc", 0, "Musepack audio file" },
 diff --git a/src/plugins/ssc-ffmpeg.c b/src/plugins/ssc-ffmpeg.c
 index 0b2b94b..81202e2 100644
 --- a/src/plugins/ssc-ffmpeg.c
@@ -44,6 +56,19 @@ index 0b2b94b..81202e2 100644
                                        (int16_t*)buffer,
                                        &data_size,
                                        handle->packet_data,
+diff --git a/src/scan-flac.c b/src/scan-flac.c
+index 8901379..90b8c4b 100644
+--- a/src/scan-flac.c
++++ b/src/scan-flac.c
+@@ -82,7 +82,7 @@ int scan_get_flacinfo(char *filename, MP3FILE *pmp3) {
+         DPRINTF(E_WARN,L_SCAN,"Cannot allocate FLAC metadata chain\n");
+         return FALSE;
+     }
+-    if (! FLAC__metadata_chain_read(chain, filename)) {
++    if (! FLAC__metadata_chain_read(chain, filename) && ! FLAC__metadata_chain_read_ogg(chain, filename)) {
+         DPRINTF(E_WARN,L_SCAN,"Cannot read FLAC metadata from %s\n", filename);
+         FLAC__metadata_chain_delete(chain);
+         return FALSE;
 diff --git a/src/util.c b/src/util.c
 index 33031d7..584c4d2 100644
 --- a/src/util.c
