@@ -1,0 +1,67 @@
+diff --git a/configure.in b/configure.in
+index f0fe132..f233ae7 100644
+--- a/configure.in
++++ b/configure.in
+@@ -432,7 +432,7 @@ if test x$use_flac = xtrue; then
+ fi
+ 
+ if test x$use_ffmpeg = xtrue; then
+-  AC_CHECK_HEADERS(avcodec.h,, [
++  AC_CHECK_HEADERS(libavcodec/avcodec.h,, [
+    AC_MSG_ERROR([avcodec.h not found... Must have ffmpeg installed])])
+ dnl  AC_CHECK_LIB(avcodec,avcodec_find_decoder,,echo "Must have libavcodec";exit)
+ 
+diff --git a/src/plugins/ssc-ffmpeg.c b/src/plugins/ssc-ffmpeg.c
+index 0b2b94b..81202e2 100644
+--- a/src/plugins/ssc-ffmpeg.c
++++ b/src/plugins/ssc-ffmpeg.c
+@@ -14,8 +14,8 @@
+ #include <stdlib.h>
+ #include <string.h>
+ 
+-#include <avcodec.h>
+-#include <avformat.h>
++#include <libavcodec/avcodec.h>
++#include <libavformat/avformat.h>
+ 
+ #include "ff-plugins.h"
+ 
+@@ -355,7 +355,7 @@ int _ssc_ffmpeg_read_frame(void *vp, char *buffer, int len) {
+             if(!handle->file_bytes_read)
+                 return 0;
+             
+-            len1 = avcodec_decode_audio(handle->pCodecCtx,(short*)buffer,
++            len1 = avcodec_decode_audio2(handle->pCodecCtx,(short*)buffer,
+                                         &out_size,
+                                         (uint8_t*)handle->file_buffer_ptr,
+                                         handle->file_bytes_read);
+@@ -380,7 +380,7 @@ int _ssc_ffmpeg_read_frame(void *vp, char *buffer, int len) {
+ 
+     while(1) {
+         while(handle->packet_size > 0) {
+-            len1=avcodec_decode_audio(handle->pCodecCtx,
++            len1=avcodec_decode_audio2(handle->pCodecCtx,
+                                       (int16_t*)buffer,
+                                       &data_size,
+                                       handle->packet_data,
+diff --git a/src/util.c b/src/util.c
+index 33031d7..584c4d2 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -700,15 +700,7 @@ char *util_aasprintf(char *string, char *fmt, ...) {
+  * @returns TRUE on success
+  */
+ 
+-#ifdef HAVE_VA_COPY
+-# define VA_COPY(a,b) va_copy((a),(b))
+-#else
+-# ifdef HAVE___VA_COPY
+-#  define VA_COPY(a,b) __va_copy((a),(b))
+-# else
+-#  define VA_COPY(a,b) memcpy((&a),(&b),sizeof(b))
+-# endif
+-#endif
++#define VA_COPY(a,b) va_copy((a),(b))
+ 
+ char *util_vasprintf(char *fmt, va_list ap) {
+     char *outbuf;
