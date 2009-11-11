@@ -44,7 +44,8 @@ DEPEND="app-admin/php-toolkit
 	pcre? ( >=dev-libs/libpcre-7.8 )
 	xml? ( >=dev-libs/libxml2-2.7.2-r2 )
 	xmlrpc? ( >=dev-libs/libxml2-2.7.2-r2 virtual/libiconv )
-	suhosin? ( >=dev-php5/suhosin-0.9.29 )"
+	suhosin? ( >=dev-php5/suhosin-0.9.29 )
+	fpm? ( >=dev-libs/libevent-1.4.0 )"
 
 RDEPEND="${DEPEND}"
 if [[ -n "${KOLAB_PATCH}" ]] ; then
