@@ -38,6 +38,7 @@ RDEPEND="kerberos? ( virtual/krb5 )
 	ssl? ( >=dev-libs/openssl-0.9.6-r1 )
 	zlib? ( >=sys-libs/zlib-1.1.3 )
 	>=app-admin/eselect-postgresql-0.3
+	virtual/libintl
 	!dev-db/postgresql-libs
 	!dev-db/postgresql-client
 	!dev-db/libpq
@@ -67,11 +68,10 @@ src_prepare() {
 src_configure() {
 	econf --prefix=/usr/$(get_libdir)/postgresql-${SLOT} \
 		--datadir=/usr/share/postgresql-${SLOT} \
+		--docdir=/usr/share/doc/postgresql-${SLOT} \
 		--sysconfdir=/etc/postgresql-${SLOT} \
 		--includedir=/usr/include/postgresql-${SLOT} \
-		--localedir=/usr/share/postgresql-${SLOT}/locale \
 		--mandir=/usr/share/postgresql-${SLOT}/man \
-		--docdir=/usr/share/doc/postgresql-${PV} \
 		--enable-depend \
 		--without-tcl \
 		--without-perl \
@@ -105,6 +105,7 @@ src_install() {
 	dodir /usr/share/postgresql-${SLOT}/man/man1
 	tar -zxf "${S}/doc/man.tar.gz" -C "${D}"/usr/share/postgresql-${SLOT}/man man1/{ecpg,pg_config}.1
 
+	rm -r "${D}/usr/share/doc/postgresql-${SLOT}/html"
 	rm "${D}/usr/share/postgresql-${SLOT}/man/man1"/{initdb,ipcclean,pg_controldata,pg_ctl,pg_resetxlog,pg_restore,postgres,postmaster}.1
 	dodoc README HISTORY doc/{README.*,TODO,bug.template}
 

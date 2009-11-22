@@ -1,4 +1,4 @@
-From d8531886ff164715a9c16a46cdde734d2e64d731 Mon Sep 17 00:00:00 2001
+From b7118d17b244ce7e3fe77c8f793d31c51b754178 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Tue, 6 Jan 2009 14:43:14 -0500
 Subject: [PATCH 1/2] [gentoo] Common patch
@@ -11,14 +11,14 @@ Subject: [PATCH 1/2] [gentoo] Common patch
  4 files changed, 32 insertions(+), 4 deletions(-)
 
 diff --git a/configure.in b/configure.in
-index 045b6f0..0f7a7a9 100644
+index 612e843..62bc303 100644
 --- a/configure.in
 +++ b/configure.in
 @@ -19,10 +19,6 @@ m4_pattern_forbid(^PGAC_)dnl to catch undefined macros
  
- AC_INIT([PostgreSQL], [8.4.0], [pgsql-bugs@postgresql.org])
+ AC_INIT([PostgreSQL], [8.5devel], [pgsql-bugs@postgresql.org])
  
--m4_if(m4_defn([m4_PACKAGE_VERSION]), [2.61], [], [m4_fatal([Autoconf version 2.61 is required.
+-m4_if(m4_defn([m4_PACKAGE_VERSION]), [2.63], [], [m4_fatal([Autoconf version 2.63 is required.
 -Untested combinations of 'autoconf' and PostgreSQL versions are not
 -recommended.  You can remove the check from 'configure.in' but it is then
 -your responsibility whether the result works or not.])])
@@ -26,10 +26,10 @@ index 045b6f0..0f7a7a9 100644
  AC_CONFIG_SRCDIR([src/backend/access/common/heaptuple.c])
  AC_CONFIG_AUX_DIR(config)
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index 6244e8a..6a3784b 100644
+index ca7f499..46a449f 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
-@@ -133,6 +133,7 @@ includedir := $(shell $(PG_CONFIG) --includedir)
+@@ -132,6 +132,7 @@ includedir := $(shell $(PG_CONFIG) --includedir)
  pkgincludedir := $(shell $(PG_CONFIG) --pkgincludedir)
  mandir := $(shell $(PG_CONFIG) --mandir)
  docdir := $(shell $(PG_CONFIG) --docdir)
@@ -38,7 +38,7 @@ index 6244e8a..6a3784b 100644
  
  endif # PGXS
 diff --git a/src/include/storage/s_lock.h b/src/include/storage/s_lock.h
-index dceceba..7697483 100644
+index 48208b9..c374e80 100644
 --- a/src/include/storage/s_lock.h
 +++ b/src/include/storage/s_lock.h
 @@ -298,6 +298,29 @@ tas(volatile slock_t *lock)
@@ -92,5 +92,5 @@ index debad62..36aff56 100644
  BE_DLLLIBS= -bundle_loader $(top_builddir)/src/backend/postgres
  endif
 -- 
-1.6.3.3
+1.6.5.3
 

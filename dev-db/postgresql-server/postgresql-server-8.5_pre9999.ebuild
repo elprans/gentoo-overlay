@@ -77,6 +77,7 @@ src_configure() {
 		$(use_with uuid ossp-uuid) \
 		--with-system-tzdata="/usr/share/zoneinfo" \
 		--with-includes="/usr/include/postgresql-${SLOT}/" \
+		--with-libraries="/usr/$(get_libdir)/postgresql-${SLOT}/$(get_libdir)" \
 		"$(built_with_use ~dev-db/postgresql-base-${PV} nls && use_enable nls nls "$(wanted_languages)")" \
 		|| die "configure failed"
 }
@@ -84,10 +85,7 @@ src_configure() {
 src_compile() {
 	for bd in . contrib $(use xml && echo contrib/xml2); do
 		PATH="/usr/$(get_libdir)/postgresql-${SLOT}/bin:${PATH}" \
-			emake -C $bd -j1 LD="$(tc-getLD) $(get_abi_LDFLAGS)" \
-				PGXS=$(/usr/$(get_libdir)/postgresql-${SLOT}/bin/pg_config --pgxs) \
-				PGXS_IN_SERVER=1 PGXS_WITH_SERVER="${S}/src/backend/postgres" \
-				NO_PGXS=0 USE_PGXS=1 || die "emake in $bd failed"
+			emake -C $bd -j1 LD="$(tc-getLD) $(get_abi_LDFLAGS)" || die "emake in $bd failed"
 	done
 }
 
@@ -100,13 +98,10 @@ src_install() {
 
 	for bd in . contrib $(use xml && echo contrib/xml2) ; do
 		PATH="/usr/$(get_libdir)/postgresql-${SLOT}/bin:${PATH}" \
-			emake install -C $bd -j1 DESTDIR="${D}" \
-				PGXS_IN_SERVER=1 PGXS_WITH_SERVER="${S}/src/backend/postgres" \
-				PGXS=$(/usr/$(get_libdir)/postgresql-${SLOT}/bin/pg_config --pgxs) \
-				NO_PGXS=0 USE_PGXS=1 docdir=/usr/share/doc/${PF} || die "emake install in $bd failed"
+			emake install -C $bd -j1 DESTDIR="${D}" || die "emake install in $bd failed"
 	done
 
-	rm -rf "${D}/usr/share/postgresql-${SLOT}/man/man7/" "${D}/usr/share/doc/${PF}/html"
+	rm -rf "${D}/usr/share/postgresql-${SLOT}/man/man7/" "${D}/usr/share/doc/postgresql-${SLOT}/html"
 	rm "${D}"/usr/share/postgresql-${SLOT}/man/man1/{clusterdb,create{db,lang,user},drop{db,lang,user},ecpg,pg_{config,dump,dumpall,restore},psql,reindexdb,vacuumdb}.1
 
 	dodoc README HISTORY doc/{README.*,TODO,bug.template}
@@ -238,9 +233,7 @@ pkg_config() {
 src_test() {
 	einfo ">>> Test phase [check]: ${CATEGORY}/${PF}"
 	PATH="/usr/$(get_libdir)/postgresql-${SLOT}/bin:${PATH}" \
-		emake -j1 check \
-			PGXS=$(/usr/$(get_libdir)/postgresql-${SLOT}/bin/pg_config --pgxs) \
-			NO_PGXS=0 USE_PGXS=1 SLOT=${SLOT} || die "Make check failed. See above for details."
+		emake -j1 check  || die "Make check failed. See above for details."
 
 	einfo "Yes, there are other tests which could be run."
 	einfo "... and no, we don't plan to add/support them."
