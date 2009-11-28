@@ -4,9 +4,9 @@
 
 EAPI="2"
 
-inherit kde4-base subversion
+inherit kde4-base
 
-ESVN_REPO_URI="svn://anonsvn.kde.org/home/kde/trunk/playground/base/plasma/applets/networkmanager@1044410"
+SRC_URI="http://gentoo.coderazor.org/${P}.tar.bz2"
 
 DESCRIPTION="KDE frontend for NetworkManager"
 HOMEPAGE="http://kde.org/"
