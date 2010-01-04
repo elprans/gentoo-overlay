@@ -1,0 +1,13 @@
+diff -ur exiv2-0.19/src/value.cpp exiv2-0.19-patched/src/value.cpp
+--- exiv2-0.19/src/value.cpp	2009-11-27 00:59:23.000000000 -0500
++++ exiv2-0.19-patched/src/value.cpp	2010-01-03 09:53:37.000000000 -0500
+@@ -160,7 +160,7 @@
+     DataBuf Value::dataArea() const
+     {
+         return DataBuf(0, 0);
+-    };
++    }
+ 
+     DataValue::DataValue(TypeId typeId) : Value(typeId)
+     {
+Only in exiv2-0.19/xmpsdk/src/.libs: libxmpsdk.la
