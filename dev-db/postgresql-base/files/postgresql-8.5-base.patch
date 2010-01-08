@@ -1,15 +1,15 @@
-From 5f21f0d0a3f4d9b0d9f625253e60e5f917290303 Mon Sep 17 00:00:00 2001
+From fb4e380db01ea8ef69f85a7e984d1f6b80071d2b Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Tue, 6 Jan 2009 14:33:27 -0500
-Subject: [PATCH] [gentoo] Base patch
+Subject: [PATCH 2/2] [gentoo] Base patch
 
 ---
  contrib/Makefile               |   38 --------------------------------------
  src/Makefile                   |    5 -----
- src/backend/Makefile           |   23 +++--------------------
+ src/backend/Makefile           |   18 +-----------------
  src/bin/Makefile               |    4 ++--
  src/include/pg_config_manual.h |    2 +-
- 5 files changed, 6 insertions(+), 66 deletions(-)
+ 5 files changed, 4 insertions(+), 63 deletions(-)
 
 diff --git a/contrib/Makefile b/contrib/Makefile
 index 19d5c1b..c95b68f 100644
@@ -86,29 +86,10 @@ index 7aedee2..ebce372 100644
  install: install-local
  
 diff --git a/src/backend/Makefile b/src/backend/Makefile
-index 34b4a8b..242b3f1 100644
+index ad03a67..93851e5 100644
 --- a/src/backend/Makefile
 +++ b/src/backend/Makefile
-@@ -42,7 +42,7 @@ LIBS := $(filter-out -lz -lreadline -ledit -ltermcap -lncurses -lcurses, $(LIBS)
- 
- ##########################################################################
- 
--all: submake-libpgport postgres $(POSTGRES_IMP)
-+all: someheaders
- 
- ifneq ($(PORTNAME), cygwin)
- ifneq ($(PORTNAME), win32)
-@@ -111,8 +111,7 @@ endif
- endif # aix
- 
- # Update the commonly used headers before building the subdirectories
--$(SUBDIRS:%=%-recursive): $(top_builddir)/src/include/parser/gram.h $(top_builddir)/src/include/utils/fmgroids.h $(top_builddir)/src/include/utils/probes.h
--
-+someheaders $(DIRS:%=%-recursive): $(top_builddir)/src/include/parser/gram.h $(top_builddir)/src/include/utils/fmgroids.h $(top_builddir)/src/include/utils/probes.h
- 
- # The postgres.o target is needed by the rule in Makefile.global that
- # creates the exports file when MAKE_EXPORTS = true.
-@@ -165,23 +164,7 @@ distprep:
+@@ -188,23 +188,7 @@ distprep:
  
  ##########################################################################
  
@@ -134,7 +115,7 @@ index 34b4a8b..242b3f1 100644
  install-bin: postgres $(POSTGRES_IMP) installdirs
  	$(INSTALL_PROGRAM) postgres$(X) '$(DESTDIR)$(bindir)/postgres$(X)'
 diff --git a/src/bin/Makefile b/src/bin/Makefile
-index a01d1f9..3ad244d 100644
+index 5b5b1ba..c46f118 100644
 --- a/src/bin/Makefile
 +++ b/src/bin/Makefile
 @@ -13,8 +13,8 @@ subdir = src/bin
@@ -149,10 +130,10 @@ index a01d1f9..3ad244d 100644
  SUBDIRS+=pgevent
  endif
 diff --git a/src/include/pg_config_manual.h b/src/include/pg_config_manual.h
-index f034be9..c342204 100644
+index c5c1228..41dee52 100644
 --- a/src/include/pg_config_manual.h
 +++ b/src/include/pg_config_manual.h
-@@ -146,7 +146,7 @@
+@@ -141,7 +141,7 @@
   * here's where to twiddle it.  You can also override this at runtime
   * with the postmaster's -k switch.
   */
@@ -162,5 +143,5 @@ index f034be9..c342204 100644
  /*
   * The random() function is expected to yield values between 0 and
 -- 
-1.6.5.3
+1.6.5.7
 

@@ -1,7 +1,7 @@
-From 3230339754a0f95e67d02c2ed7f7d22431598cf7 Mon Sep 17 00:00:00 2001
+From 10a6cc9c8167c21428b15b739a33fc4201bf40d7 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Sat, 20 Dec 2008 14:49:38 -0500
-Subject: [PATCH] [gentoo] Server patch
+Subject: [PATCH 2/2] [gentoo] Server patch
 
 ---
  GNUmakefile.in                 |    9 ---------
@@ -166,10 +166,10 @@ index 7aedee2..3befc7d 100644
  install-local: installdirs-local
  	$(INSTALL_DATA) Makefile.global '$(DESTDIR)$(pgxsdir)/$(subdir)/Makefile.global'
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index 46a449f..43a6364 100644
+index d7de6be..70217a0 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
-@@ -397,10 +397,8 @@ endif
+@@ -398,10 +398,8 @@ endif
  
  
  submake-libpq:
@@ -180,7 +180,7 @@ index 46a449f..43a6364 100644
  
  .PHONY: submake-libpq submake-libpgport
  
-@@ -443,6 +441,8 @@ ifdef PROFILE
+@@ -444,6 +442,8 @@ ifdef PROFILE
     LDFLAGS += $(PROFILE)
  endif
  
@@ -190,7 +190,7 @@ index 46a449f..43a6364 100644
  ##########################################################################
  #
 diff --git a/src/bin/Makefile b/src/bin/Makefile
-index a01d1f9..29c4a18 100644
+index 5b5b1ba..2cc102a 100644
 --- a/src/bin/Makefile
 +++ b/src/bin/Makefile
 @@ -13,8 +13,7 @@ subdir = src/bin
@@ -204,7 +204,7 @@ index a01d1f9..29c4a18 100644
  SUBDIRS+=pgevent
  endif
 diff --git a/src/bin/initdb/Makefile b/src/bin/initdb/Makefile
-index fc33cbf..406347b 100644
+index 8181a6a..38b2723 100644
 --- a/src/bin/initdb/Makefile
 +++ b/src/bin/initdb/Makefile
 @@ -14,7 +14,7 @@ subdir = src/bin/initdb
@@ -217,7 +217,7 @@ index fc33cbf..406347b 100644
  OBJS=	initdb.o encnames.o pqsignal.o $(WIN32RES)
  
 diff --git a/src/bin/pg_ctl/Makefile b/src/bin/pg_ctl/Makefile
-index c753126..650f4ed 100644
+index ba56026..d1ecd4b 100644
 --- a/src/bin/pg_ctl/Makefile
 +++ b/src/bin/pg_ctl/Makefile
 @@ -20,7 +20,7 @@ OBJS=	pg_ctl.o $(WIN32RES)
@@ -230,10 +230,10 @@ index c753126..650f4ed 100644
  
  install: all installdirs
 diff --git a/src/include/pg_config_manual.h b/src/include/pg_config_manual.h
-index f034be9..c342204 100644
+index c5c1228..41dee52 100644
 --- a/src/include/pg_config_manual.h
 +++ b/src/include/pg_config_manual.h
-@@ -146,7 +146,7 @@
+@@ -141,7 +141,7 @@
   * here's where to twiddle it.  You can also override this at runtime
   * with the postmaster's -k switch.
   */
@@ -261,11 +261,11 @@ index d507b94..37a59bf 100644
  installdirs:
  	$(MKDIR_P) '$(DESTDIR)$(libdir)'
 diff --git a/src/test/regress/GNUmakefile b/src/test/regress/GNUmakefile
-index 9c0376e..89a4ff0 100644
+index 98e1e6e..72cb790 100644
 --- a/src/test/regress/GNUmakefile
 +++ b/src/test/regress/GNUmakefile
 @@ -141,7 +141,7 @@ tablespace-setup:
- pg_regress_call = ./pg_regress --inputdir=$(srcdir) --dlpath=. --multibyte=$(MULTIBYTE) --load-language=plpgsql $(NOLOCALE)
+ pg_regress_call = ./pg_regress --inputdir=$(srcdir) --dlpath=. --multibyte=$(MULTIBYTE) $(NOLOCALE)
  
  check: all
 -	$(pg_regress_call) --temp-install=./tmp_check --top-builddir=$(top_builddir) --schedule=$(srcdir)/parallel_schedule $(MAXCONNOPT) $(TEMP_CONF)
@@ -274,10 +274,10 @@ index 9c0376e..89a4ff0 100644
  installcheck: all
  	$(pg_regress_call) --psqldir=$(PSQLDIR) --schedule=$(srcdir)/serial_schedule
 diff --git a/src/test/regress/pg_regress.c b/src/test/regress/pg_regress.c
-index 7258b93..0722351 100644
+index 991bb17..04086ee 100644
 --- a/src/test/regress/pg_regress.c
 +++ b/src/test/regress/pg_regress.c
-@@ -790,9 +790,6 @@ initialize_environment(void)
+@@ -800,9 +800,6 @@ initialize_environment(void)
  		sprintf(tmp, "%s/install/%s", temp_install, datadir);
  		datadir = tmp;
  
@@ -288,5 +288,5 @@ index 7258b93..0722351 100644
  		 * Set up shared library paths to include the temp install.
  		 *
 -- 
-1.6.5.3
+1.6.5.7
 

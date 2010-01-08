@@ -68,7 +68,7 @@ src_configure() {
 
 	# eval is needed to get along with pg_config quotation of space-rich entities.
 	eval econf "$(/usr/$(get_libdir)/postgresql-${SLOT}/bin/pg_config --configure)" \
-		--disable-thread-safety \
+		--enable-thread-safety \
 		$(use_with perl) \
 		$(use_with python) \
 		$(use_with tcl) \
@@ -104,7 +104,7 @@ src_install() {
 	rm -rf "${D}/usr/share/postgresql-${SLOT}/man/man7/" "${D}/usr/share/doc/postgresql-${SLOT}/html"
 	rm "${D}"/usr/share/postgresql-${SLOT}/man/man1/{clusterdb,create{db,lang,user},drop{db,lang,user},ecpg,pg_{config,dump,dumpall,restore},psql,reindexdb,vacuumdb}.1
 
-	dodoc README HISTORY doc/{README.*,TODO,bug.template}
+	dodoc README doc/{README.*,TODO,bug.template}
 
 	dodir /etc/eselect/postgresql/slots/${SLOT}
 	cat >"${D}/etc/eselect/postgresql/slots/${SLOT}/service" <<-__EOF__

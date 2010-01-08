@@ -84,7 +84,6 @@ src_configure() {
 		$(use_enable pg-intdatetime integer-datetimes ) \
 		$(use_with ssl openssl) \
 		$(use_enable threads thread-safety) \
-		$(use_enable threads thread-safety-force) \
 		$(use_with zlib) \
 		$(use_with ldap) \
 		${myconf} \
@@ -107,7 +106,7 @@ src_install() {
 
 	rm -r "${D}/usr/share/doc/postgresql-${SLOT}/html"
 	rm "${D}/usr/share/postgresql-${SLOT}/man/man1"/{initdb,ipcclean,pg_controldata,pg_ctl,pg_resetxlog,pg_restore,postgres,postmaster}.1
-	dodoc README HISTORY doc/{README.*,TODO,bug.template}
+	dodoc README doc/{README.*,TODO,bug.template}
 
 	cd "${S}/contrib"
 	emake DESTDIR="${D}" install || die "emake install failed"
