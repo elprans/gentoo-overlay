@@ -23,7 +23,7 @@ IUSE_LINGUAS="
 	linguas_hr linguas_hu linguas_it linguas_ko linguas_nb linguas_pl
 	linguas_pt_BR linguas_ro linguas_ru linguas_sk linguas_sl linguas_sv
 	linguas_tr linguas_zh_CN linguas_zh_TW"
-IUSE="doc kerberos nls pam pg-intdatetime readline ssl threads zlib ldap ${IUSE_LINGUAS}"
+IUSE="doc kerberos nls pam readline ssl threads zlib ldap pg_legacytimestamp ${IUSE_LINGUAS}"
 RESTRICT="test"
 
 wanted_languages() {
@@ -81,7 +81,7 @@ src_configure() {
 		$(use_with kerberos gssapi) \
 		"$(use_enable nls nls "$(wanted_languages)")" \
 		$(use_with pam) \
-		$(use_enable pg-intdatetime integer-datetimes ) \
+		$(use_enable !pg_legacytimestamp integer-datetimes ) \
 		$(use_with ssl openssl) \
 		$(use_enable threads thread-safety) \
 		$(use_with zlib) \
