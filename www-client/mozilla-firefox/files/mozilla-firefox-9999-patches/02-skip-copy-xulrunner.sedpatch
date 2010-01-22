@@ -1,6 +1,0 @@
-#@@config/rules.mk
-
-/ifndef MOZILLA_DIR/ i\
-ifdef LIBXUL_SDK\
-SKIP_COPY_XULRUNNER=1\
-endif
