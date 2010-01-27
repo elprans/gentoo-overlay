@@ -7,11 +7,11 @@ SUPPORT_PYTHON_ABIS="1"
 NEED_PYTHON="3.0"
 
 EGIT_REPO_URI="git://github.com/jwp/py-postgresql.git"
-EGIT_BRANCH="v0.9"
+EGIT_BRANCH="v1.0"
 
 inherit distutils git
 
-KEYWORDS="amd64 ~ia64 ~ppc ~ppc64 x86"
+KEYWORDS="~amd64 ~ia64 ~ppc ~ppc64 ~x86"
 
 DESCRIPTION="PostgreSQL connector for Python"
 HOMEPAGE="http://python.projects.postgresql.org/"

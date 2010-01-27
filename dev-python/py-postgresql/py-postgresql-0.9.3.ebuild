@@ -6,7 +6,7 @@ EAPI="2"
 SUPPORT_PYTHON_ABIS="1"
 NEED_PYTHON="3.0"
 
-inherit distutils
+inherit distutils versionator
 
 KEYWORDS="amd64 ~ia64 ~ppc ~ppc64 x86"
 
@@ -21,3 +21,7 @@ DEPEND="dev-db/postgresql-base"
 RDEPEND="${DEPEND}"
 
 RESTRICT_PYTHON_ABIS="2*"
+
+src_prepare() {
+	epatch "${FILESDIR}/${PN}-$(get_version_component_range 1-2)-UUID-typio.patch"
+}
