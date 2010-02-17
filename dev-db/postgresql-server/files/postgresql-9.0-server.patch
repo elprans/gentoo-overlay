@@ -1,4 +1,4 @@
-From 10a6cc9c8167c21428b15b739a33fc4201bf40d7 Mon Sep 17 00:00:00 2001
+From ca224d48441fca1eea70bb343ac9421b271c3513 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Sat, 20 Dec 2008 14:49:38 -0500
 Subject: [PATCH 2/2] [gentoo] Server patch
@@ -9,7 +9,7 @@ Subject: [PATCH 2/2] [gentoo] Server patch
  contrib/adminpack/Makefile     |    2 +-
  contrib/uuid-ossp/Makefile     |    4 +++-
  contrib/xml2/Makefile          |    3 ++-
- src/Makefile                   |    5 +----
+ src/Makefile                   |    6 +-----
  src/Makefile.global.in         |    4 ++--
  src/bin/Makefile               |    3 +--
  src/bin/initdb/Makefile        |    2 +-
@@ -18,13 +18,13 @@ Subject: [PATCH 2/2] [gentoo] Server patch
  src/port/Makefile              |    5 ++---
  src/test/regress/GNUmakefile   |    2 +-
  src/test/regress/pg_regress.c  |    3 ---
- 14 files changed, 17 insertions(+), 34 deletions(-)
+ 14 files changed, 17 insertions(+), 35 deletions(-)
 
 diff --git a/GNUmakefile.in b/GNUmakefile.in
-index 8841539..731e58a 100644
+index 1380901..c4befbb 100644
 --- a/GNUmakefile.in
 +++ b/GNUmakefile.in
-@@ -9,27 +9,20 @@ top_builddir = .
+@@ -9,9 +9,7 @@ top_builddir = .
  include $(top_builddir)/src/Makefile.global
  
  all:
@@ -33,7 +33,8 @@ index 8841539..731e58a 100644
 -	$(MAKE) -C config all
  	@echo "All of PostgreSQL successfully made. Ready to install."
  
- html man:
+ world:
+@@ -25,9 +23,7 @@ html man:
  	$(MAKE) -C doc $@
  
  install:
@@ -41,6 +42,10 @@ index 8841539..731e58a 100644
  	$(MAKE) -C src $@
 -	$(MAKE) -C config $@
  	@echo "PostgreSQL installation complete."
+ 
+ install-world:
+@@ -38,12 +34,9 @@ install-world:
+ 	@echo "PostgreSQL and contrib installation complete."
  
  installdirs uninstall coverage:
 -	$(MAKE) -C doc $@
@@ -52,7 +57,7 @@ index 8841539..731e58a 100644
  	$(MAKE) -C src $@
  	$(MAKE) -C config $@
  	$(MAKE) -C contrib $@
-@@ -37,7 +30,6 @@ distprep:
+@@ -51,7 +44,6 @@ distprep:
  # clean, distclean, etc should apply to contrib too, even though
  # it's not built by default
  clean:
@@ -60,7 +65,7 @@ index 8841539..731e58a 100644
  	$(MAKE) -C contrib $@
  	$(MAKE) -C src $@
  	$(MAKE) -C config $@
-@@ -47,7 +39,6 @@ clean:
+@@ -61,7 +53,6 @@ clean:
  # Important: distclean `src' last, otherwise Makefile.global
  # will be gone too soon.
  distclean maintainer-clean:
@@ -146,15 +151,16 @@ index ea8636a..2e4e131 100644
  DATA_built = pgxml.sql
  DATA = uninstall_pgxml.sql
 diff --git a/src/Makefile b/src/Makefile
-index 7aedee2..3befc7d 100644
+index f48bd77..73f2fc5 100644
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -19,14 +19,11 @@ all install installdirs uninstall distprep:
+@@ -19,15 +19,11 @@ all install installdirs uninstall distprep:
  	$(MAKE) -C backend $@
  	$(MAKE) -C backend/utils/mb/conversion_procs $@
  	$(MAKE) -C backend/snowball $@
 -	$(MAKE) -C include $@
 -	$(MAKE) -C interfaces $@
+-	$(MAKE) -C backend/replication/libpqwalreceiver $@
  	$(MAKE) -C bin $@
  	$(MAKE) -C pl $@
 -	$(MAKE) -C makefiles $@
@@ -288,5 +294,5 @@ index 991bb17..04086ee 100644
  		 * Set up shared library paths to include the temp install.
  		 *
 -- 
-1.6.5.7
+1.6.5.8
 

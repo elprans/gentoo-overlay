@@ -1,4 +1,4 @@
-From fb4e380db01ea8ef69f85a7e984d1f6b80071d2b Mon Sep 17 00:00:00 2001
+From f24e6aefbb972337d13cf8eaac6f8ae6a77b00db Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Tue, 6 Jan 2009 14:33:27 -0500
 Subject: [PATCH 2/2] [gentoo] Base patch
@@ -65,10 +65,10 @@ index 19d5c1b..c95b68f 100644
  SUBDIRS += uuid-ossp
  endif
 diff --git a/src/Makefile b/src/Makefile
-index 7aedee2..ebce372 100644
+index f48bd77..c3ff0d5 100644
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -15,16 +15,11 @@ include Makefile.global
+@@ -15,17 +15,12 @@ include Makefile.global
  
  all install installdirs uninstall distprep:
  	$(MAKE) -C port $@
@@ -78,6 +78,7 @@ index 7aedee2..ebce372 100644
 -	$(MAKE) -C backend/snowball $@
  	$(MAKE) -C include $@
  	$(MAKE) -C interfaces $@
+ 	$(MAKE) -C backend/replication/libpqwalreceiver $@
  	$(MAKE) -C bin $@
 -	$(MAKE) -C pl $@
  	$(MAKE) -C makefiles $@
@@ -86,7 +87,7 @@ index 7aedee2..ebce372 100644
  install: install-local
  
 diff --git a/src/backend/Makefile b/src/backend/Makefile
-index ad03a67..93851e5 100644
+index 218544e..40a0cf8 100644
 --- a/src/backend/Makefile
 +++ b/src/backend/Makefile
 @@ -188,23 +188,7 @@ distprep:
@@ -143,5 +144,5 @@ index c5c1228..41dee52 100644
  /*
   * The random() function is expected to yield values between 0 and
 -- 
-1.6.5.7
+1.6.5.8
 
