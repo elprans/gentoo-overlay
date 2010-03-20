@@ -1,29 +1,34 @@
-# Copyright 1999-2008 Gentoo Foundation
+# Copyright 1999-2010 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/www-servers/nginx/nginx-0.6.32.ebuild,v 1.2 2008/10/25 17:36:52 voxus Exp $
+# $Header: /var/cvsroot/gentoo-x86/www-servers/nginx/nginx-0.7.64.ebuild,v 1.4 2010/02/01 19:40:59 maekke Exp $
 
-inherit eutils ssl-cert
+inherit eutils ssl-cert toolchain-funcs
 
 DESCRIPTION="Robust, small and high performance http and reverse proxy server"
 
 HOMEPAGE="http://nginx.net/"
+SRC_URI="http://sysoev.ru/nginx/${P}.tar.gz uploadprogress? ( http://wiki.nginx.org/images/8/83/Nginx_uploadprogress_module-0.5.tar.gz )"
 LICENSE="BSD"
 SLOT="0"
-KEYWORDS="amd64 ~ppc x86"
-IUSE="addition debug fastcgi flv imap pcre perl ssl status sub uploadprogress webdav zlib"
-SRC_URI="http://sysoev.ru/nginx/${P}.tar.gz uploadprogress? ( http://wiki.nginx.org/images/8/83/Nginx_uploadprogress_module-0.5.tar.gz )"
+KEYWORDS="amd64 ~ppc x86 ~x86-fbsd"
+IUSE="addition debug fastcgi flv imap pcre perl random-index ssl status sub uploadprogress webdav zlib"
 
 DEPEND="dev-lang/perl
+	dev-libs/openssl
 	pcre? ( >=dev-libs/libpcre-4.2 )
-	ssl? ( dev-libs/openssl )
 	zlib? ( sys-libs/zlib )
 	perl? ( >=dev-lang/perl-5.8 )"
 
 pkg_setup() {
 	ebegin "Creating nginx user and group"
-	enewgroup nginx
-	enewuser nginx -1 -1 /dev/null nginx
+	enewgroup ${PN}
+	enewuser ${PN} -1 -1 -1 ${PN}
 	eend ${?}
+}
+
+src_unpack() {
+	unpack ${A}
+	sed -i 's/ make/ \\$(MAKE)/' "${S}"/auto/lib/perl/make || die
 }
 
 src_compile() {
@@ -54,10 +59,14 @@ src_compile() {
 	use status	&& myconf="${myconf} --with-http_stub_status_module"
 	use webdav	&& myconf="${myconf} --with-http_dav_module"
 	use sub		&& myconf="${myconf} --with-http_sub_module"
+	use random-index	&& myconf="${myconf} --with-http_random_index_module"
 	use uploadprogress && myconf="${myconf} --add-module=${WORKDIR}/nginx_uploadprogress_module"
 
+	tc-export CC
 	./configure \
 		--prefix=/usr \
+		--with-cc-opt="-I${ROOT}/usr/include" \
+		--with-ld-opt="-L${ROOT}/usr/lib" \
 		--conf-path=/etc/${PN}/${PN}.conf \
 		--http-log-path=/var/log/${PN}/access_log \
 		--error-log-path=/var/log/${PN}/error_log \
@@ -65,11 +74,9 @@ src_compile() {
 		--http-client-body-temp-path=/var/tmp/${PN}/client \
 		--http-proxy-temp-path=/var/tmp/${PN}/proxy \
 		--http-fastcgi-temp-path=/var/tmp/${PN}/fastcgi \
-		--with-md5-asm --with-md5=/usr/include \
-		--with-sha1-asm --with-sha1=/usr/include \
 		${myconf} || die "configure failed"
 
-	emake || die "failed to compile"
+	emake LINK="${CC} ${LDFLAGS}" OTHERLDFLAGS="${LDFLAGS}" || die "failed to compile"
 }
 
 src_install() {
@@ -81,11 +88,11 @@ src_install() {
 
 	cp "${FILESDIR}"/nginx.conf-r4 conf/nginx.conf
 
-	dodir "${ROOT}"/etc/${PN}
-	insinto "${ROOT}"/etc/${PN}
+	dodir /etc/${PN}
+	insinto /etc/${PN}
 	doins conf/*
 
-	dodoc CHANGES{,.ru} LICENSE README
+	dodoc CHANGES{,.ru} README
 
 	use perl && {
 		cd "${S}"/objs/src/http/modules/perl/
@@ -96,10 +103,8 @@ src_install() {
 pkg_postinst() {
 	use ssl && {
 		if [ ! -f "${ROOT}"/etc/ssl/${PN}/${PN}.key ]; then
-			dodir "${ROOT}"/etc/ssl/${PN}
-			insinto "${ROOT}"etc/ssl/${PN}/
-			insopts -m0644 -o nginx -g nginx
-			install_cert /etc/ssl/nginx/nginx
+			install_cert /etc/ssl/${PN}/${PN}
+			chown ${PN}:${PN} "${ROOT}"/etc/ssl/${PN}/${PN}.{crt,csr,key,pem}
 		fi
 	}
 }
