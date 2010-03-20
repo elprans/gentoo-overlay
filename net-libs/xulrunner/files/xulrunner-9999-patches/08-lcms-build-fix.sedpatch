@@ -1,5 +1,0 @@
-#@@gfx/thebes/src/gfxPlatform.cpp
-
-/#include "lcms.h"/ a\
-\#define INTENT_MIN INTENT_PERCEPTUAL\
-\#define INTENT_MAX INTENT_ABSOLUTE_COLORIMETRIC
