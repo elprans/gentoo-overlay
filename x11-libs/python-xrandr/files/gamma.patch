@@ -1,0 +1,191 @@
+=== modified file 'xrandr/__init__.py'
+--- xrandr/__init__.py	2007-12-27 00:18:52 +0000
++++ xrandr/__init__.py	2009-08-10 20:17:41 +0000
+@@ -81,17 +81,26 @@
+ RELATION_LEFT_OF = 3
+ RELATION_SAME_AS = 4
+ 
++AnyPropertyType = 0
++
++XA_ATOM = 4
++XA_INTEGER = 19
++
+ from core import Screen, xlib, rr
+ 
+ def get_current_display():
+     """Returns the currently used display"""
+-    display_url = os.getenv("DISPLAY")
++    display_url = os.getenv("DISPLAY", ":0")
+     dpy = xlib.XOpenDisplay(display_url)
+     return dpy
+ 
+ def get_current_screen():
+     """Returns the currently used screen"""
+-    screen = Screen(get_current_display())
++    display = get_current_display()
++    if display:
++        screen = Screen(get_current_display())
++    else:
++        screen = None
+     return screen
+ 
+ def get_screen_of_display(display, count):
+@@ -104,10 +113,12 @@
+        extension or None if the extension is not available"""
+     major = c_int()
+     minor = c_int()
+-    res = core.rr.XRRQueryVersion(get_current_display(),
+-                             byref(major), byref(minor))
+-    if res:
+-        return (major.value, minor.value)
++    display = get_current_display()
++    if display:
++        res = core.rr.XRRQueryVersion(get_current_display(),
++                                      byref(major), byref(minor))
++        if res:
++            return (major.value, minor.value)
+     return None
+ 
+ def has_extension():
+
+=== modified file 'xrandr/core.py'
+--- xrandr/core.py	2007-12-28 19:03:55 +0000
++++ xrandr/core.py	2009-08-10 19:03:21 +0000
+@@ -107,6 +107,15 @@
+         ("modes", POINTER(_XRRModeInfo)),
+         ]
+ 
++class _XRRPropertyInfo(Structure):
++    _fields_ = [
++        ("pending", c_int),
++        ("range", c_int),
++        ("immutable", c_int),
++        ("num_values", c_int),
++        ("values", POINTER(c_long)),
++        ]
++
+ class RRError(Exception):
+     """Base exception class of the module"""
+     pass
+@@ -182,16 +191,20 @@
+         """Frees the internal reference to the output info if the output gets
+            removed"""
+         rr.XRRFreeOutputInfo(self._info)
++
+     def get_physical_width(self):
+         """Returns the display width reported by the connected output device"""
+         return self._info.contents.mm_width
++
+     def get_physical_height(self):
+         """Returns the display height reported by the connected output device"""
+         return self._info.contents.mm_height
++
+     def get_crtc(self):
+         """Returns the xid of the hardware pipe to which the the output is
+            attached. If the output is disabled it will return 0"""
+         return self._info.contents.crtc
++
+     def get_crtcs(self):
+         """Returns the xids of the hardware pipes to which the output could
+            be attached"""
+@@ -344,6 +357,53 @@
+         else:
+             return self._changes != xrandr.CHANGES_NONE
+ 
++    def list_properties(self):
++        """Returns a list of properties defined on the output"""
++        nprop = c_int()
++
++        lop = rr.XRRListOutputProperties
++        lop.restype = POINTER(c_int)
++
++        prop_atoms = lop(self._screen._display, self.id, byref(nprop))
++
++        qop = rr.XRRQueryOutputProperty
++        qop.restype = POINTER(_XRRPropertyInfo)
++
++        gan = xlib.XGetAtomName
++        gan.restype = c_char_p
++
++        props = {}
++
++        for i in range(nprop.value):
++            if prop_atoms[i]:
++                actual_type = c_int()
++                actual_format = c_int()
++                nitems = c_long()
++                bytes_after = c_long()
++                prop = POINTER(c_ubyte)()
++
++                rr.XRRGetOutputProperty(self._screen._display, self.id, prop_atoms[i],
++                                        0, 100, False, False, xrandr.AnyPropertyType,
++                                        byref(actual_type), byref(actual_format),
++                                        byref(nitems), byref(bytes_after), byref(prop))
++
++                propinfo = qop(self._screen._display, self.id, prop_atoms[i])
++
++                if actual_type.value == xrandr.XA_INTEGER and actual_format.value == 8:
++                    propname = xlib.XGetAtomName(self._screen._display, prop_atoms[i])
++
++                    props[propname] = prop[:nitems.value]
++                elif actual_type.value == xrandr.XA_INTEGER and actual_format.value == 32:
++                    propname = xlib.XGetAtomName(self._screen._display, prop_atoms[i])
++ 
++                    props[propname] = prop[:(nitems.value * 4)]
++                elif actual_type.value == xrandr.XA_ATOM and actual_format.value == 32:
++                    pass
++
++
++        return props
++
++
+ class Crtc:
+     """The crtc is a reference to a hardware pipe that is provided by the
+        graphics device. Outputs can be attached to crtcs"""
+@@ -394,18 +454,18 @@
+         """Turns off all outputs on the crtc"""
+         self.set_config(0, 0, None, [])
+ 
+-    #FIXME: support gamma settings
+-    """
+     def get_gamma_size(self):
+-        return rr.XRRGetCrtcGammaSize(self._screen._display, self.id)
++        return rr.XRRGetCrtcGammaSize(self._screen._display, self.xid)
++
+     def get_gamma(self):
+-        result = rr.XRRGetCrtcGamma(self._screen._display, self.id)
++        result = rr.XRRGetCrtcGamma(self._screen._display, self.xid)
+         return _from_gamma(result)
++
+     def set_gamma(self, gamma):
+         g = _to_gamma(gamma)
+-        rr.XRRSetCrtcGamma(self._screen._display, self.id, g)
++        result = rr.XRRSetCrtcGamma(self._screen._display, self.xid, g)
+         rr.XRRFreeGamma(g)
+-        gamma = property(get_gamma, set_gamma)"""
++        xlib.XSync(self._screen._display, False)
+ 
+     def load_outputs(self):
+         """Get the currently assigned outputs"""
+@@ -907,11 +967,15 @@
+         #FIXME: Physical size is missing
+ 
+ def _to_gamma(gamma):
+-    g = rr.XRRAllocGamma(len(gamma[0]))
+-    for i in range(gamma[0]):
+-        g.red[i] = gamma[0][i]
+-        g.green[i] = gamma[1][i]
+-        g.blue[i] = gamma[2][i]
++    ag = rr.XRRAllocGamma
++    ag.restype = POINTER(_XRRCrtcGamma)
++    g = ag(len(gamma[0]))
++    gp = g.contents
++
++    for i in range(len(gamma[0])):
++        gp.red[i] = gamma[0][i]
++        gp.green[i] = gamma[1][i]
++        gp.blue[i] = gamma[2][i]
+     return g
+ 
+ def _from_gamma(g):
+
