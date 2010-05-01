@@ -1,4 +1,4 @@
-From f24e6aefbb972337d13cf8eaac6f8ae6a77b00db Mon Sep 17 00:00:00 2001
+From 089ca40af7f1c19da3f2741d028432ca4599bf43 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Tue, 6 Jan 2009 14:33:27 -0500
 Subject: [PATCH 2/2] [gentoo] Base patch
@@ -144,5 +144,5 @@ index c5c1228..41dee52 100644
  /*
   * The random() function is expected to yield values between 0 and
 -- 
-1.6.5.8
+1.7.0.4
 

@@ -1,10 +1,10 @@
-From ca224d48441fca1eea70bb343ac9421b271c3513 Mon Sep 17 00:00:00 2001
+From 363034639a6f4e65e3016a87012b80047a88d029 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Sat, 20 Dec 2008 14:49:38 -0500
 Subject: [PATCH 2/2] [gentoo] Server patch
 
 ---
- GNUmakefile.in                 |    9 ---------
+ GNUmakefile.in                 |    7 -------
  contrib/Makefile               |    5 +----
  contrib/adminpack/Makefile     |    2 +-
  contrib/uuid-ossp/Makefile     |    4 +++-
@@ -18,34 +18,30 @@ Subject: [PATCH 2/2] [gentoo] Server patch
  src/port/Makefile              |    5 ++---
  src/test/regress/GNUmakefile   |    2 +-
  src/test/regress/pg_regress.c  |    3 ---
- 14 files changed, 17 insertions(+), 35 deletions(-)
+ 14 files changed, 17 insertions(+), 33 deletions(-)
 
 diff --git a/GNUmakefile.in b/GNUmakefile.in
-index 1380901..c4befbb 100644
+index 51e7a96..fb62993 100644
 --- a/GNUmakefile.in
 +++ b/GNUmakefile.in
-@@ -9,9 +9,7 @@ top_builddir = .
- include $(top_builddir)/src/Makefile.global
+@@ -10,7 +10,6 @@ include $(top_builddir)/src/Makefile.global
  
  all:
--	$(MAKE) -C doc all
  	$(MAKE) -C src all
 -	$(MAKE) -C config all
  	@echo "All of PostgreSQL successfully made. Ready to install."
  
- world:
-@@ -25,9 +23,7 @@ html man:
- 	$(MAKE) -C doc $@
+ docs:
+@@ -28,7 +27,6 @@ html man:
  
  install:
--	$(MAKE) -C doc $@
  	$(MAKE) -C src $@
 -	$(MAKE) -C config $@
  	@echo "PostgreSQL installation complete."
  
- install-world:
-@@ -38,12 +34,9 @@ install-world:
- 	@echo "PostgreSQL and contrib installation complete."
+ install-docs:
+@@ -42,12 +40,9 @@ install-world:
+ 	@echo "PostgreSQL, contrib, and documentation installation complete."
  
  installdirs uninstall coverage:
 -	$(MAKE) -C doc $@
@@ -57,7 +53,7 @@ index 1380901..c4befbb 100644
  	$(MAKE) -C src $@
  	$(MAKE) -C config $@
  	$(MAKE) -C contrib $@
-@@ -51,7 +44,6 @@ distprep:
+@@ -55,7 +50,6 @@ distprep:
  # clean, distclean, etc should apply to contrib too, even though
  # it's not built by default
  clean:
@@ -65,7 +61,7 @@ index 1380901..c4befbb 100644
  	$(MAKE) -C contrib $@
  	$(MAKE) -C src $@
  	$(MAKE) -C config $@
-@@ -61,7 +53,6 @@ clean:
+@@ -65,7 +59,6 @@ clean:
  # Important: distclean `src' last, otherwise Makefile.global
  # will be gone too soon.
  distclean maintainer-clean:
@@ -137,12 +133,12 @@ index 0eb2705..a25706d 100644
  ifdef USE_PGXS
  PG_CONFIG = pg_config
 diff --git a/contrib/xml2/Makefile b/contrib/xml2/Makefile
-index ea8636a..2e4e131 100644
+index a6f6fac..13c80db 100644
 --- a/contrib/xml2/Makefile
 +++ b/contrib/xml2/Makefile
 @@ -4,7 +4,8 @@ MODULE_big = pgxml
  
- OBJS = $(if $(filter -lxslt, $(LIBS)), xpath.o xslt_proc.o, xpath.o)
+ OBJS = xpath.o xslt_proc.o
  
 -SHLIB_LINK += $(filter -lxslt, $(LIBS)) $(filter -lxml2, $(LIBS))
 +PG_CPPFLAGS = $(shell xml2-config --cflags)
@@ -172,7 +168,7 @@ index f48bd77..73f2fc5 100644
  install-local: installdirs-local
  	$(INSTALL_DATA) Makefile.global '$(DESTDIR)$(pgxsdir)/$(subdir)/Makefile.global'
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index d7de6be..70217a0 100644
+index e95fcd4..7d4a583 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
 @@ -398,10 +398,8 @@ endif
@@ -280,7 +276,7 @@ index 98e1e6e..72cb790 100644
  installcheck: all
  	$(pg_regress_call) --psqldir=$(PSQLDIR) --schedule=$(srcdir)/serial_schedule
 diff --git a/src/test/regress/pg_regress.c b/src/test/regress/pg_regress.c
-index 991bb17..04086ee 100644
+index 9de4189..f0532d6 100644
 --- a/src/test/regress/pg_regress.c
 +++ b/src/test/regress/pg_regress.c
 @@ -800,9 +800,6 @@ initialize_environment(void)
@@ -294,5 +290,5 @@ index 991bb17..04086ee 100644
  		 * Set up shared library paths to include the temp install.
  		 *
 -- 
-1.6.5.8
+1.7.0.4
 

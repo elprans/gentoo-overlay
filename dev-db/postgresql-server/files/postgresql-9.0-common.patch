@@ -1,4 +1,4 @@
-From ece8338dcebaf7c7ce68b854bc8cdd6de8e5c858 Mon Sep 17 00:00:00 2001
+From d46e84f7c967c7bab4b2e3cb92168731d9968185 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Tue, 6 Jan 2009 14:43:14 -0500
 Subject: [PATCH 1/2] [gentoo] Common patch
@@ -11,12 +11,12 @@ Subject: [PATCH 1/2] [gentoo] Common patch
  4 files changed, 32 insertions(+), 4 deletions(-)
 
 diff --git a/configure.in b/configure.in
-index bbeea97..956936c 100644
+index b2fa682..5a725d0 100644
 --- a/configure.in
 +++ b/configure.in
 @@ -19,10 +19,6 @@ m4_pattern_forbid(^PGAC_)dnl to catch undefined macros
  
- AC_INIT([PostgreSQL], [9.0devel], [pgsql-bugs@postgresql.org])
+ AC_INIT([PostgreSQL], [9.0beta1], [pgsql-bugs@postgresql.org])
  
 -m4_if(m4_defn([m4_PACKAGE_VERSION]), [2.63], [], [m4_fatal([Autoconf version 2.63 is required.
 -Untested combinations of 'autoconf' and PostgreSQL versions are not
@@ -26,7 +26,7 @@ index bbeea97..956936c 100644
  AC_CONFIG_SRCDIR([src/backend/access/common/heaptuple.c])
  AC_CONFIG_AUX_DIR(config)
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index 7a6e3a9..d7de6be 100644
+index 1c38ac2..e95fcd4 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
 @@ -132,6 +132,7 @@ includedir := $(shell $(PG_CONFIG) --includedir)
@@ -92,5 +92,5 @@ index debad62..36aff56 100644
  BE_DLLLIBS= -bundle_loader $(top_builddir)/src/backend/postgres
  endif
 -- 
-1.6.5.8
+1.7.0.4
 
