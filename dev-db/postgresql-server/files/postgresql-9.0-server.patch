@@ -1,4 +1,4 @@
-From 363034639a6f4e65e3016a87012b80047a88d029 Mon Sep 17 00:00:00 2001
+From d6a393ba588b534aabe66990be1b7b289af40cea Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Sat, 20 Dec 2008 14:49:38 -0500
 Subject: [PATCH 2/2] [gentoo] Server patch
@@ -70,7 +70,7 @@ index 51e7a96..fb62993 100644
  	$(MAKE) -C config $@
  	$(MAKE) -C src $@
 diff --git a/contrib/Makefile b/contrib/Makefile
-index 19d5c1b..240f3e3 100644
+index 8e18785..abf2d66 100644
 --- a/contrib/Makefile
 +++ b/contrib/Makefile
 @@ -23,7 +23,6 @@ SUBDIRS = \
@@ -81,22 +81,21 @@ index 19d5c1b..240f3e3 100644
  		pageinspect	\
  		passwordcheck	\
  		pg_buffercache	\
-@@ -31,17 +30,15 @@ SUBDIRS = \
- 		pg_standby	\
- 		pg_stat_statements \
+@@ -33,7 +32,6 @@ SUBDIRS = \
  		pg_trgm		\
+ 		pg_upgrade	\
+ 		pg_upgrade_support \
 -		pgbench		\
  		pgcrypto	\
  		pgrowlocks	\
  		pgstattuple	\
- 		seg		\
- 		spi		\
+@@ -42,8 +40,7 @@ SUBDIRS = \
  		tablefunc	\
--		test_parser	\
+ 		test_parser	\
  		tsearch2	\
- 		unaccent	\
+-		unaccent	\
 -		vacuumlo
-+		test_parser
++		unaccent
  
  ifeq ($(with_openssl),yes)
  SUBDIRS += sslinfo
@@ -168,10 +167,10 @@ index f48bd77..73f2fc5 100644
  install-local: installdirs-local
  	$(INSTALL_DATA) Makefile.global '$(DESTDIR)$(pgxsdir)/$(subdir)/Makefile.global'
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index e95fcd4..7d4a583 100644
+index 5936922..f9c7ed0 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
-@@ -398,10 +398,8 @@ endif
+@@ -400,10 +400,8 @@ endif
  
  
  submake-libpq:
@@ -182,7 +181,7 @@ index e95fcd4..7d4a583 100644
  
  .PHONY: submake-libpq submake-libpgport
  
-@@ -444,6 +442,8 @@ ifdef PROFILE
+@@ -446,6 +444,8 @@ ifdef PROFILE
     LDFLAGS += $(PROFILE)
  endif
  
@@ -206,10 +205,10 @@ index 5b5b1ba..2cc102a 100644
  SUBDIRS+=pgevent
  endif
 diff --git a/src/bin/initdb/Makefile b/src/bin/initdb/Makefile
-index 8181a6a..38b2723 100644
+index 8f608db..f22449c 100644
 --- a/src/bin/initdb/Makefile
 +++ b/src/bin/initdb/Makefile
-@@ -14,7 +14,7 @@ subdir = src/bin/initdb
+@@ -16,7 +16,7 @@ subdir = src/bin/initdb
  top_builddir = ../../..
  include $(top_builddir)/src/Makefile.global
  
@@ -219,10 +218,10 @@ index 8181a6a..38b2723 100644
  OBJS=	initdb.o encnames.o pqsignal.o $(WIN32RES)
  
 diff --git a/src/bin/pg_ctl/Makefile b/src/bin/pg_ctl/Makefile
-index ba56026..d1ecd4b 100644
+index a632515..4a85e59 100644
 --- a/src/bin/pg_ctl/Makefile
 +++ b/src/bin/pg_ctl/Makefile
-@@ -20,7 +20,7 @@ OBJS=	pg_ctl.o $(WIN32RES)
+@@ -22,7 +22,7 @@ OBJS=	pg_ctl.o $(WIN32RES)
  
  all: submake-libpq submake-libpgport pg_ctl
  

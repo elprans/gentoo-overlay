@@ -1,4 +1,4 @@
-From d46e84f7c967c7bab4b2e3cb92168731d9968185 Mon Sep 17 00:00:00 2001
+From 3bf2c074b2959af863ea25a4bd2af8c563b22e4a Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Tue, 6 Jan 2009 14:43:14 -0500
 Subject: [PATCH 1/2] [gentoo] Common patch
@@ -11,7 +11,7 @@ Subject: [PATCH 1/2] [gentoo] Common patch
  4 files changed, 32 insertions(+), 4 deletions(-)
 
 diff --git a/configure.in b/configure.in
-index b2fa682..5a725d0 100644
+index 2c6ef56..acdd404 100644
 --- a/configure.in
 +++ b/configure.in
 @@ -19,10 +19,6 @@ m4_pattern_forbid(^PGAC_)dnl to catch undefined macros
@@ -26,10 +26,10 @@ index b2fa682..5a725d0 100644
  AC_CONFIG_SRCDIR([src/backend/access/common/heaptuple.c])
  AC_CONFIG_AUX_DIR(config)
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index 1c38ac2..e95fcd4 100644
+index 455b83a..5936922 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
-@@ -132,6 +132,7 @@ includedir := $(shell $(PG_CONFIG) --includedir)
+@@ -134,6 +134,7 @@ includedir := $(shell $(PG_CONFIG) --includedir)
  pkgincludedir := $(shell $(PG_CONFIG) --pkgincludedir)
  mandir := $(shell $(PG_CONFIG) --mandir)
  docdir := $(shell $(PG_CONFIG) --docdir)

@@ -1,21 +1,21 @@
-From 089ca40af7f1c19da3f2741d028432ca4599bf43 Mon Sep 17 00:00:00 2001
+From 8fd9255aadc88fdfa41b4507b8ed3d5495a2dd42 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Tue, 6 Jan 2009 14:33:27 -0500
 Subject: [PATCH 2/2] [gentoo] Base patch
 
 ---
- contrib/Makefile               |   38 --------------------------------------
+ contrib/Makefile               |   40 ----------------------------------------
  src/Makefile                   |    5 -----
  src/backend/Makefile           |   18 +-----------------
  src/bin/Makefile               |    4 ++--
  src/include/pg_config_manual.h |    2 +-
- 5 files changed, 4 insertions(+), 63 deletions(-)
+ 5 files changed, 4 insertions(+), 65 deletions(-)
 
 diff --git a/contrib/Makefile b/contrib/Makefile
-index 19d5c1b..c95b68f 100644
+index 8e18785..c95b68f 100644
 --- a/contrib/Makefile
 +++ b/contrib/Makefile
-@@ -5,48 +5,10 @@ top_builddir = ..
+@@ -5,50 +5,10 @@ top_builddir = ..
  include $(top_builddir)/src/Makefile.global
  
  SUBDIRS = \
@@ -45,6 +45,8 @@ index 19d5c1b..c95b68f 100644
 -		pg_standby	\
 -		pg_stat_statements \
 -		pg_trgm		\
+-		pg_upgrade	\
+-		pg_upgrade_support \
  		pgbench		\
 -		pgcrypto	\
 -		pgrowlocks	\
@@ -87,10 +89,10 @@ index f48bd77..c3ff0d5 100644
  install: install-local
  
 diff --git a/src/backend/Makefile b/src/backend/Makefile
-index 218544e..40a0cf8 100644
+index e16b41e..0438cd7 100644
 --- a/src/backend/Makefile
 +++ b/src/backend/Makefile
-@@ -188,23 +188,7 @@ distprep:
+@@ -191,23 +191,7 @@ distprep:
  
  ##########################################################################
  
