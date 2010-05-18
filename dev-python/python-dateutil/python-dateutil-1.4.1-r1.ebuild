@@ -5,7 +5,7 @@
 EAPI="2"
 SUPPORT_PYTHON_ABIS="1"
 
-inherit distutils
+inherit distutils eutils
 
 DESCRIPTION="dateutil datetime math and logic library for python"
 HOMEPAGE="http://labix.org/python-dateutil http://pypi.python.org/pypi/python-dateutil"

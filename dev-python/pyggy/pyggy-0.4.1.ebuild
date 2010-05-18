@@ -5,7 +5,7 @@
 EAPI="2"
 SUPPORT_PYTHON_ABIS="1"
 
-inherit distutils
+inherit distutils eutils
 
 KEYWORDS="amd64 ~ia64 ~ppc ~x86"
 

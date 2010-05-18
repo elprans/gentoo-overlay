@@ -16,7 +16,7 @@ KEYWORDS="~amd64"
 IUSE=""
 
 DEPEND=""
-RDEPEND="dev-ruby/rcsparse dev-ruby/rbtree >=dev-util/git-1.5"
+RDEPEND="dev-ruby/rcsparse dev-ruby/rbtree >=dev-vcs/git-1.5"
 
 S="${WORKDIR}/${PN}"
 
