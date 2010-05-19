@@ -1,19 +1,3 @@
-From 2893e238468008dd6f9aa5e7cf0db7773e5155e1 Mon Sep 17 00:00:00 2001
-From: Elvis Pranskevichus <el@prans.net>
-Date: Thu, 4 Feb 2010 20:25:12 -0500
-Subject: [PATCH] Make dateutil 2to3 ready
-
----
- dateutil/easter.py        |    2 +-
- dateutil/parser.py        |   12 +++---
- dateutil/relativedelta.py |   12 +++---
- dateutil/rrule.py         |   62 ++++++++++++++++++++------------
- dateutil/tz.py            |   89 +++++++++++++++++++++------------------------
- example.py                |    4 +-
- setup.py                  |    5 +++
- test.py                   |   31 +++++++++++++---
- 8 files changed, 126 insertions(+), 91 deletions(-)
-
 diff --git a/dateutil/easter.py b/dateutil/easter.py
 index d794410..afa1c08 100644
 --- a/dateutil/easter.py
@@ -72,7 +56,7 @@ index 5d824e4..ee006b8 100644
              elif res.tzname and res.tzname in time.tzname:
                  ret = ret.replace(tzinfo=tz.tzlocal())
 diff --git a/dateutil/relativedelta.py b/dateutil/relativedelta.py
-index 562a7d3..0bdf755 100644
+index 562a7d3..d84516d 100644
 --- a/dateutil/relativedelta.py
 +++ b/dateutil/relativedelta.py
 @@ -115,7 +115,7 @@ Here is the behavior of operations with relativedelta:
@@ -120,7 +104,15 @@ index 562a7d3..0bdf755 100644
          return relativedelta(years=other.years-self.years,
                               months=other.months-self.months,
                               days=other.days-self.days,
-@@ -426,7 +426,7 @@ Here is the behavior of operations with relativedelta:
+@@ -400,6 +400,7 @@ Here is the behavior of operations with relativedelta:
+                 self.hours == other.hours and
+                 self.minutes == other.minutes and
+                 self.seconds == other.seconds and
++                self.microseconds == other.microseconds and
+                 self.leapdays == other.leapdays and
+                 self.year == other.year and
+                 self.month == other.month and
+@@ -426,7 +427,7 @@ Here is the behavior of operations with relativedelta:
                       "hour", "minute", "second", "microsecond"]:
              value = getattr(self, attr)
              if value is not None:
@@ -604,7 +596,7 @@ index f5a8e6f..3fd8497 100644
 +import subprocess
  import os
 -now = parse(commands.getoutput("date"))
-+now = parse(subprocess.getoutput("LC_ALL=C date"))
++now = parse(subprocess.getoutput("date"))
  today = now.date()
  year = rrule(YEARLY,bymonth=8,bymonthday=13,byweekday=FR)[0].year
  rdelta = relativedelta(easter(year), today)
@@ -699,6 +691,3 @@ index f58a558..b6998b3 100755
          self.assertEquals(datetime(2007,3,31,20,12).tzname(), None)
  
      def testBrokenIsDstHandling(self):
--- 
-1.6.5.8
-
