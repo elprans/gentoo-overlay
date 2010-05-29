@@ -2,9 +2,9 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: /var/cvsroot/gentoo-x86/dev-python/flup/flup-1.0.1.ebuild,v 1.1 2008/12/07 00:10:59 patrick Exp $
 
-EAPI="2"
+EAPI="3"
 SUPPORT_PYTHON_ABIS="1"
-NEED_PYTHON="3.0"
+PYTHON_DEPEND="3"
 
 EGIT_REPO_URI="git://labs.sprymix.com/Parsing.py.git"
 
@@ -20,10 +20,14 @@ IUSE=""
 
 RESTRICT_PYTHON_ABIS="2*"
 
+pkg_setup() {
+	python_pkg_setup
+}
+
+
 src_install() {
 	local PYTHON_ABI
 
-	validate_PYTHON_ABIS
 	for PYTHON_ABI in ${PYTHON_ABIS}; do
 		local ld="${D}/$(python_get_sitedir)"
 		mkdir -p "${ld}" || die "installation failed"
