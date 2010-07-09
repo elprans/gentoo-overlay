@@ -1,4 +1,4 @@
-From 3bf2c074b2959af863ea25a4bd2af8c563b22e4a Mon Sep 17 00:00:00 2001
+From c17ac15492eeba9dfb4da3532977f40c598f737b Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Tue, 6 Jan 2009 14:43:14 -0500
 Subject: [PATCH 1/2] [gentoo] Common patch
@@ -7,16 +7,16 @@ Subject: [PATCH 1/2] [gentoo] Common patch
  configure.in                  |    4 ----
  src/Makefile.global.in        |    1 +
  src/include/storage/s_lock.h  |   23 +++++++++++++++++++++++
- src/makefiles/Makefile.darwin |    8 ++++++++
- 4 files changed, 32 insertions(+), 4 deletions(-)
+ src/makefiles/Makefile.darwin |   10 +++++++++-
+ 4 files changed, 33 insertions(+), 5 deletions(-)
 
 diff --git a/configure.in b/configure.in
-index 2c6ef56..acdd404 100644
+index e7c8c74..d033497 100644
 --- a/configure.in
 +++ b/configure.in
 @@ -19,10 +19,6 @@ m4_pattern_forbid(^PGAC_)dnl to catch undefined macros
  
- AC_INIT([PostgreSQL], [9.0beta1], [pgsql-bugs@postgresql.org])
+ AC_INIT([PostgreSQL], [9.0beta2], [pgsql-bugs@postgresql.org])
  
 -m4_if(m4_defn([m4_PACKAGE_VERSION]), [2.63], [], [m4_fatal([Autoconf version 2.63 is required.
 -Untested combinations of 'autoconf' and PostgreSQL versions are not
@@ -26,7 +26,7 @@ index 2c6ef56..acdd404 100644
  AC_CONFIG_SRCDIR([src/backend/access/common/heaptuple.c])
  AC_CONFIG_AUX_DIR(config)
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index 455b83a..5936922 100644
+index a0a7a0b..ebce75f 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
 @@ -134,6 +134,7 @@ includedir := $(shell $(PG_CONFIG) --includedir)
@@ -72,25 +72,26 @@ index aede32d..2f03503 100644
  #if defined(__sparc__)		/* Sparc */
  #define HAS_TEST_AND_SET
 diff --git a/src/makefiles/Makefile.darwin b/src/makefiles/Makefile.darwin
-index debad62..36aff56 100644
+index 4fa4954..e666499 100644
 --- a/src/makefiles/Makefile.darwin
 +++ b/src/makefiles/Makefile.darwin
-@@ -5,7 +5,15 @@ DLSUFFIX = .so
- CFLAGS_SL =
+@@ -3,7 +3,15 @@ AROPT = crs
+ DLSUFFIX = .so
  
  ifdef PGXS
-+ifdef PGXS_IN_SERVER
-+ifndef PGXS_WITH_SERVER
-+BE_DLLLIBS= -bundle_loader $(top_builddir)/src/backend/postgres
-+else
-+BE_DLLLIBS= -bundle_loader ${PGXS_WITH_SERVER}
-+endif
-+else
- BE_DLLLIBS= -bundle_loader $(bindir)/postgres
-+endif
+-  BE_DLLLIBS = -bundle_loader $(bindir)/postgres
++  ifdef PGXS_IN_SERVER
++    ifndef PGXS_WITH_SERVER
++      BE_DLLLIBS= -bundle_loader $(top_builddir)/src/backend/postgres
++    else
++      BE_DLLLIBS= -bundle_loader ${PGXS_WITH_SERVER}
++    endif
++  else
++    BE_DLLLIBS= -bundle_loader $(bindir)/postgres
++  endif
  else
- BE_DLLLIBS= -bundle_loader $(top_builddir)/src/backend/postgres
+   BE_DLLLIBS = -bundle_loader $(top_builddir)/src/backend/postgres
  endif
 -- 
-1.7.0.4
+1.7.1
 

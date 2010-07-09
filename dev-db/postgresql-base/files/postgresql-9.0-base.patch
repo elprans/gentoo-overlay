@@ -1,21 +1,21 @@
-From 8fd9255aadc88fdfa41b4507b8ed3d5495a2dd42 Mon Sep 17 00:00:00 2001
-From: Elvis Pranskevichus <elvis@alfheim.prans.org>
-Date: Tue, 6 Jan 2009 14:33:27 -0500
-Subject: [PATCH 2/2] [gentoo] Base patch
+From 37f704b5782eb8ea837d7b36ba9a5fbf6fb8f376 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <el@prans.net>
+Date: Thu, 8 Jul 2010 23:50:37 -0400
+Subject: [PATCH] [gentoo] Base patch
 
 ---
- contrib/Makefile               |   40 ----------------------------------------
+ contrib/Makefile               |   37 -------------------------------------
  src/Makefile                   |    5 -----
- src/backend/Makefile           |   18 +-----------------
+ src/backend/Makefile           |   22 +++-------------------
  src/bin/Makefile               |    4 ++--
  src/include/pg_config_manual.h |    2 +-
- 5 files changed, 4 insertions(+), 65 deletions(-)
+ 5 files changed, 6 insertions(+), 64 deletions(-)
 
 diff --git a/contrib/Makefile b/contrib/Makefile
-index 8e18785..c95b68f 100644
+index 872bb91..d8c8c07 100644
 --- a/contrib/Makefile
 +++ b/contrib/Makefile
-@@ -5,50 +5,10 @@ top_builddir = ..
+@@ -5,51 +5,14 @@ top_builddir = ..
  include $(top_builddir)/src/Makefile.global
  
  SUBDIRS = \
@@ -39,14 +39,15 @@ index 8e18785..c95b68f 100644
 -		ltree		\
  		oid2name	\
 -		pageinspect	\
--		passwordcheck	\
+ 		passwordcheck	\
+-		pg_archivecleanup \
 -		pg_buffercache	\
 -		pg_freespacemap \
 -		pg_standby	\
 -		pg_stat_statements \
 -		pg_trgm		\
--		pg_upgrade	\
--		pg_upgrade_support \
+ 		pg_upgrade	\
+ 		pg_upgrade_support \
  		pgbench		\
 -		pgcrypto	\
 -		pgrowlocks	\
@@ -56,7 +57,7 @@ index 8e18785..c95b68f 100644
 -		tablefunc	\
 -		test_parser	\
 -		tsearch2	\
--		unaccent	\
+ 		unaccent	\
  		vacuumlo
  
 -ifeq ($(with_openssl),yes)
@@ -89,9 +90,27 @@ index f48bd77..c3ff0d5 100644
  install: install-local
  
 diff --git a/src/backend/Makefile b/src/backend/Makefile
-index e16b41e..0438cd7 100644
+index 7855f94..e65edad 100644
 --- a/src/backend/Makefile
 +++ b/src/backend/Makefile
+@@ -45,7 +45,7 @@ LIBS := $(filter-out -lz -lreadline -ledit -ltermcap -lncurses -lcurses, $(LIBS)
+ 
+ ##########################################################################
+ 
+-all: submake-libpgport submake-schemapg postgres $(POSTGRES_IMP)
++all: someheaders
+ 
+ ifneq ($(PORTNAME), cygwin)
+ ifneq ($(PORTNAME), win32)
+@@ -114,7 +114,7 @@ endif
+ endif # aix
+ 
+ # Update the commonly used headers before building the subdirectories
+-$(SUBDIRS:%=%-recursive): $(top_builddir)/src/include/parser/gram.h $(top_builddir)/src/include/catalog/schemapg.h $(top_builddir)/src/include/utils/fmgroids.h $(top_builddir)/src/include/utils/probes.h
++someheaders $(SUBDIRS:%=%-recursive): $(top_builddir)/src/include/parser/gram.h $(top_builddir)/src/include/utils/fmgroids.h $(top_builddir)/src/include/utils/probes.h
+ 
+ # run this unconditionally to avoid needing to know its dependencies here:
+ submake-schemapg:
 @@ -191,23 +191,7 @@ distprep:
  
  ##########################################################################
@@ -118,7 +137,7 @@ index e16b41e..0438cd7 100644
  install-bin: postgres $(POSTGRES_IMP) installdirs
  	$(INSTALL_PROGRAM) postgres$(X) '$(DESTDIR)$(bindir)/postgres$(X)'
 diff --git a/src/bin/Makefile b/src/bin/Makefile
-index 5b5b1ba..c46f118 100644
+index 5b5b1ba..8ae548c 100644
 --- a/src/bin/Makefile
 +++ b/src/bin/Makefile
 @@ -13,8 +13,8 @@ subdir = src/bin
@@ -127,8 +146,8 @@ index 5b5b1ba..c46f118 100644
  
 -SUBDIRS = initdb pg_ctl pg_dump \
 -	psql scripts pg_config pg_controldata pg_resetxlog
-+SUBDIRS = pg_dump psql scripts pg_config
-+
++SUBDIRS = pg_dump \
++	psql scripts pg_config
  ifeq ($(PORTNAME), win32)
  SUBDIRS+=pgevent
  endif
@@ -146,5 +165,5 @@ index c5c1228..41dee52 100644
  /*
   * The random() function is expected to yield values between 0 and
 -- 
-1.7.0.4
+1.7.1
 

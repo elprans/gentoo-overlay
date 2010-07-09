@@ -1,27 +1,26 @@
-From d6a393ba588b534aabe66990be1b7b289af40cea Mon Sep 17 00:00:00 2001
-From: Elvis Pranskevichus <elvis@alfheim.prans.org>
-Date: Sat, 20 Dec 2008 14:49:38 -0500
+From ffac2eda27e5857e4465ab0a6ccad1b32506176b Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <el@prans.net>
+Date: Wed, 7 Jul 2010 21:23:48 -0400
 Subject: [PATCH 2/2] [gentoo] Server patch
 
 ---
- GNUmakefile.in                 |    7 -------
- contrib/Makefile               |    5 +----
+ GNUmakefile.in                 |    3 ---
+ contrib/Makefile               |    7 -------
  contrib/adminpack/Makefile     |    2 +-
+ contrib/dblink/Makefile        |    2 +-
  contrib/uuid-ossp/Makefile     |    4 +++-
  contrib/xml2/Makefile          |    3 ++-
  src/Makefile                   |    6 +-----
- src/Makefile.global.in         |    4 ++--
- src/bin/Makefile               |    3 +--
+ src/Makefile.global.in         |    2 ++
+ src/bin/Makefile               |    4 ++--
  src/bin/initdb/Makefile        |    2 +-
- src/bin/pg_ctl/Makefile        |    2 +-
  src/include/pg_config_manual.h |    2 +-
  src/port/Makefile              |    5 ++---
  src/test/regress/GNUmakefile   |    2 +-
- src/test/regress/pg_regress.c  |    3 ---
- 14 files changed, 17 insertions(+), 33 deletions(-)
+ 13 files changed, 17 insertions(+), 27 deletions(-)
 
 diff --git a/GNUmakefile.in b/GNUmakefile.in
-index 51e7a96..fb62993 100644
+index 51e7a96..347c8d0 100644
 --- a/GNUmakefile.in
 +++ b/GNUmakefile.in
 @@ -10,7 +10,6 @@ include $(top_builddir)/src/Makefile.global
@@ -40,62 +39,43 @@ index 51e7a96..fb62993 100644
  	@echo "PostgreSQL installation complete."
  
  install-docs:
-@@ -42,12 +40,9 @@ install-world:
- 	@echo "PostgreSQL, contrib, and documentation installation complete."
- 
+@@ -44,7 +42,6 @@ install-world:
  installdirs uninstall coverage:
--	$(MAKE) -C doc $@
+ 	$(MAKE) -C doc $@
  	$(MAKE) -C src $@
 -	$(MAKE) -C config $@
  
  distprep:
--	$(MAKE) -C doc $@
- 	$(MAKE) -C src $@
- 	$(MAKE) -C config $@
- 	$(MAKE) -C contrib $@
-@@ -55,7 +50,6 @@ distprep:
- # clean, distclean, etc should apply to contrib too, even though
- # it's not built by default
- clean:
--	$(MAKE) -C doc $@
- 	$(MAKE) -C contrib $@
- 	$(MAKE) -C src $@
- 	$(MAKE) -C config $@
-@@ -65,7 +59,6 @@ clean:
- # Important: distclean `src' last, otherwise Makefile.global
- # will be gone too soon.
- distclean maintainer-clean:
--	$(MAKE) -C doc $@
- 	$(MAKE) -C contrib $@
- 	$(MAKE) -C config $@
- 	$(MAKE) -C src $@
+ 	$(MAKE) -C doc $@
 diff --git a/contrib/Makefile b/contrib/Makefile
-index 8e18785..abf2d66 100644
+index 872bb91..b898a32 100644
 --- a/contrib/Makefile
 +++ b/contrib/Makefile
-@@ -23,7 +23,6 @@ SUBDIRS = \
+@@ -23,18 +23,13 @@ SUBDIRS = \
  		isn		\
  		lo		\
  		ltree		\
 -		oid2name	\
  		pageinspect	\
- 		passwordcheck	\
+-		passwordcheck	\
+ 		pg_archivecleanup \
  		pg_buffercache	\
-@@ -33,7 +32,6 @@ SUBDIRS = \
+ 		pg_freespacemap \
+ 		pg_standby	\
+ 		pg_stat_statements \
  		pg_trgm		\
- 		pg_upgrade	\
- 		pg_upgrade_support \
+-		pg_upgrade	\
+-		pg_upgrade_support \
 -		pgbench		\
  		pgcrypto	\
  		pgrowlocks	\
  		pgstattuple	\
-@@ -42,8 +40,7 @@ SUBDIRS = \
+@@ -43,8 +38,6 @@ SUBDIRS = \
  		tablefunc	\
  		test_parser	\
  		tsearch2	\
 -		unaccent	\
 -		vacuumlo
-+		unaccent
  
  ifeq ($(with_openssl),yes)
  SUBDIRS += sslinfo
@@ -112,6 +92,19 @@ index 3492d27..0857f7c 100644
  DATA_built = adminpack.sql
  DATA = uninstall_adminpack.sql
  OBJS = adminpack.o
+diff --git a/contrib/dblink/Makefile b/contrib/dblink/Makefile
+index 3f498a8..60cebe0 100644
+--- a/contrib/dblink/Makefile
++++ b/contrib/dblink/Makefile
+@@ -1,7 +1,7 @@
+ # $PostgreSQL$
+ 
+ MODULE_big = dblink
+-PG_CPPFLAGS = -I$(libpq_srcdir)
++PG_CPPFLAGS = -I$(libpq_srcdir) -I../../src/include/
+ OBJS	= dblink.o
+ SHLIB_LINK = $(libpq)
+ 
 diff --git a/contrib/uuid-ossp/Makefile b/contrib/uuid-ossp/Makefile
 index 0eb2705..a25706d 100644
 --- a/contrib/uuid-ossp/Makefile
@@ -167,21 +160,10 @@ index f48bd77..73f2fc5 100644
  install-local: installdirs-local
  	$(INSTALL_DATA) Makefile.global '$(DESTDIR)$(pgxsdir)/$(subdir)/Makefile.global'
 diff --git a/src/Makefile.global.in b/src/Makefile.global.in
-index 5936922..f9c7ed0 100644
+index ebce75f..49bc736 100644
 --- a/src/Makefile.global.in
 +++ b/src/Makefile.global.in
-@@ -400,10 +400,8 @@ endif
- 
- 
- submake-libpq:
--	$(MAKE) -C $(libpq_builddir) all
- 
- submake-libpgport:
--	$(MAKE) -C $(top_builddir)/src/port all
- 
- .PHONY: submake-libpq submake-libpgport
- 
-@@ -446,6 +444,8 @@ ifdef PROFILE
+@@ -459,6 +459,8 @@ ifdef PROFILE
     LDFLAGS += $(PROFILE)
  endif
  
@@ -191,21 +173,22 @@ index 5936922..f9c7ed0 100644
  ##########################################################################
  #
 diff --git a/src/bin/Makefile b/src/bin/Makefile
-index 5b5b1ba..2cc102a 100644
+index 5b5b1ba..33349a9 100644
 --- a/src/bin/Makefile
 +++ b/src/bin/Makefile
-@@ -13,8 +13,7 @@ subdir = src/bin
+@@ -13,8 +13,8 @@ subdir = src/bin
  top_builddir = ../..
  include $(top_builddir)/src/Makefile.global
  
 -SUBDIRS = initdb pg_ctl pg_dump \
 -	psql scripts pg_config pg_controldata pg_resetxlog
-+SUBDIRS = initdb pg_ctl pg_controldata pg_resetxlog
++SUBDIRS = initdb pg_ctl \
++	pg_controldata pg_resetxlog
  ifeq ($(PORTNAME), win32)
  SUBDIRS+=pgevent
  endif
 diff --git a/src/bin/initdb/Makefile b/src/bin/initdb/Makefile
-index 8f608db..f22449c 100644
+index 4b657c0..8938b83 100644
 --- a/src/bin/initdb/Makefile
 +++ b/src/bin/initdb/Makefile
 @@ -16,7 +16,7 @@ subdir = src/bin/initdb
@@ -217,19 +200,6 @@ index 8f608db..f22449c 100644
  
  OBJS=	initdb.o encnames.o pqsignal.o $(WIN32RES)
  
-diff --git a/src/bin/pg_ctl/Makefile b/src/bin/pg_ctl/Makefile
-index a632515..4a85e59 100644
---- a/src/bin/pg_ctl/Makefile
-+++ b/src/bin/pg_ctl/Makefile
-@@ -22,7 +22,7 @@ OBJS=	pg_ctl.o $(WIN32RES)
- 
- all: submake-libpq submake-libpgport pg_ctl
- 
--pg_ctl: $(OBJS) $(libpq_builddir)/libpq.a
-+pg_ctl: $(OBJS)
- 	$(CC) $(CFLAGS) $(OBJS) $(libpq_pgport) $(LDFLAGS) $(LIBS) -o $@$(X)
- 
- install: all installdirs
 diff --git a/src/include/pg_config_manual.h b/src/include/pg_config_manual.h
 index c5c1228..41dee52 100644
 --- a/src/include/pg_config_manual.h
@@ -244,7 +214,7 @@ index c5c1228..41dee52 100644
  /*
   * The random() function is expected to yield values between 0 and
 diff --git a/src/port/Makefile b/src/port/Makefile
-index d507b94..37a59bf 100644
+index 9ef9491..090ac3e 100644
 --- a/src/port/Makefile
 +++ b/src/port/Makefile
 @@ -39,11 +39,10 @@ endif
@@ -262,7 +232,7 @@ index d507b94..37a59bf 100644
  installdirs:
  	$(MKDIR_P) '$(DESTDIR)$(libdir)'
 diff --git a/src/test/regress/GNUmakefile b/src/test/regress/GNUmakefile
-index 98e1e6e..72cb790 100644
+index 4fc6f84..7fbae9a 100644
 --- a/src/test/regress/GNUmakefile
 +++ b/src/test/regress/GNUmakefile
 @@ -141,7 +141,7 @@ tablespace-setup:
@@ -274,20 +244,6 @@ index 98e1e6e..72cb790 100644
  
  installcheck: all
  	$(pg_regress_call) --psqldir=$(PSQLDIR) --schedule=$(srcdir)/serial_schedule
-diff --git a/src/test/regress/pg_regress.c b/src/test/regress/pg_regress.c
-index 9de4189..f0532d6 100644
---- a/src/test/regress/pg_regress.c
-+++ b/src/test/regress/pg_regress.c
-@@ -800,9 +800,6 @@ initialize_environment(void)
- 		sprintf(tmp, "%s/install/%s", temp_install, datadir);
- 		datadir = tmp;
- 
--		/* psql will be installed into temp-install bindir */
--		psqldir = bindir;
--
- 		/*
- 		 * Set up shared library paths to include the temp install.
- 		 *
 -- 
-1.7.0.4
+1.7.1
 

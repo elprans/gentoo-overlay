@@ -1,21 +1,23 @@
-# Copyright 1999-2008 Gentoo Foundation
+# Copyright 1999-2010 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/dev-db/postgresql-base/postgresql-base-8.3.4.ebuild,v 1.2 2008/09/28 22:39:56 caleb Exp $
+# $Header: /var/cvsroot/gentoo-x86/dev-db/postgresql-base/postgresql-base-9.0_beta2-r1.ebuild,v 1.2 2010/06/20 13:26:58 patrick Exp $
 
 EAPI="2"
 
-WANT_AUTOCONF="latest"
 WANT_AUTOMAKE="none"
 
-inherit eutils multilib toolchain-funcs versionator autotools git
+inherit eutils git multilib versionator autotools
 
-KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~mips ~ppc ~ppc64 ~sh ~sparc ~sparc-fbsd ~x86 ~x86-fbsd"
+KEYWORDS="~alpha ~amd64 ~arm ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86 ~sparc-fbsd ~x86-fbsd"
 
 DESCRIPTION="PostgreSQL libraries and clients"
 HOMEPAGE="http://www.postgresql.org/"
-#SRC_URI="mirror://postgresql/source/v${PV}/postgresql-${PV}.tar.bz2"
-SRC_URI=""
+
+MY_PV=${PV/_/}
+#SRC_URI="mirror://postgresql/source/v${MY_PV}/postgresql-${MY_PV}.tar.bz2"
 EGIT_REPO_URI="git://git.postgresql.org/git/postgresql.git"
+S=${WORKDIR}/postgresql-${MY_PV}
+
 LICENSE="POSTGRESQL"
 SLOT="$(get_version_component_range 1-2)"
 IUSE_LINGUAS="
@@ -39,33 +41,36 @@ RDEPEND="kerberos? ( virtual/krb5 )
 	zlib? ( >=sys-libs/zlib-1.1.3 )
 	>=app-admin/eselect-postgresql-0.3
 	virtual/libintl
-	!dev-db/postgresql-libs
-	!dev-db/postgresql-client
-	!dev-db/libpq
-	!dev-db/postgresql
+	!!dev-db/postgresql-libs
+	!!dev-db/postgresql-client
+	!!dev-db/libpq
+	!!dev-db/postgresql
 	ldap? ( net-nds/openldap )"
 DEPEND="${RDEPEND}
 	sys-devel/flex
 	>=sys-devel/bison-1.875
 	nls? ( sys-devel/gettext )"
-PDEPEND="doc? ( dev-db/postgresql-docs:${SLOT} )"
-
-S="${WORKDIR}/postgresql-${PV}"
+PDEPEND="doc? ( ~dev-db/postgresql-docs-${PV} )"
 
 src_prepare() {
 	epatch "${FILESDIR}/postgresql-${SLOT}-common.patch" \
 		"${FILESDIR}/postgresql-${SLOT}-base.patch"
+
+	if use kerberos && has_version "<app-crypt/heimdal-1.3.2-r1" ; then
+		"${FILESDIR}/postgresql-base-8.4-9.0-heimdal_strlcpy.patch"
+	fi
 
 	# to avoid collision - it only should be installed by server
 	rm "${S}/src/backend/nls.mk"
 
 	# because psql/help.c includes the file
 	ln -s "${S}/src/include/libpq/pqsignal.h" "${S}/src/bin/psql/"
-
+	cd "${S}"
 	eautoconf
 }
 
 src_configure() {
+	export LDFLAGS_SL="${LDFLAGS}"
 	econf --prefix=/usr/$(get_libdir)/postgresql-${SLOT} \
 		--datadir=/usr/share/postgresql-${SLOT} \
 		--docdir=/usr/share/doc/postgresql-${SLOT} \
@@ -86,15 +91,14 @@ src_configure() {
 		$(use_enable threads thread-safety) \
 		$(use_with zlib) \
 		$(use_with ldap) \
-		${myconf} \
 		|| die "configure failed"
 }
 
 src_compile() {
-	emake LD="$(tc-getLD) $(get_abi_LDFLAGS)" || die "emake failed"
+	emake || die "emake failed"
 
 	cd "${S}/contrib"
-	emake LD="$(tc-getLD) $(get_abi_LDFLAGS)" || die "emake failed"
+	emake || die "emake failed"
 }
 
 src_install() {
@@ -106,7 +110,7 @@ src_install() {
 
 	rm -r "${D}/usr/share/doc/postgresql-${SLOT}/html"
 	rm "${D}/usr/share/postgresql-${SLOT}/man/man1"/{initdb,ipcclean,pg_controldata,pg_ctl,pg_resetxlog,pg_restore,postgres,postmaster}.1
-	dodoc README doc/{README.*,TODO,bug.template}
+	dodoc README HISTORY doc/{README.*,TODO,bug.template}
 
 	cd "${S}/contrib"
 	emake DESTDIR="${D}" install || die "emake install failed"
@@ -123,6 +127,7 @@ postgres_bindir=/usr/$(get_libdir)/postgresql-${SLOT}/bin
 postgres_symlinks=(
 	${IDIR} /usr/include/postgresql
 	${IDIR}/libpq-fe.h /usr/include/libpq-fe.h
+	${IDIR}/pg_config_manual.h /usr/include/pg_config_manual.h
 	${IDIR}/libpq /usr/include/libpq
 	${IDIR}/postgres_ext.h /usr/include/postgres_ext.h
 )
@@ -140,7 +145,16 @@ __EOF__
 pkg_postinst() {
 	eselect postgresql update
 	[[ "$(eselect postgresql show)" = "(none)" ]] && eselect postgresql set ${SLOT}
-	elog "If you need a global psqlrc-file, you can place it in '${ROOT}/etc/postgresql-${SLOT}/'."
+	elog "If you need a global psqlrc-file, you can place it in:"
+	elog "    '${ROOT}/etc/postgresql-${SLOT}/'"
+	elog
+	elog "The PostgreSQL community has called for more testers of the upcoming 9.0"
+	elog "release. This beta version of the PostgreSQL client applications and libraries,"
+	elog "while moved to ~arch, will never be marked stable. As such, you may not want to"
+	elog "use this package in an environment where incompatible changes are"
+	elog "unacceptable. Bear in mind, though, that these packages are slotted and that you"
+	elog "may have multiple installations simultaneously without conflict. However, you"
+	elog "may only use one set of client applications and libraries via 'eselect'."
 }
 
 pkg_postrm() {
