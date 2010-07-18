@@ -1,6 +1,6 @@
 # Copyright 1999-2010 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/dev-db/postgresql-server/postgresql-server-9.0_beta2.ebuild,v 1.2 2010/06/20 13:28:47 patrick Exp $
+# $Header$
 
 EAPI="2"
 PYTHON_DEPEND="python? 2"
@@ -143,7 +143,7 @@ pkg_postinst() {
 	ewarn "original location."
 	ewarn
 
-	elog "The PostgreSQL community has called for more testers of the upcoming 9.0"
+	elog "The PostgreSQL community has called for more testers of the upcoming ${SLOT}"
 	elog "release. This beta version of the PostgreSQL server, while moved to ~arch, will"
 	elog "never be marked stable. As such, you may not want to use this package in an"
 	elog "environment where incompatible changes are unacceptable. Bear in mind, though,"

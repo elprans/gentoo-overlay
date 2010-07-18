@@ -1,7 +1,7 @@
-From 37f704b5782eb8ea837d7b36ba9a5fbf6fb8f376 Mon Sep 17 00:00:00 2001
+From b4897b7d290937a7cb5fc62feae8f470bb3e36e5 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <el@prans.net>
 Date: Thu, 8 Jul 2010 23:50:37 -0400
-Subject: [PATCH] [gentoo] Base patch
+Subject: [PATCH 2/2] [gentoo] Base patch
 
 ---
  contrib/Makefile               |   37 -------------------------------------
