@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: /var/cvsroot/gentoo-x86/dev-python/psycopg/psycopg-2.0.8.ebuild,v 1.1 2008/10/15 21:17:57 caleb Exp $
 
-NEED_PYTHON=2.4
+PYTHON_DEPEND="2:2.4"
 
 inherit eutils git
 
@@ -25,7 +25,7 @@ src_unpack() {
 	git_src_unpack
 	cd "${S}"
 	sed -i -e "s|/opt/local/bin/python2.5|/usr/bin/python|g" \
-               -e "s|~/.bazaar/plugins/fastimport/exporters/bzr-fast-export.py|/usr/bin/bzr-fast-export|g" "git-bzr"
+		   -e "s|~/.bazaar/plugins/fastimport/exporters/bzr-fast-export.py|/usr/bin/bzr-fast-export|g" "git-bzr"
 }
 
 src_install() {

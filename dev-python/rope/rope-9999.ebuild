@@ -3,7 +3,7 @@
 # $Header: $
 
 EAPI="2"
-NEED_PYTHON=2.5
+PYTHON_DEPEND="2:2.5"
 SUPPORT_PYTHON_ABIS="1"
 
 EGIT_REPO_URI="git://git.coderazor.org/elvis/rope.git"
