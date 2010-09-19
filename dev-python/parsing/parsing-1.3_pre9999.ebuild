@@ -24,13 +24,12 @@ pkg_setup() {
 	python_pkg_setup
 }
 
+_install() {
+	local ld="${D}/$(python_get_sitedir)"
+	mkdir -p "${ld}" || die "installation failed"
+	cp "${S}/Parsing.py" "${ld}" || die "installation failed"
+}
 
 src_install() {
-	local PYTHON_ABI
-
-	for PYTHON_ABI in ${PYTHON_ABIS}; do
-		local ld="${D}/$(python_get_sitedir)"
-		mkdir -p "${ld}" || die "installation failed"
-		cp "${S}/Parsing.py" "${ld}" || die "installation failed"
-	done
+	python_execute_function -q _install
 }
