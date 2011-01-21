@@ -3,7 +3,7 @@
 
 EAPI="2"
 
-inherit distutils
+inherit distutils eutils
 
 DESCRIPTION="Python bindings for Xrandr"
 HOMEPAGE="https://launchpad.net/python-xrandr"
