@@ -6,7 +6,7 @@ EAPI=3
 
 XORG_STATIC=no
 
-inherit xorg-2
+inherit xorg-2 eutils versionator
 
 EGIT_REPO_URI="git://anongit.freedesktop.org/git/xkeyboard-config"
 
