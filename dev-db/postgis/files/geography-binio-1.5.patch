@@ -1,0 +1,203 @@
+From 5c4ec3c68265579a70903ad8d0dd4ed8a1174716 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <el@prans.net>
+Date: Fri, 25 Feb 2011 00:58:17 -0500
+Subject: [PATCH] Add binary IO support for geography type
+
+---
+ postgis/geography.sql.in.c |   14 +++++
+ postgis/geography_inout.c  |  114 ++++++++++++++++++++++++++++++++++++--------
+ 2 files changed, 108 insertions(+), 20 deletions(-)
+
+diff --git a/postgis/geography.sql.in.c b/postgis/geography.sql.in.c
+index bd3d508..f21673e 100644
+--- a/postgis/geography.sql.in.c
++++ b/postgis/geography.sql.in.c
+@@ -34,6 +34,18 @@ CREATE OR REPLACE FUNCTION geography_out(geography)
+ 	LANGUAGE 'C' IMMUTABLE STRICT; 
+ 
+ -- Availability: 1.5.0
++CREATE OR REPLACE FUNCTION geography_recv(internal, oid, integer)
++	RETURNS geography
++	AS 'MODULE_PATHNAME','geography_recv'
++	LANGUAGE 'C' IMMUTABLE STRICT; 
++
++-- Availability: 1.5.0
++CREATE OR REPLACE FUNCTION geography_send(geography)
++	RETURNS bytea
++	AS 'MODULE_PATHNAME','geography_send'
++	LANGUAGE 'C' IMMUTABLE STRICT; 
++
++-- Availability: 1.5.0
+ CREATE OR REPLACE FUNCTION geography_analyze(internal)
+ 	RETURNS bool
+ 	AS 'MODULE_PATHNAME','geography_analyze'
+@@ -44,6 +56,8 @@ CREATE TYPE geography (
+ 	internallength = variable,
+ 	input = geography_in,
+ 	output = geography_out,
++	receive = geography_recv,
++	send = geography_send,
+ 	typmod_in = geography_typmod_in,
+ 	typmod_out = geography_typmod_out,
+ 	analyze = geography_analyze,
+diff --git a/postgis/geography_inout.c b/postgis/geography_inout.c
+index e59220f..2a436af 100644
+--- a/postgis/geography_inout.c
++++ b/postgis/geography_inout.c
+@@ -32,6 +32,8 @@
+ 
+ Datum geography_in(PG_FUNCTION_ARGS);
+ Datum geography_out(PG_FUNCTION_ARGS);
++Datum geography_recv(PG_FUNCTION_ARGS);
++Datum geography_send(PG_FUNCTION_ARGS);
+ Datum geography_typmod_in(PG_FUNCTION_ARGS);
+ Datum geography_typmod_out(PG_FUNCTION_ARGS);
+ Datum geography_typmod_dims(PG_FUNCTION_ARGS);
+@@ -52,8 +54,9 @@ Datum geometry_from_geography(PG_FUNCTION_ARGS);
+ 
+ /* Datum geography_gist_selectivity(PG_FUNCTION_ARGS); TBD */
+ /* Datum geography_gist_join_selectivity(PG_FUNCTION_ARGS); TBD */
+-/* Datum geography_send(PG_FUNCTION_ARGS); TBD */
+-/* Datum geography_recv(PG_FUNCTION_ARGS); TBD */
++
++
++GSERIALIZED* gserialized_geography_from_lwgeom(LWGEOM *lwgeom, int32 geog_typmod);
+ 
+ 
+ /**
+@@ -182,26 +185,10 @@ void geography_valid_typmod(LWGEOM *lwgeom, int32 typmod)
+ 	}
+ }
+ 
+-/*
+-** geography_in(cstring) returns *GSERIALIZED
+-*/
+-PG_FUNCTION_INFO_V1(geography_in);
+-Datum geography_in(PG_FUNCTION_ARGS)
++
++GSERIALIZED* gserialized_geography_from_lwgeom(LWGEOM *lwgeom, int32 geog_typmod)
+ {
+-	char *geog_str = PG_GETARG_CSTRING(0);
+-	/* Datum geog_oid = PG_GETARG_OID(1); Not needed. */
+-	int32 geog_typmod = PG_GETARG_INT32(2);
+-	LWGEOM_PARSER_RESULT lwg_parser_result;
+-	LWGEOM *lwgeom = NULL;
+ 	GSERIALIZED *g_ser = NULL;
+-	int result = 0;
+-
+-	/* Handles both HEXEWKB and EWKT */
+-	result = serialized_lwgeom_from_ewkt(&lwg_parser_result, geog_str, PARSER_CHECK_ALL);
+-	if (result)
+-		PG_PARSER_ERROR(lwg_parser_result);
+-
+-	lwgeom = lwgeom_deserialize(lwg_parser_result.serialized_lwgeom);
+ 
+ 	geography_valid_type(TYPE_GETTYPE(lwgeom->type));
+ 
+@@ -242,9 +229,36 @@ Datum geography_in(PG_FUNCTION_ARGS)
+ 		            errmsg("Coordinate values are out of range [-180 -90, 180 90] for GEOGRAPHY type" )));
+ 	}
+ 
++	return g_ser;
++}
++
++
++/*
++** geography_in(cstring) returns *GSERIALIZED
++*/
++PG_FUNCTION_INFO_V1(geography_in);
++Datum geography_in(PG_FUNCTION_ARGS)
++{
++	char *geog_str = PG_GETARG_CSTRING(0);
++	/* Datum geog_oid = PG_GETARG_OID(1); Not needed. */
++	int32 geog_typmod = PG_GETARG_INT32(2);
++	LWGEOM_PARSER_RESULT lwg_parser_result;
++	LWGEOM *lwgeom = NULL;
++	GSERIALIZED *g_ser = NULL;
++	int result = 0;
++
++	/* Handles both HEXEWKB and EWKT */
++	result = serialized_lwgeom_from_ewkt(&lwg_parser_result, geog_str, PARSER_CHECK_ALL);
++	if (result)
++		PG_PARSER_ERROR(lwg_parser_result);
++
++	lwgeom = lwgeom_deserialize(lwg_parser_result.serialized_lwgeom);
++	g_ser = gserialized_geography_from_lwgeom(lwgeom, geog_typmod);
++
+ 	PG_RETURN_POINTER(g_ser);
+ }
+ 
++
+ /*
+ ** geography_out(*GSERIALIZED) returns cstring
+ */
+@@ -266,6 +280,66 @@ Datum geography_out(PG_FUNCTION_ARGS)
+ 	PG_RETURN_CSTRING(lwg_unparser_result.wkoutput);
+ }
+ 
++
++PG_FUNCTION_INFO_V1(geography_recv);
++Datum geography_recv(PG_FUNCTION_ARGS)
++{
++	StringInfo buf = (StringInfo) PG_GETARG_POINTER(0);
++	int32 geog_typmod = PG_GETARG_INT32(2);
++	bytea *wkb;
++	PG_LWGEOM *lwgeom_ser = NULL;
++	LWGEOM *lwgeom = NULL;
++	GSERIALIZED *g_ser = NULL;
++
++	/* Add VARLENA size info to make it a valid varlena object */
++	wkb = (bytea *)palloc(buf->len+VARHDRSZ);
++	SET_VARSIZE(wkb, buf->len+VARHDRSZ);
++	memcpy(VARDATA(wkb), buf->data, buf->len);
++
++	/* Call LWGEOM_from_bytea function... */
++	lwgeom_ser = (PG_LWGEOM *)DatumGetPointer(DirectFunctionCall1(
++	                    LWGEOMFromWKB, PointerGetDatum(wkb)));
++
++	lwgeom = pglwgeom_deserialize(lwgeom_ser);
++
++	g_ser = gserialized_geography_from_lwgeom(lwgeom, geog_typmod);
++
++	/* Set cursor to the end of buffer (so the backend is happy) */
++	buf->cursor = buf->len;
++
++	PG_RETURN_POINTER(g_ser);
++}
++
++
++PG_FUNCTION_INFO_V1(geography_send);
++Datum geography_send(PG_FUNCTION_ARGS)
++{
++	LWGEOM *lwgeom = NULL;
++	LWGEOM_UNPARSER_RESULT lwg_unparser_result;
++	GSERIALIZED *g = NULL;
++	int result;
++	int size_result;
++	bytea *output;
++
++	g = (GSERIALIZED*)PG_DETOAST_DATUM(PG_GETARG_DATUM(0));
++	lwgeom = lwgeom_from_gserialized(g);
++
++	result = serialized_lwgeom_to_ewkb(&lwg_unparser_result,
++					   lwgeom_serialize(lwgeom),
++					   PARSER_CHECK_ALL, -1);
++	if (result)
++		PG_UNPARSER_ERROR(lwg_unparser_result);
++
++	size_result = lwg_unparser_result.size + VARHDRSZ;
++	output = palloc(size_result);
++	SET_VARSIZE(output, size_result);
++	memcpy(VARDATA(output), lwg_unparser_result.wkoutput, lwg_unparser_result.size);
++	pfree(lwg_unparser_result.wkoutput);
++
++	PG_RETURN_POINTER(output);
++}
++
++
+ /*
+ ** geography_enforce_typmod(*GSERIALIZED) returns *GSERIALIZED
+ */
+-- 
+1.7.3.4
+
