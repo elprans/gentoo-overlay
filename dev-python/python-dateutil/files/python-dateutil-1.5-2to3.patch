@@ -1,43 +1,18 @@
-From 3e1738402ecda81629ba57680f38154ba7c290fb Mon Sep 17 00:00:00 2001
-From: Elvis Pranskevichus <el@prans.net>
-Date: Wed, 19 May 2010 17:12:58 -0400
-Subject: [PATCH 1/2] relativedelta: Do not forget to compare microseconds
-
----
- dateutil/relativedelta.py |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
-
-diff --git a/dateutil/relativedelta.py b/dateutil/relativedelta.py
-index 0c72a81..3327582 100644
---- a/dateutil/relativedelta.py
-+++ b/dateutil/relativedelta.py
-@@ -400,6 +400,7 @@ Here is the behavior of operations with relativedelta:
-                 self.hours == other.hours and
-                 self.minutes == other.minutes and
-                 self.seconds == other.seconds and
-+                self.microseconds == other.microseconds and
-                 self.leapdays == other.leapdays and
-                 self.year == other.year and
-                 self.month == other.month and
--- 
-1.7.0.4
-
-
-From e7909ee38b288fa8432caf85fcf08ed93f037f9e Mon Sep 17 00:00:00 2001
+From 5e4d3b42e4ed502f27958f7923f479a488ee597c Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <el@prans.net>
 Date: Thu, 4 Feb 2010 20:25:12 -0500
-Subject: [PATCH 2/2] Make dateutil 2to3 ready
+Subject: [PATCH] Make dateutil 2to3 ready
 
 ---
  dateutil/easter.py        |    2 +-
  dateutil/parser.py        |   12 +++---
  dateutil/relativedelta.py |   12 +++---
- dateutil/rrule.py         |   62 ++++++++++++++++++++------------
- dateutil/tz.py            |   89 +++++++++++++++++++++------------------------
+ dateutil/rrule.py         |   62 +++++++++++++++++++-----------
+ dateutil/tz.py            |   91 +++++++++++++++++++++------------------------
  example.py                |    4 +-
- setup.py                  |    5 +++
- test.py                   |   31 +++++++++++++---
- 8 files changed, 126 insertions(+), 91 deletions(-)
+ setup.py                  |    5 ++
+ test.py                   |   31 +++++++++++++--
+ 8 files changed, 127 insertions(+), 92 deletions(-)
 
 diff --git a/dateutil/easter.py b/dateutil/easter.py
 index d794410..afa1c08 100644
@@ -343,7 +318,7 @@ index 6bd83ca..43ed46f 100644
                  rdatevals or exrulevals or exdatevals):
                  if not parser and (rdatevals or exdatevals):
 diff --git a/dateutil/tz.py b/dateutil/tz.py
-index 0e28d6b..ea6d26b 100644
+index 0e28d6b..a35cb31 100644
 --- a/dateutil/tz.py
 +++ b/dateutil/tz.py
 @@ -75,7 +75,7 @@ class tzoffset(datetime.tzinfo):
@@ -364,7 +339,7 @@ index 0e28d6b..ea6d26b 100644
          return "%s(%s)" % (self.__class__.__name__, ", ".join(l))
  
      def __eq__(self, other):
-@@ -192,7 +192,10 @@ class tzfile(datetime.tzinfo):
+@@ -192,15 +192,18 @@ class tzfile(datetime.tzinfo):
  
      # http://www.twinsun.com/tz/tz-link.htm
      # ftp://elsie.nci.nih.gov/pub/tz*.tar.gz
@@ -376,7 +351,8 @@ index 0e28d6b..ea6d26b 100644
      def __init__(self, fileobj):
          if isinstance(fileobj, basestring):
              self._filename = fileobj
-@@ -200,7 +203,7 @@ class tzfile(datetime.tzinfo):
+-            fileobj = open(fileobj)
++            fileobj = open(fileobj, mode='rb')
          elif hasattr(fileobj, "name"):
              self._filename = fileobj.name
          else:
@@ -725,5 +701,5 @@ index 049fede..cd0abd6 100755
  
      def testBrokenIsDstHandling(self):
 -- 
-1.7.0.4
+1.7.3.4
 
