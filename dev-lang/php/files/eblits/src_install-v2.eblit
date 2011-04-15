@@ -63,12 +63,6 @@ eblit-php-src_install() {
 
 			php_install_ini "${sapi}"
 
-			if [[ "${sapi}" == "fpm" ]]; then
-				cp "${FILESDIR}/php-fpm.conf" "${D}/etc/php/${x}-php5/php-fpm.conf"
-				cp "${FILESDIR}/php-fpm.init" "${T}/php-fpm"
-				doinitd "${T}/php-fpm"
-			fi
-
 			# construct correct SAPI string for php-config
 			# thanks to ferringb for the bash voodoo
 			if [[ "${sapi}" == "apache2" ]]; then
@@ -148,10 +142,10 @@ php_install_ini() {
 	if [[ "${sapi}" == "fpm" ]] ; then
 		einfo "Installing FPM CGI config file php-fpm.conf"
 		insinto ${PHP_INI_DIR}
-		doins "${FILESDIR}/php-fpm.conf"
+		newins "${FILESDIR}/php-fpm-${SLOT}.conf" "php-fpm.conf"
 		dodir "/etc/init.d"
 		insinto "/etc/init.d"
-		newinitd "${FILESDIR}/php-fpm-r3.init" "php-fpm"
+		newinitd "${FILESDIR}/php-fpm-r3.init" "php-fpm-${SLOT}"
 #		dosym "${PHP_DESTDIR}/bin/php-fpm" "/usr/bin/php-fpm"
 	fi
 
