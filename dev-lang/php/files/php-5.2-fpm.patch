@@ -1,4 +1,4 @@
-From d937002dec4070be9effc605d4cf82c66acb711b Mon Sep 17 00:00:00 2001
+From 77a8af0e0a52235163d4c8801872137080c6d4e8 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <el@prans.net>
 Date: Fri, 9 Apr 2010 00:09:10 -0400
 Subject: [PATCH] Add FPM SAPI
@@ -16769,5 +16769,5 @@ index 0000000..4d532ba
 +
 +Translated by Anatoly Pashin
 -- 
-1.7.0.2
+1.7.1
 
