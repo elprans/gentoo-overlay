@@ -14,7 +14,7 @@ PHP_FPM_CONF="/etc/php/fpm-${PHPSLOT}/php-fpm.conf"
 
 PHP_FPM_PID="/var/run/php-fpm.pid"
 
-PHP_FPM_BIN="/usr/lib64/${PHPSLOT}/bin/php-fpm"
+PHP_FPM_BIN="/usr/lib/${PHPSLOT}/bin/php-fpm"
 
 opts="depend start stop reload"
 
