@@ -7,8 +7,10 @@ inherit eutils flag-o-matic toolchain-funcs linux-mod
 EAPI="1"
 
 # Patchset git repo is at http://github.com/dang/kvm-patches/tree/master
+MY_PN="kvm"
+MY_P="${MY_PN}-${PV}"
 PATCHSET="kvm-patches-20081210"
-SRC_URI="mirror://sourceforge/${PN}/${P}.tar.gz
+SRC_URI="mirror://sourceforge/${MY_PN}/${MY_P}.tar.gz
 	mirror://gentoo/${PATCHSET}.tar.gz"
 
 DESCRIPTION="Kernel-based Virtual Machine userland tools"
@@ -40,6 +42,8 @@ DEPEND="${RDEPEND}
 	app-text/texi2html"
 
 QA_TEXTRELS="usr/bin/kvm"
+
+S="${WORKDIR}/${MY_P}"
 
 pkg_setup() {
 	linux-info_pkg_setup
