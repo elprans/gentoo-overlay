@@ -182,6 +182,7 @@ src_install() {
 	exeinto /usr/bin/
 	doexe "${S}/kvm_stat"
 
+	mv "${D}"/usr/bin/kvm "${D}"/usr/bin/kvmold
 	mv "${D}"/usr/share/man/man1/qemu.1 "${D}"/usr/share/man/man1/kvm.1
 	mv "${D}"/usr/share/man/man1/qemu-img.1 "${D}"/usr/share/man/man1/kvm-img.1
 	mv "${D}"/usr/share/man/man8/qemu-nbd.8 "${D}"/usr/share/man/man8/kvm-nbd.8
