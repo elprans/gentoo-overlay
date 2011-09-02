@@ -1,4 +1,4 @@
-From 189291cbbfb8ea494c7bae8fef49e7a47afdb7d4 Mon Sep 17 00:00:00 2001
+From a7cc880dea55ac0f3e99f271b0f6c73745494537 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Thu, 11 Dec 2008 21:08:16 -0500
 Subject: [PATCH] Add ru: Yawerty layout variant
@@ -9,35 +9,35 @@ Subject: [PATCH] Add ru: Yawerty layout variant
  2 files changed, 68 insertions(+), 1 deletions(-)
 
 diff --git a/rules/base.xml.in b/rules/base.xml.in
-index 812b453..afb24ae 100644
+index 9f117cf..0187de1 100644
 --- a/rules/base.xml.in
 +++ b/rules/base.xml.in
-@@ -3473,6 +3473,12 @@
+@@ -3905,6 +3905,12 @@
        <variantList>
          <variant>
            <configItem>
 +            <name>yawerty</name>
-+            <_description>Yawerty</_description>
++            <_description>Russian (phonetic Yawerty)</_description>
 +          </configItem>
 +        </variant>
 +        <variant>
 +          <configItem>
              <name>phonetic</name>
-             <_description>Phonetic</_description>
+             <_description>Russian (phonetic)</_description>
            </configItem>
 diff --git a/symbols/ru b/symbols/ru
-index 7c7dc2a..bf445b1 100644
+index fdf8253..b3426cb 100644
 --- a/symbols/ru
 +++ b/symbols/ru
-@@ -8,8 +8,69 @@
- //
- // $XFree86: xc/programs/xkbcomp/symbols/ru,v 1.3 2003/02/15 22:27:05 dawes Exp $
+@@ -4,8 +4,69 @@
+ // 2001/12/23 by Leon Kanter <leon@blackcatlinux.com>
+ // 2005/12/09 Valery Inozemtsev <shrek@altlinux.ru>
  
 -// Windows layout
  partial default alphanumeric_keys
 +xkb_symbols "yawerty" {
 +
-+    name[Group1]= "Russia - Yawerty";
++    name[Group1]= "Russian (phonetic Yawerty)";
 +
 +    key	<AE01> {	[		1,	    exclam 	]	};
 +    key	<AE02> {	[		2,        	at	]	};
@@ -101,5 +101,5 @@ index 7c7dc2a..bf445b1 100644
      include "ru(common)"
  
 -- 
-1.7.2.2
+1.7.3.4
 
