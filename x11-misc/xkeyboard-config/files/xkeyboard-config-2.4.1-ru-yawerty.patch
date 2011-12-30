@@ -1,4 +1,4 @@
-From a7cc880dea55ac0f3e99f271b0f6c73745494537 Mon Sep 17 00:00:00 2001
+From d2fa8e15e185c4c15b1de2a0647e9448c598cca3 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Thu, 11 Dec 2008 21:08:16 -0500
 Subject: [PATCH] Add ru: Yawerty layout variant
@@ -9,10 +9,10 @@ Subject: [PATCH] Add ru: Yawerty layout variant
  2 files changed, 68 insertions(+), 1 deletions(-)
 
 diff --git a/rules/base.xml.in b/rules/base.xml.in
-index 9f117cf..0187de1 100644
+index 4ee879b..5b16e02 100644
 --- a/rules/base.xml.in
 +++ b/rules/base.xml.in
-@@ -3905,6 +3905,12 @@
+@@ -3928,6 +3928,12 @@
        <variantList>
          <variant>
            <configItem>
@@ -26,7 +26,7 @@ index 9f117cf..0187de1 100644
              <_description>Russian (phonetic)</_description>
            </configItem>
 diff --git a/symbols/ru b/symbols/ru
-index fdf8253..b3426cb 100644
+index 408e408..9e43085 100644
 --- a/symbols/ru
 +++ b/symbols/ru
 @@ -4,8 +4,69 @@
@@ -101,5 +101,5 @@ index fdf8253..b3426cb 100644
      include "ru(common)"
  
 -- 
-1.7.3.4
+1.7.8
 

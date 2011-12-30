@@ -1,20 +1,20 @@
 # Copyright 1999-2011 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /var/cvsroot/gentoo-x86/x11-misc/xkeyboard-config/xkeyboard-config-2.3.ebuild,v 1.4 2011/08/30 08:36:40 chainsaw Exp $
+# $Header: /var/cvsroot/gentoo-x86/x11-misc/xkeyboard-config/xkeyboard-config-2.4.1-r2.ebuild,v 1.3 2011/12/20 21:09:22 jer Exp $
 
 EAPI=4
 
 XORG_STATIC=no
-inherit versionator xorg-2
+inherit xorg-2
 
 EGIT_REPO_URI="git://anongit.freedesktop.org/git/xkeyboard-config"
 
 DESCRIPTION="X keyboard configuration database"
 HOMEPAGE="http://www.freedesktop.org/wiki/Software/XKeyboardConfig"
-[[ ${PV} == *9999* ]] || SRC_URI="${XORG_BASE_INDIVIDUAL_URI}/data/${PN}/${P}.tar.bz2"
+[[ ${PV} == *9999* ]] || SRC_URI="${XORG_BASE_INDIVIDUAL_URI}/data/${P}.tar.bz2"
 
-KEYWORDS="~alpha amd64 ~arm ~hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86 ~x86-fbsd ~x86-interix ~amd64-linux ~x86-linux ~ppc-macos ~x86-macos ~sparc-solaris ~x86-solaris"
-IUSE=""
+KEYWORDS="~alpha amd64 ~arm hppa ~ia64 ~mips ~ppc ~ppc64 ~s390 ~sh ~sparc ~x86 ~x86-fbsd ~x86-interix ~amd64-linux ~x86-linux ~ppc-macos ~x86-macos ~sparc-solaris ~x86-solaris"
+IUSE="yawerty"
 
 LICENSE="MIT"
 SLOT="0"
@@ -34,9 +34,14 @@ XORG_CONFIGURE_OPTIONS=(
 	--with-xkb-rules-symlink=xorg
 )
 
+PATCHES=(
+	"${FILESDIR}"/${P}-extended-function-keys.patch
+	"${FILESDIR}"/${P}-shift-backspace.patch
+	"${FILESDIR}"/${P}-ru-yawerty.patch
+)
+
 src_prepare() {
 	xorg-2_src_prepare
-	epatch "${FILESDIR}/ru-yawerty-$(get_version_component_range 1-2).patch"
 	if [[ ${XORG_EAUTORECONF} != no ]]; then
 		intltoolize --copy --automake || die
 	fi
