@@ -16,7 +16,7 @@ kde-base/mplayerthumbs
 kde-base/okular
 kde-base/system-config-printer-kde
 kde-base/thumbnailers
-kde-misc/knetworkmanager
+kde-misc/networkmanagement
 kde-misc/openofficeorg-thumbnail
 kde-misc/yakuake
 app-cdr/k3b
