@@ -4,7 +4,7 @@
 
 EAPI="2"
 
-inherit autotools
+inherit autotools eutils
 
 MY_PN="${PN/-/_}"
 
