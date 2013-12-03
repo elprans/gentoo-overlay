@@ -14,7 +14,7 @@ kde-base/ksnapshot
 kde-base/kwallet
 kde-base/mplayerthumbs
 kde-base/okular
-kde-base/system-config-printer-kde
+kde-base/print-manager
 kde-base/thumbnailers
 kde-misc/networkmanagement
 kde-misc/openofficeorg-thumbnail
