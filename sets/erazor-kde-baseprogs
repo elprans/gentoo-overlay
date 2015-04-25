@@ -11,12 +11,9 @@ kde-base/kontact
 kde-base/kopete
 kde-base/korganizer
 kde-base/ksnapshot
-kde-base/kwallet
 kde-base/mplayerthumbs
 kde-base/okular
 kde-base/print-manager
 kde-base/thumbnailers
-kde-misc/networkmanagement
 kde-misc/openofficeorg-thumbnail
 kde-misc/yakuake
-app-cdr/k3b

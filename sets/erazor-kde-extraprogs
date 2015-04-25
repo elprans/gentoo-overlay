@@ -1,12 +1,6 @@
 kde-base/kcachegrind
 kde-base/kcharselect
-kde-base/kdegraphics-strigi-analyzer
-kde-base/kdepim-strigi-analyzer
 kde-base/okteta
 kde-base/filelight
-kde-misc/kcm_touchpad
+kde-misc/kcm-touchpad
 kde-base/kaddressbook
-net-p2p/ktorrent
-net-irc/quassel
-app-text/kchmviewer
-media-video/kdenlive
