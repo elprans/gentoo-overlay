@@ -1,6 +1,6 @@
-kde-base/kcachegrind
-kde-base/kcharselect
-kde-base/okteta
-kde-base/filelight
+kde-apps/kcachegrind
+kde-apps/kcharselect
+kde-apps/okteta
+kde-apps/filelight
 kde-misc/kcm-touchpad
-kde-base/kaddressbook
+kde-apps/kaddressbook
