@@ -1,4 +1,4 @@
-From a3b4dd8bb9a3f40c9ddb1260e3c562b2beb4d643 Mon Sep 17 00:00:00 2001
+From 4c1c0316552d9accc2148f8f5c345b57cfaf1418 Mon Sep 17 00:00:00 2001
 From: Elvis Pranskevichus <elvis@alfheim.prans.org>
 Date: Thu, 11 Dec 2008 21:08:16 -0500
 Subject: [PATCH] Add ru: Yawerty layout variant
@@ -9,10 +9,10 @@ Subject: [PATCH] Add ru: Yawerty layout variant
  2 files changed, 68 insertions(+), 1 deletion(-)
 
 diff --git a/rules/base.xml.in b/rules/base.xml.in
-index eb95866..f1c4981 100644
+index 97ae57c..3c4870b 100644
 --- a/rules/base.xml.in
 +++ b/rules/base.xml.in
-@@ -4216,6 +4216,12 @@
+@@ -4382,6 +4382,12 @@
        <variantList>
          <variant>
            <configItem>
@@ -26,10 +26,10 @@ index eb95866..f1c4981 100644
              <_description>Russian (phonetic)</_description>
            </configItem>
 diff --git a/symbols/ru b/symbols/ru
-index 043e011..967dfb6 100644
+index 0ba9870..edc3629 100644
 --- a/symbols/ru
 +++ b/symbols/ru
-@@ -4,8 +4,69 @@
+@@ -3,8 +3,69 @@
  // 2001/12/23 by Leon Kanter <leon@blackcatlinux.com>
  // 2005/12/09 Valery Inozemtsev <shrek@altlinux.ru>
  
@@ -98,8 +98,8 @@ index 043e011..967dfb6 100644
 -default  partial alphanumeric_keys
 +partial alphanumeric_keys
  xkb_symbols "winkeys" {
-     include "ru(common)"
  
+     include "ru(common)"
 -- 
-1.8.4.5
+2.7.3
 
