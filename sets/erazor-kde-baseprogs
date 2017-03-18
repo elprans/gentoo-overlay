@@ -4,10 +4,10 @@ kde-apps/kate
 kde-apps/kcalc
 kde-apps/kdeplasma-addons
 kde-apps/kget
-kde-apps/kmail
+kde-base/kmail
 kde-apps/kmix
-kde-apps/knode
-kde-apps/kontact
+kde-base/knode
+kde-base/kontact
 kde-apps/kopete
 kde-apps/korganizer
 kde-apps/ksnapshot
