@@ -1,4 +1,4 @@
-# Copyright 1999-2017 Gentoo Foundation
+# Copyright 1999-2019 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 # $Id$
 
@@ -10,10 +10,10 @@ DESCRIPTION="A beautiful cross platform Desktop Player for Google Play Music"
 HOMEPAGE="https://www.googleplaymusicdesktopplayer.com/"
 MY_PV="${PV//_/-}"
 THEIR_PN="google-play-music-desktop-player"
-THEIR_PV="4.0.5"
+THEIR_PV="4.4.0"
 
-ELECTRON_V=1.4.15
-ELECTRON_SLOT=1.4
+ELECTRON_V=1.6.11
+ELECTRON_SLOT=1.6
 
 SRC_URI="
 	https://github.com/MarshallOfSound/Google-Play-Music-Desktop-Player-UNOFFICIAL-/releases/download/v${PV}/${THEIR_PN}-${THEIR_PV}.x86_64.rpm
