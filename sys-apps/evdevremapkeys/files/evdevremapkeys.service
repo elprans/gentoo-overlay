@@ -1,0 +1,8 @@
+[Unit]
+Description=Daemon to remap events on linux input devices.
+
+[Service]
+ExecStart=/usr/bin/evdevremapkeys -f /etc/evdevremapkeys.yml
+
+[Install]
+WantedBy=multi-user.target
