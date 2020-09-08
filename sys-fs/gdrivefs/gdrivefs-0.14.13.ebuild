@@ -21,6 +21,7 @@ RDEPEND="
 	dev-python/fusepy[${PYTHON_USEDEP}]
 	dev-python/greenlet[${PYTHON_USEDEP}]
 	dev-python/httplib2[${PYTHON_USEDEP}]
+	dev-python/oauth2client[${PYTHON_USEDEP}]
 	dev-python/python-dateutil[${PYTHON_USEDEP}]
 	dev-python/six[${PYTHON_USEDEP}]
 "
