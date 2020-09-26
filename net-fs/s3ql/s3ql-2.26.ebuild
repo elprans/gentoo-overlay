@@ -7,8 +7,8 @@ PYTHON_COMPAT=( python3_{5,6,7} )
 inherit distutils-r1
 
 DESCRIPTION="A full-featured file system for online data storage"
-HOMEPAGE="https://bitbucket.org/nikratio/s3ql/"
-SRC_URI="https://www.bitbucket.org/nikratio/s3ql/downloads/${P}.tar.bz2"
+HOMEPAGE="https://github.com/s3ql/s3ql"
+SRC_URI="https://github.com/s3ql/s3ql/archive/release-${PV}.tar.gz"
 
 LICENSE="GPL-3"
 SLOT="0"
@@ -21,10 +21,7 @@ RDEPEND=">=dev-db/sqlite-3.7.0:3
 	>=dev-python/apsw-3.7.0[${PYTHON_USEDEP}]
 	>=dev-python/dugong-3.4[${PYTHON_USEDEP}]
 	>=dev-python/llfuse-1.0[${PYTHON_USEDEP}]
-	|| (
-		dev-python/pycrypto[${PYTHON_USEDEP}]
-		dev-python/pycryptodome[${PYTHON_USEDEP}]
-	)
+	dev-python/pycryptodome[${PYTHON_USEDEP}]
 	dev-python/requests[${PYTHON_USEDEP}]
 	sys-fs/fuse:0"
 DEPEND="${RDEPEND}
