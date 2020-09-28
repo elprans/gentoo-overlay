@@ -8,7 +8,7 @@ inherit distutils-r1
 
 DESCRIPTION="A full-featured file system for online data storage"
 HOMEPAGE="https://github.com/s3ql/s3ql"
-SRC_URI="https://github.com/s3ql/s3ql/archive/release-${PV}.tar.gz"
+SRC_URI="https://github.com/s3ql/s3ql/releases/download/release-${PV}/${P}.tar.bz2"
 
 LICENSE="GPL-3"
 SLOT="0"
@@ -32,16 +32,9 @@ DEPEND="${RDEPEND}
 
 RESTRICT="test"
 
-S="${WORKDIR}/${PN}-release-${PV}"
-
 python_test() {
 	addwrite /dev/fuse
 	py.test -v tests || die "Tests fail with ${EPYTHON}"
-}
-
-python_compile() {
-	esetup.py build_cython
-	distutils-r1_python_compile
 }
 
 python_install_all() {
