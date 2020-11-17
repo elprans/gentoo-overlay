@@ -7,7 +7,6 @@ if [[ -z ${PV%%*9999} ]]; then
 	inherit git-r3
 	EGIT_REPO_URI="https://github.com/caryll/${PN}.git"
 else
-	inherit vcs-snapshot
 	SRC_URI="
 		https://github.com/caryll/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz
 	"
