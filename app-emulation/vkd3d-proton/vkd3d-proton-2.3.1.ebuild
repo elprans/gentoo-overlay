@@ -9,11 +9,18 @@ EAPI=7
 
 MULTILIB_COMPAT=( abi_x86_{32,64} )
 
-inherit git-r3 meson multilib-minimal toolchain-funcs
+inherit meson multilib-minimal toolchain-funcs
+if [[ "${PV}" == "9999" ]]; then
+	inherit git-r3
+fi
 
 DESCRIPTION="Proton's Direct3D 12 implementation, forked from VKD3D"
 HOMEPAGE="https://github.com/HansKristian-Work/vkd3d-proton"
-EGIT_REPO_URI="https://github.com/HansKristian-Work/vkd3d-proton.git"
+if [[ "${PV}" == "9999" ]]; then
+	EGIT_REPO_URI="https://github.com/HansKristian-Work/vkd3d-proton.git"
+else
+	SRC_URI="https://github.com/HansKristian-Work/${PN}/archive/refs/tags/v${{PV}.tar.gz -> ${P}.tar.gz"
+fi
 
 LICENSE="LGPL-2.1"
 SLOT="0"
