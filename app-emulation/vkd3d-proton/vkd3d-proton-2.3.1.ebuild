@@ -19,7 +19,7 @@ HOMEPAGE="https://github.com/HansKristian-Work/vkd3d-proton"
 if [[ "${PV}" == "9999" ]]; then
 	EGIT_REPO_URI="https://github.com/HansKristian-Work/vkd3d-proton.git"
 else
-	SRC_URI="https://github.com/HansKristian-Work/${PN}/archive/refs/tags/v${{PV}.tar.gz -> ${P}.tar.gz"
+	SRC_URI="https://github.com/HansKristian-Work/${PN}/archive/refs/tags/v${PV}.tar.gz -> ${P}.tar.gz"
 fi
 
 LICENSE="LGPL-2.1"
