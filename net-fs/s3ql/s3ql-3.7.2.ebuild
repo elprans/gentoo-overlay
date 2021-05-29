@@ -1,8 +1,8 @@
-# Copyright 1999-2020 Gentoo Authors
+# Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
-PYTHON_COMPAT=( python3_{5,6,7} )
+PYTHON_COMPAT=( python3_{7,8,9} )
 
 inherit distutils-r1
 
@@ -19,11 +19,15 @@ RDEPEND=">=dev-db/sqlite-3.7.0:3
 	dev-python/defusedxml[${PYTHON_USEDEP}]
 	dev-python/setuptools[${PYTHON_USEDEP}]
 	>=dev-python/apsw-3.7.0[${PYTHON_USEDEP}]
+	dev-python/cryptography[${PYTHON_USEDEP}]
 	>=dev-python/dugong-3.4[${PYTHON_USEDEP}]
-	>=dev-python/llfuse-1.0[${PYTHON_USEDEP}]
-	dev-python/pycryptodome[${PYTHON_USEDEP}]
 	dev-python/requests[${PYTHON_USEDEP}]
-	sys-fs/fuse:0"
+	dev-python/google-auth[${PYTHON_USEDEP}]
+	dev-python/google-auth-oauthlib[${PYTHON_USEDEP}]
+	>=dev-python/trio-0.15[${PYTHON_USEDEP}]
+	>=dev-python/pyfuse3-3.0[${PYTHON_USEDEP}]
+	<dev-python/pyfuse3-4.0[${PYTHON_USEDEP}]
+	sys-fs/fuse:3"
 DEPEND="${RDEPEND}
 	test? (
 		dev-python/pytest[${PYTHON_USEDEP}]
