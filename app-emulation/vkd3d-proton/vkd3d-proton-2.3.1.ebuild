@@ -18,8 +18,12 @@ DESCRIPTION="Proton's Direct3D 12 implementation, forked from VKD3D"
 HOMEPAGE="https://github.com/HansKristian-Work/vkd3d-proton"
 if [[ "${PV}" == "9999" ]]; then
 	EGIT_REPO_URI="https://github.com/HansKristian-Work/vkd3d-proton.git"
+	VKD3D_COMMIT="git describe"
 else
-	SRC_URI="https://github.com/HansKristian-Work/${PN}/archive/refs/tags/v${PV}.tar.gz -> ${P}.tar.gz"
+	DXIL_SPIRV_COMMIT="21fb9d8c7b98cf3923f388d4845d113fd18daccf"
+	VKD3D_COMMIT="3ed3526332f53d7"
+	SRC_URI="https://github.com/HansKristian-Work/${PN}/archive/refs/tags/v${PV}.tar.gz -> ${P}.tar.gz
+		https://github.com/HansKristian-Work/dxil-spirv/archive/${DXIL_SPIRV_COMMIT}.tar.gz -> ${PN}-dxil-spirv-${DXIL_SPIRV_COMMIT}.tar.gz"
 fi
 
 LICENSE="LGPL-2.1"
@@ -34,8 +38,22 @@ fi
 
 DEPEND="
 	dev-util/glslang
+	>=dev-util/spirv-headers-1.5.4.2_pre20210327
+	>=dev-util/vulkan-headers-1.2.170
+"
+RDEPEND="
+	media-libs/vulkan-loader[${MULTILIB_USEDEP}]
+	>=media-libs/mesa-19.2
+	|| (
+		>=app-emulation/wine-staging-4.5[${MULTILIB_USEDEP},vulkan]
+		>=app-emulation/wine-vanilla-4.5[${MULTILIB_USEDEP},vulkan]
+	)
 "
 RDEPEND="${DEPEND}"
+
+PATCHES=(
+	"${FILESDIR}/0001-build-fixes.patch"
+)
 
 bits() { [[ ${ABI} = amd64 ]] && echo 64 || echo 32; }
 
@@ -73,8 +91,31 @@ pkg_setup() {
 	vkd3d-proton_check_mingw
 }
 
+src_unpack() {
+	default
+
+	if [[ "${PV}" != "9999" ]]; then
+		rmdir "${S}/subprojects/dxil-spirv" || die
+		mv "${WORKDIR}/dxil-spirv-${DXIL_SPIRV_COMMIT}" "${S}/subprojects/dxil-spirv" || die
+	fi
+}
+
 src_prepare() {
 	default
+
+	sed -i -e "s/@@VCS_COMMIT@@/${VKD3D_COMMIT}/g" meson.build
+
+	rm -rf "subprojects/Vulkan-Headers" || die
+	mkdir -p "subprojects/Vulkan-Headers/include" || die
+	ln -s "/usr/include/vulkan" "subprojects/Vulkan-Headers/include/vulkan" || die
+
+	rm -rf "subprojects/SPIRV-Headers" || die
+	mkdir -p "subprojects/SPIRV-Headers/include" || die
+	ln -s "/usr/include/spirv" "subprojects/SPIRV-Headers/include/spirv" || die
+
+	rm -rf "subprojects/dxil-spirv/third_party/spirv-headers" || die
+	mkdir -p "subprojects/dxil-spirv/third_party/spirv-headers/include" || die
+	ln -s "/usr/include/spirv" "subprojects/dxil-spirv/third_party/spirv-headers/include/spirv" || die
 
 	# Create versioned setup script
 	cp "setup_vkd3d_proton.sh" "${PN}-setup"
@@ -127,6 +168,10 @@ multilib_src_install() {
 }
 
 multilib_src_install_all() {
+	# The .a files are needed during the install phase.
+	find "${D}" -name '*.a' -delete -print
+	find "${D}" -name 'libvkd3d-proton-utils-*' -delete -print
+
 	# Create combined setup helper
 	exeinto /usr/bin
 	doexe "${S}/${PN}-setup"

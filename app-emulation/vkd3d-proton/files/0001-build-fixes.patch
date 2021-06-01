@@ -1,0 +1,93 @@
+From d338e0a550bce8199a7300bda54e6c65b6686fb9 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Tue, 25 May 2021 14:41:42 -0700
+Subject: [PATCH] build fixes
+
+---
+ build-win32.txt       | 10 ++++++----
+ build-win64.txt       |  8 ++++++--
+ include/vkd3d_win32.h |  8 ++++++++
+ meson.build           |  1 +
+ 4 files changed, 21 insertions(+), 6 deletions(-)
+
+diff --git a/build-win32.txt b/build-win32.txt
+index c1f017a0..03d756b7 100644
+--- a/build-win32.txt
++++ b/build-win32.txt
+@@ -6,12 +6,14 @@ strip = 'i686-w64-mingw32-strip'
+ widl = 'i686-w64-mingw32-widl'
+ 
+ [properties]
+-c_args=['-msse', '-msse2']
+-cpp_args=['-msse', '-msse2']
+-c_link_args = ['-static', '-static-libgcc']
+-cpp_link_args = ['-static', '-static-libgcc', '-static-libstdc++']
+ needs_exe_wrapper = true
+ 
++[built-in options]
++c_args = @CFLAGS@ + ['-msse', '-msse2']
++cpp_args = @CXXFLAGS@ + ['-msse', '-msse2']
++c_link_args = @LDFLAGS@ + ['-static', '-static-libgcc']
++cpp_link_args = @LDFLAGS@ + ['-static', '-static-libgcc', '-static-libstdc++']
++
+ [host_machine]
+ system = 'windows'
+ cpu_family = 'x86'
+diff --git a/build-win64.txt b/build-win64.txt
+index 8a241178..6e2a402e 100644
+--- a/build-win64.txt
++++ b/build-win64.txt
+@@ -6,10 +6,14 @@ strip = 'x86_64-w64-mingw32-strip'
+ widl = 'x86_64-w64-mingw32-widl'
+ 
+ [properties]
+-c_link_args = ['-static', '-static-libgcc']
+-cpp_link_args = ['-static', '-static-libgcc', '-static-libstdc++']
+ needs_exe_wrapper = true
+ 
++[built-in options]
++c_args = @CFLAGS@
++cpp_args = @CXXFLAGS@
++c_link_args = @LDFLAGS@ + ['-static', '-static-libgcc']
++cpp_link_args = @LDFLAGS@ + ['-static', '-static-libgcc', '-static-libstdc++']
++
+ [host_machine]
+ system = 'windows'
+ cpu_family = 'x86_64'
+diff --git a/include/vkd3d_win32.h b/include/vkd3d_win32.h
+index b721cbb2..bf4e1bed 100644
+--- a/include/vkd3d_win32.h
++++ b/include/vkd3d_win32.h
+@@ -42,9 +42,17 @@
+ #define WIDL_C_INLINE_WRAPPERS
+ #include <vkd3d_windows.h>
+ 
++#ifdef __MINGW32__
++# undef static
++#endif
++
+ #define VK_USE_PLATFORM_WIN32_KHR
+ #include <vulkan/vulkan.h>
+ 
++#ifdef __MINGW32__
++# define static
++#endif
++
+ #include <dxgi1_6.h>
+ 
+ /* We already included regular DXGI...
+diff --git a/meson.build b/meson.build
+index 9b421e73..9007eddf 100644
+--- a/meson.build
++++ b/meson.build
+@@ -142,6 +142,7 @@ endif
+ 
+ vkd3d_build = vcs_tag(
+   command : ['git', 'describe', '--always', '--exclude=*', '--abbrev=15', '--dirty=0'],
++  fallback: '@@VCS_COMMIT@@',
+   input   : 'vkd3d_build.h.in',
+   output  : 'vkd3d_build.h')
+ 
+-- 
+2.31.1
+
