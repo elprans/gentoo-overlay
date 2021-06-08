@@ -1,0 +1,32 @@
+From 8c56a745aa95c66ffac63fadda1db3a9e8912b29 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@magic.io>
+Date: Fri, 22 Nov 2019 11:38:40 -0500
+Subject: [PATCH] Fix shell invocation
+
+---
+ vex/run.py | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/vex/run.py b/vex/run.py
+index 2338e99..a8bc7c8 100644
+--- a/vex/run.py
++++ b/vex/run.py
+@@ -75,9 +75,12 @@ def run(command, env, cwd):
+         if exe:
+             command[0] = exe
+     _, command_name = os.path.split(command[0])
+-    if (command_name in ("bash", "zsh")
+-    and "VIRTUALENVWRAPPER_PYTHON" not in env):
+-        env["VIRTUALENVWRAPPER_PYTHON"] = ":"
++    is_shell = command_name in ("bash", "zsh", "fish")
++    if is_shell and "VIRTUALENVWRAPPER_PYTHON" not in env:
++        env["VIRTUALENVWRAPPER_PYTHON"] = ':'
++    if is_shell and len(command) == 1:
++        os.chdir(cwd)
++        os.execve(command[0], command, env)
+     try:
+         process = subprocess.Popen(command, env=env, cwd=cwd)
+         process.wait()
+-- 
+2.23.0
+

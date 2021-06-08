@@ -1,0 +1,5 @@
+*vex-0.0.5 (08 Jul 2014)
+
+  08 Jul 2014; Elvis Pranskevichus <elprans@sprymix.com> +metadata.xml,
+  +vex-0.0.5.ebuild:
+  Add dev-python/vex: Run commands in a virtualenv
