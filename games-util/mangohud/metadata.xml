@@ -10,7 +10,7 @@
 		<name>Proxy Maintainers</name>
 	</maintainer>
 	<use>
-		<flag name="libglvnd">Use <pkg>media-libs/libglvnd</pkg> for dispatch</flag>
+		<flag name="mangoapp">Build the mangoapp binary</flag>
 		<flag name="xnvctrl">External XNVCtrl support using Nvidia proprietary driver</flag>
 	</use>
 </pkgmetadata>
