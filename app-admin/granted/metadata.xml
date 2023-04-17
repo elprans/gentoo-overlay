@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "https://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+	<maintainer type="person">
+		<email>el@prans.net</email>
+		<name>Mikle Kolyada</name>
+	</maintainer>
+	<longdescription lang="en">
+		Granted is a command line interface (CLI) application which simplifies 
+		access to cloud roles and allows multiple cloud accounts to be opened 
+		in your web browser simultaneously.
+
+		The goals of Granted are:
+
+        * Provide a fast experience around finding and assuming roles
+		* Leverage native browser functionality to allow multiple accounts 
+		  to be accessed at once
+		* Encrypt cached credentials to avoid plaintext SSO tokens being saved
+		  on disk
+	</longdescription>
+	<upstream>
+		<remote-id type="github">common-fate/granted</remote-id>
+	</upstream>
+</pkgmetadata>
