@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=7
-PYTHON_COMPAT=( python3_{9..10} )
+PYTHON_COMPAT=( python3_{9..12} )
 EGIT_REPO_URI="https://github.com/philipl/evdevremapkeys.git"
 
 inherit distutils-r1 eutils git-r3 systemd
