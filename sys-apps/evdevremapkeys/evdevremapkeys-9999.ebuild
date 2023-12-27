@@ -1,19 +1,18 @@
-# Copyright 1999-2021 Gentoo Authors
+# Copyright 1999-2023 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=7
+EAPI=8
 PYTHON_COMPAT=( python3_{9..12} )
-EGIT_REPO_URI="https://github.com/philipl/evdevremapkeys.git"
+DISTUTILS_USE_PEP517="setuptools"
+EGIT_REPO_URI="https://github.com/elprans/evdevremapkeys.git"
 
-inherit distutils-r1 eutils git-r3 systemd
+inherit distutils-r1 git-r3 systemd
 
 DESCRIPTION="Daemon to remap events on linux input devices"
 HOMEPAGE="https://github.com/elprans/evdevremapkeys.git"
-SRC_URI=""
 
 LICENSE="MIT"
 SLOT="0"
-KEYWORDS=""
 
 RDEPEND="
 	>=dev-python/python-evdev-0.7.0[$PYTHON_USEDEP]

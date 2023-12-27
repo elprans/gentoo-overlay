@@ -9,9 +9,6 @@
       <email>proxy-maint@gentoo.org</email>
       <name>Proxy Maintainers</name>
     </maintainer>
-    <longdescription>
-      Daemon to remap events on linux input devices.
-    </longdescription>
     <upstream>
       <remote-id type="github">elprans/evdevremapkeys</remote-id>
     </upstream>
