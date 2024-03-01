@@ -15,7 +15,7 @@ LICENSE="MIT"
 SLOT="0"
 
 RDEPEND="
-	>=dev-python/python-evdev-0.7.0[$PYTHON_USEDEP]
+	>=dev-python/evdev-0.7.0[$PYTHON_USEDEP]
 	>=dev-python/pyudev-0.22.0[$PYTHON_USEDEP]
 	>=dev-python/pyxdg-0.25[$PYTHON_USEDEP]
 	>=dev-python/pyyaml-3.13[$PYTHON_USEDEP]
