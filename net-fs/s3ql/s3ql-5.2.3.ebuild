@@ -1,8 +1,11 @@
-# Copyright 1999-2022 Gentoo Authors
+# Copyright 1999-2025 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=8
-PYTHON_COMPAT=( python3_{9..12} )
+PYTHON_COMPAT=( python3_{9..13} )
+
+DISTUTILS_EXT=1
+DISTUTILS_USE_PEP517=setuptools
 
 inherit distutils-r1
 
@@ -12,7 +15,7 @@ SRC_URI="https://github.com/s3ql/s3ql/releases/download/${P}/${P}.tar.gz"
 
 LICENSE="GPL-3"
 SLOT="0"
-KEYWORDS="~amd64 ~x86"
+KEYWORDS="~amd64"
 IUSE="contrib doc test"
 
 RDEPEND=">=dev-db/sqlite-3.7.0:3
@@ -32,7 +35,7 @@ DEPEND="${RDEPEND}
 		net-misc/rsync[xattr]
 	)"
 BDEPEND="
-	>=dev-python/cython-0.29.30[${PYTHON_USEDEP}]
+	>=dev-python/cython-3.0[${PYTHON_USEDEP}]
 	dev-python/setuptools[${PYTHON_USEDEP}]
 	dev-python/sphinx[${PYTHON_USEDEP}]
 "

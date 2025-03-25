@@ -2,14 +2,13 @@
 <!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
 <pkgmetadata>
 	<maintainer type="person">
-		<email>chutzpah@gentoo.org</email>
-		<name>Patrick McLean</name>
+		<email>el@prans.net</email>
+		<name>Elvis Pranskevichus</name>
 	</maintainer>
 	<use>
 		<flag name="contrib">Install additional contributed scripts</flag>
 	</use>
 	<upstream>
-		<remote-id type="google-code">s3ql</remote-id>
-		<remote-id type="bitbucket">nikratio/s3ql</remote-id>
+		<remote-id type="github">s3ql/s3ql</remote-id>
 	</upstream>
 </pkgmetadata>
