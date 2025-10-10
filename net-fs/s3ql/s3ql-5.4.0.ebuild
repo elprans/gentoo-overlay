@@ -44,9 +44,6 @@ DOCS_BUILDER="sphinx"
 RESTRICT="test"
 
 python_compile() {
-	if [[ ! -f src/deltadump.c ]]; then
-		esetup.py build_cython
-	fi
 	distutils-r1_python_compile
 	esetup.py build_ext --inplace
 	sphinx-build -b man -d doc/doctrees rst/ doc/manpages/ \
@@ -63,6 +60,8 @@ python_test() {
 
 python_install_all() {
 	distutils-r1_python_install_all
+
+	doman doc/manpages/*.1
 
 	if use contrib ; then
 		exeinto /usr/share/doc/${PF}/contrib
