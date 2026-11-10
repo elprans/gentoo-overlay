@@ -1,0 +1,15 @@
+diff --git a/src/compiler/rustdoc.rs b/src/compiler/rustdoc.rs
+index 08b4252d..754667ef 100644
+--- a/src/compiler/rustdoc.rs
++++ b/src/compiler/rustdoc.rs
+@@ -3702,6 +3702,10 @@ mod tests {
+     #[cfg(unix)]
+     #[test]
+     fn a_second_invocation_does_not_run_rustdoc_again() {
++        // The probe memo key hashes the process environment. Hold the lock
++        // that tests take while they change HOME or XDG_CONFIG_HOME, or a
++        // concurrent change re-keys the probe and runs rustdoc -Vv again.
++        let _env = crate::test_support::process_state_test_lock();
+         let dir = tempfile::tempdir().unwrap();
+         let log = dir.path().join("rustdoc.log");
+         let fail = dir.path().join("fail");
