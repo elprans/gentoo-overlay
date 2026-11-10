@@ -638,6 +638,10 @@ PATCHES=(
 	# Upstream race: this test does not hold the lock that serializes
 	# environment changes, so a parallel test can re-key its probe memo.
 	"${FILESDIR}"/${P}-rustdoc-probe-test-env-lock.patch
+	# Opt-in [cache] store_compression: compress each fresh output through
+	# Btrfs before the store reflinks it, so the build tree and the store
+	# share compressed extents instead of uncompressed ones.
+	"${FILESDIR}"/${P}-store-compression.patch
 )
 
 # Names linked by upstream's canonical shim farm (kache_shims::farm::SHIM_NAMES).
@@ -687,7 +691,10 @@ pkg_postinst() {
 	elog "/usr/lib/kache' reuses this package's shim directory, and"
 	elog "'kache doctor --probe' checks compile, store and restore locally."
 	elog
-	elog "The local store keeps blobs uncompressed. On Btrfs, enable compression"
-	elog "on the store directory before its first use, for example:"
-	elog "  btrfs property set ~/.cache/kache compression zstd"
+	elog "The store reflinks compiler outputs, so a compressed store directory"
+	elog "alone does not compress them. On Btrfs, set in ~/.config/kache/config.toml:"
+	elog "  [cache]"
+	elog "  store_compression = \"zstd\"   # or zlib, lzo"
+	elog "  store_compression_level = 3   # zstd -15..15, zlib 1..9"
+	elog "to compress each output before it is stored and shared."
 }

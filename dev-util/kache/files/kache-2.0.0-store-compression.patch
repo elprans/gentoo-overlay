@@ -1,0 +1,866 @@
+--- a/crates/kache-config/src/config/tests.rs
++++ b/crates/kache-config/src/config/tests.rs
+@@ -2694,6 +2694,52 @@
+ }
+ 
+ #[test]
++fn store_compression_is_off_unless_configured_and_env_wins() {
++    use kache_core::store_config::{StoreCompression, StoreCompressionAlgorithm};
++    let _lock = config_path_lock();
++    let zstd = |level| {
++        Some(StoreCompression {
++            algorithm: StoreCompressionAlgorithm::Zstd,
++            level: Some(level),
++        })
++    };
++    let resolve = |file: &str| {
++        let file: Result<FileConfig> = Ok(toml::from_str(file).unwrap());
++        Config::store_compression_for(&InvocationEnv::capture(), &file)
++    };
++    // SAFETY: the process-state lock serialises environment edits.
++    unsafe {
++        std::env::remove_var("KACHE_STORE_COMPRESSION");
++        std::env::remove_var("KACHE_STORE_COMPRESSION_LEVEL");
++    }
++    assert_eq!(resolve("").unwrap(), None);
++    assert_eq!(
++        resolve("[cache]\nstore_compression_level = 9\n").unwrap(),
++        None
++    );
++    assert_eq!(
++        resolve("[cache]\nstore_compression = \"zstd\"\n").unwrap(),
++        zstd(3)
++    );
++    let leveled = "[cache]\nstore_compression = \"zstd\"\nstore_compression_level = 7\n";
++    assert_eq!(resolve(leveled).unwrap(), zstd(7));
++    assert!(
++        resolve("[cache]\nstore_compression = \"zstd\"\nstore_compression_level = 99\n").is_err()
++    );
++
++    unsafe { std::env::set_var("KACHE_STORE_COMPRESSION_LEVEL", "1") };
++    assert_eq!(resolve(leveled).unwrap(), zstd(1), "the env level wins");
++    unsafe { std::env::set_var("KACHE_STORE_COMPRESSION_LEVEL", "high") };
++    assert!(resolve(leveled).is_err());
++    unsafe {
++        std::env::remove_var("KACHE_STORE_COMPRESSION_LEVEL");
++        std::env::set_var("KACHE_STORE_COMPRESSION", "off");
++    }
++    assert_eq!(resolve(leveled).unwrap(), None, "the env switch wins");
++    unsafe { std::env::remove_var("KACHE_STORE_COMPRESSION") };
++}
++
++#[test]
+ fn out_dir_alias_root_follows_invocation_file_and_ignore_env() {
+     let tmp = tempfile::tempdir().unwrap();
+     let root = tmp.path();
+@@ -3105,6 +3151,8 @@
+             out_dir_alias: None,
+             out_dir_alias_root: None,
+             deferred_durability: None,
++            store_compression: None,
++            store_compression_level: None,
+             daemon_publish: None,
+             trust_daemon_execution: None,
+             native_runtime_warmup: None,
+@@ -3768,6 +3816,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: false,
+         trust_daemon_execution: false,
+         native_runtime_warmup: true,
+@@ -3860,6 +3909,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: false,
+         trust_daemon_execution: false,
+         native_runtime_warmup: true,
+@@ -3948,6 +3998,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: false,
+         trust_daemon_execution: false,
+         native_runtime_warmup: true,
+@@ -4055,6 +4106,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: false,
+         trust_daemon_execution: false,
+         native_runtime_warmup: true,
+@@ -4799,6 +4851,8 @@
+             out_dir_alias: None,
+             out_dir_alias_root: None,
+             deferred_durability: None,
++            store_compression: None,
++            store_compression_level: None,
+             daemon_publish: None,
+             trust_daemon_execution: None,
+             native_runtime_warmup: None,
+--- a/crates/kache-config/src/config.rs
++++ b/crates/kache-config/src/config.rs
+@@ -515,6 +515,12 @@
+     /// `[cache] deferred_durability = false` flushes every entry inside the
+     /// compile or download that stored it.
+     pub deferred_durability: bool,
++    /// Btrfs compression for outputs entering the local store: `zstd`,
++    /// `zlib`, `lzo`, or off (default). Set via `KACHE_STORE_COMPRESSION` or
++    /// `[cache] store_compression`; the level via
++    /// `KACHE_STORE_COMPRESSION_LEVEL` or `[cache] store_compression_level`
++    /// (zstd -15..=15, default 3; zlib 1..=9, default 3; lzo has none).
++    pub store_compression: Option<kache_core::store_config::StoreCompression>,
+     /// Local index policy: `auto` (default), `conservative`, or `off`.
+     /// Auto currently resolves to conservative (WAL + NORMAL). Off disables
+     /// index fsync and must be selected explicitly for disposable storage.
+@@ -975,6 +981,10 @@
+     pub out_dir_alias_root: Option<String>,
+     /// Deferred store flush toggle. See [`Config::deferred_durability`].
+     pub deferred_durability: Option<bool>,
++    /// Store compression algorithm. See [`Config::store_compression`].
++    pub store_compression: Option<String>,
++    /// Store compression level. See [`Config::store_compression`].
++    pub store_compression_level: Option<i64>,
+     /// Local index policy. See [`Config::index_mode`].
+     pub index_mode: Option<String>,
+     /// Daemon hand-off toggle. See [`Config::daemon_publish`].
+@@ -1433,6 +1443,8 @@
+     "KACHE_OUT_DIR_ALIAS",
+     "KACHE_OUT_DIR_ALIAS_ROOT",
+     "KACHE_DEFERRED_DURABILITY",
++    "KACHE_STORE_COMPRESSION",
++    "KACHE_STORE_COMPRESSION_LEVEL",
+     "KACHE_INDEX_MODE",
+     "KACHE_AUTO_GC",
+     "KACHE_INDEX_AUTO_COMPACT",
+@@ -1544,6 +1556,11 @@
+     ("KACHE_OUT_DIR_ALIAS", "cache.out_dir_alias"),
+     ("KACHE_OUT_DIR_ALIAS_ROOT", "cache.out_dir_alias_root"),
+     ("KACHE_DEFERRED_DURABILITY", "cache.deferred_durability"),
++    ("KACHE_STORE_COMPRESSION", "cache.store_compression"),
++    (
++        "KACHE_STORE_COMPRESSION_LEVEL",
++        "cache.store_compression_level",
++    ),
+     ("KACHE_INDEX_MODE", "cache.index_mode"),
+     ("KACHE_DAEMON_PUBLISH", "cache.daemon_publish"),
+     ("KACHE_NATIVE_RUNTIME_WARMUP", "cache.native_runtime_warmup"),
+@@ -2304,6 +2321,7 @@
+             );
+         }
+         let deferred_durability = Self::deferred_durability_enabled_for(invocation, &file_config);
++        let store_compression = Self::store_compression_for(invocation, &file_config)?;
+         let index_mode = Self::index_mode_for(invocation, &file_config);
+         let daemon_publish = Self::daemon_publish_enabled_for(invocation, &file_config);
+         let native_runtime_warmup =
+@@ -2456,6 +2474,7 @@
+             out_dir_alias,
+             out_dir_alias_root,
+             deferred_durability,
++            store_compression,
+             index_mode,
+             daemon_publish,
+             native_runtime_warmup,
+@@ -3236,6 +3255,33 @@
+             .unwrap_or(true)
+     }
+ 
++    /// `KACHE_STORE_COMPRESSION[_LEVEL]` (env wins), else the `[cache]`
++    /// keys. See [`Config::store_compression`].
++    fn store_compression_for(
++        invocation: &InvocationEnv,
++        file_config: &Result<FileConfig>,
++    ) -> Result<Option<kache_core::store_config::StoreCompression>> {
++        let ignore_env = Self::ignore_env_enabled(file_config);
++        let cache = file_config.as_ref().ok().and_then(|c| c.cache.as_ref());
++        let algorithm = env_or_ignored_for(invocation, "KACHE_STORE_COMPRESSION", ignore_env)
++            .ok()
++            .or_else(|| cache.and_then(|c| c.store_compression.clone()));
++        let Some(algorithm) = algorithm else {
++            return Ok(None);
++        };
++        let level =
++            match env_or_ignored_for(invocation, "KACHE_STORE_COMPRESSION_LEVEL", ignore_env) {
++                Ok(value) if !value.trim().is_empty() => {
++                    Some(value.trim().parse::<i64>().map_err(|_| {
++                        anyhow::anyhow!("KACHE_STORE_COMPRESSION_LEVEL must be an integer")
++                    })?)
++                }
++                _ => cache.and_then(|c| c.store_compression_level),
++            };
++        kache_core::store_config::StoreCompression::parse(&algorithm, level)
++            .map_err(|error| anyhow::anyhow!("cache.store_compression: {error}"))
++    }
++
+     /// `KACHE_INDEX_MODE` (env wins), else `[cache] index_mode`,
+     /// else `auto`. See [`Config::index_mode`].
+     fn index_mode_for(invocation: &InvocationEnv, file_config: &Result<FileConfig>) -> IndexMode {
+@@ -5255,6 +5301,7 @@
+             upload_spool_max_jobs: UPLOAD_SPOOL_MAX_JOBS,
+             deferred_durability: config.deferred_durability,
+             index_mode: config.index_mode,
++            store_compression: config.store_compression,
+         }
+     }
+ }
+--- a/crates/kache-core/src/store_config.rs
++++ b/crates/kache-core/src/store_config.rs
+@@ -61,6 +61,70 @@
+     }
+ }
+ 
++/// Filesystem compression algorithm for outputs entering the store.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum StoreCompressionAlgorithm {
++    Zlib,
++    Lzo,
++    Zstd,
++}
++
++/// Btrfs's default zstd level, which a directory's `compression=zstd`
++/// property also uses.
++pub const DEFAULT_ZSTD_LEVEL: i8 = 3;
++
++/// Compression applied to an output before the store shares its extents.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct StoreCompression {
++    pub algorithm: StoreCompressionAlgorithm,
++    /// `None` only for lzo, which has no levels.
++    pub level: Option<i8>,
++}
++
++impl StoreCompression {
++    /// Parse an algorithm name and optional level, applying the algorithm's
++    /// default level. `off`/`none`/empty disables compression (`Ok(None)`).
++    pub fn parse(algorithm: &str, level: Option<i64>) -> Result<Option<Self>, String> {
++        let algorithm = match algorithm.trim().to_ascii_lowercase().as_str() {
++            "" | "off" | "none" | "false" | "0" => return Ok(None),
++            "zstd" => StoreCompressionAlgorithm::Zstd,
++            "zlib" => StoreCompressionAlgorithm::Zlib,
++            "lzo" => StoreCompressionAlgorithm::Lzo,
++            other => {
++                return Err(format!(
++                    "unknown store compression {other:?}; expected zstd, zlib, lzo, or off"
++                ));
++            }
++        };
++        let (range, default) = match algorithm {
++            StoreCompressionAlgorithm::Zstd => (-15..=15, Some(DEFAULT_ZSTD_LEVEL)),
++            StoreCompressionAlgorithm::Zlib => (1..=9, Some(3)),
++            StoreCompressionAlgorithm::Lzo => {
++                if level.is_some() {
++                    return Err("lzo store compression has no levels".to_string());
++                }
++                return Ok(Some(Self {
++                    algorithm,
++                    level: None,
++                }));
++            }
++        };
++        let level = match level {
++            None => default,
++            Some(0) => default,
++            Some(level) if range.contains(&level) => Some(level as i8),
++            Some(level) => {
++                return Err(format!(
++                    "store compression level {level} is outside {}..={}",
++                    range.start(),
++                    range.end()
++                ));
++            }
++        };
++        Ok(Some(Self { algorithm, level }))
++    }
++}
++
+ /// Options needed by local storage; remote and compiler settings stay with the caller.
+ #[derive(Clone, Debug)]
+ pub struct Config {
+@@ -72,6 +136,9 @@
+     /// later; a hit on an entry still pending verifies its bytes first.
+     pub deferred_durability: bool,
+     pub index_mode: IndexMode,
++    /// Compress each fresh output in place before the store reflinks it, so
++    /// the build tree and the store share compressed extents. Off by default.
++    pub store_compression: Option<StoreCompression>,
+ }
+ 
+ impl From<&Config> for Config {
+@@ -99,6 +166,48 @@
+     use super::*;
+ 
+     #[test]
++    fn store_compression_parses_algorithms_and_defaults_levels() {
++        let zstd = |level| StoreCompression {
++            algorithm: StoreCompressionAlgorithm::Zstd,
++            level: Some(level),
++        };
++        assert_eq!(StoreCompression::parse("zstd", None), Ok(Some(zstd(3))));
++        assert_eq!(
++            StoreCompression::parse(" ZSTD ", Some(0)),
++            Ok(Some(zstd(3)))
++        );
++        assert_eq!(
++            StoreCompression::parse("zstd", Some(-5)),
++            Ok(Some(zstd(-5)))
++        );
++        assert_eq!(
++            StoreCompression::parse("zstd", Some(15)),
++            Ok(Some(zstd(15)))
++        );
++        assert_eq!(
++            StoreCompression::parse("zlib", Some(9)),
++            Ok(Some(StoreCompression {
++                algorithm: StoreCompressionAlgorithm::Zlib,
++                level: Some(9),
++            }))
++        );
++        assert_eq!(
++            StoreCompression::parse("lzo", None),
++            Ok(Some(StoreCompression {
++                algorithm: StoreCompressionAlgorithm::Lzo,
++                level: None,
++            }))
++        );
++        for off in ["", "off", "None", "false", "0"] {
++            assert_eq!(StoreCompression::parse(off, Some(7)), Ok(None), "{off:?}");
++        }
++        assert!(StoreCompression::parse("zstd", Some(16)).is_err());
++        assert!(StoreCompression::parse("zlib", Some(10)).is_err());
++        assert!(StoreCompression::parse("lzo", Some(1)).is_err());
++        assert!(StoreCompression::parse("brotli", None).is_err());
++    }
++
++    #[test]
+     fn index_mode_parses_each_mode_and_rejects_the_rest() {
+         for (value, expected) in [
+             ("auto", IndexMode::Auto),
+@@ -156,6 +265,7 @@
+             upload_spool_max_jobs: 2,
+             deferred_durability: false,
+             index_mode: IndexMode::default(),
++            store_compression: None,
+         };
+         let second = Config {
+             cache_dir: PathBuf::from("second/cache"),
+--- a/crates/kache-fs/Cargo.toml
++++ b/crates/kache-fs/Cargo.toml
+@@ -19,6 +19,7 @@
+ 
+ [dev-dependencies]
+ serde_json = "1"
++tempfile = "3"
+ 
+ [features]
+ default = []
+--- a/crates/kache-fs/src/compress.rs
++++ b/crates/kache-fs/src/compress.rs
+@@ -0,0 +1,118 @@
++//! Filesystem compression of a fresh output before it is shared.
++//!
++//! The store ingests compiler outputs as reflinks of the files the compiler
++//! wrote, so a compressed store directory alone never compresses them: Btrfs
++//! decides compression when data is written, and a reflink only adds a
++//! reference to existing extents. Rewriting the output compressed *before* it
++//! is shared makes the build tree and the store share compressed extents.
++//!
++//! Only a file that shares no extents is rewritten. Rewriting a shared extent
++//! would give this file a private compressed copy and keep the shared one,
++//! using more disk, not less.
++
++use std::io;
++use std::path::Path;
++
++/// A compression algorithm the filesystem applies to rewritten data.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum CompressionAlgorithm {
++    Zlib,
++    Lzo,
++    Zstd,
++}
++
++/// The algorithm and optional level for [`compress_in_place`]. `None` takes
++/// the filesystem's default level for the algorithm.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct Compression {
++    pub algorithm: CompressionAlgorithm,
++    pub level: Option<i8>,
++}
++
++/// What [`compress_in_place`] did with a file.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum CompressOutcome {
++    /// The file's data was rewritten through the filesystem's compression.
++    Compressed,
++    /// Smaller than [`MIN_COMPRESS_BYTES`]; Btrfs stores such files inline.
++    TooSmall,
++    /// Some extents are shared with another file and were left alone.
++    Shared,
++    /// Not a regular file, or the filesystem cannot compress in place.
++    Unsupported,
++}
++
++/// Files below this size are left alone: Btrfs keeps small files inline in
++/// metadata, where its own compression already applies.
++pub const MIN_COMPRESS_BYTES: u64 = 4096;
++
++/// Rewrite `path`'s data through the filesystem's compression, if it is a
++/// regular file on Btrfs that shares no extents.
++///
++/// The data is flushed first: Btrfs does not recompress data that is still
++/// waiting for writeback. The rewrite is started before returning, and a
++/// later reflink of the file waits for it, so the clone shares the
++/// compressed extents.
++pub fn compress_in_place(path: &Path, compression: Compression) -> io::Result<CompressOutcome> {
++    #[cfg(target_os = "linux")]
++    {
++        crate::linux::compress_in_place(path, compression)
++    }
++    #[cfg(not(target_os = "linux"))]
++    {
++        let _ = (path, compression);
++        Ok(CompressOutcome::Unsupported)
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    const ZSTD: Compression = Compression {
++        algorithm: CompressionAlgorithm::Zstd,
++        level: Some(3),
++    };
++
++    #[test]
++    fn small_files_and_directories_are_left_alone() {
++        let dir = tempfile::tempdir().unwrap();
++        let small = dir.path().join("small");
++        std::fs::write(&small, b"tiny").unwrap();
++        assert_eq!(
++            compress_in_place(&small, ZSTD).unwrap(),
++            CompressOutcome::TooSmall
++        );
++        assert_eq!(
++            compress_in_place(dir.path(), ZSTD).unwrap(),
++            CompressOutcome::Unsupported
++        );
++    }
++
++    /// On Btrfs a fresh file is compressed and a reflink of it is then left
++    /// alone; elsewhere the call reports that it cannot compress.
++    #[test]
++    fn fresh_files_compress_and_shared_files_do_not() {
++        let dir = tempfile::tempdir_in(
++            std::env::var_os("KACHE_TEST_BTRFS_DIR").unwrap_or_else(|| std::env::temp_dir().into()),
++        )
++        .unwrap();
++        let fresh = dir.path().join("fresh");
++        std::fs::write(&fresh, vec![b'k'; 1 << 20]).unwrap();
++        let outcome = compress_in_place(&fresh, ZSTD).unwrap();
++        if outcome == CompressOutcome::Unsupported {
++            eprintln!("skipping: {} is not on Btrfs", dir.path().display());
++            return;
++        }
++        assert_eq!(outcome, CompressOutcome::Compressed);
++        assert_eq!(std::fs::read(&fresh).unwrap(), vec![b'k'; 1 << 20]);
++
++        let clone = dir.path().join("clone");
++        crate::copy::try_reflink(&fresh, &clone).unwrap();
++        assert_eq!(
++            compress_in_place(&fresh, ZSTD).unwrap(),
++            CompressOutcome::Shared
++        );
++        assert_eq!(std::fs::read(&clone).unwrap(), vec![b'k'; 1 << 20]);
++    }
++}
+--- a/crates/kache-fs/src/lib.rs
++++ b/crates/kache-fs/src/lib.rs
+@@ -22,6 +22,11 @@
+ #[cfg(feature = "staging")]
+ pub use clock::sample_write_clock;
+ 
++mod compress;
++pub use compress::{
++    CompressOutcome, Compression, CompressionAlgorithm, MIN_COMPRESS_BYTES, compress_in_place,
++};
++
+ mod copy;
+ #[cfg(windows)]
+ pub use copy::windows_cluster_size;
+--- a/crates/kache-fs/src/linux.rs
++++ b/crates/kache-fs/src/linux.rs
+@@ -98,6 +98,127 @@
+     })
+ }
+ 
++const BTRFS_SUPER_MAGIC: libc::c_long = 0x9123_683e;
++/// `_IOW(BTRFS_IOCTL_MAGIC, 16, struct btrfs_ioctl_defrag_range_args)`.
++const BTRFS_IOC_DEFRAG_RANGE: libc::c_ulong = 0x4030_9410;
++const BTRFS_DEFRAG_RANGE_COMPRESS: u64 = 1;
++const BTRFS_DEFRAG_RANGE_START_IO: u64 = 2;
++const BTRFS_DEFRAG_RANGE_COMPRESS_LEVEL: u64 = 4;
++
++/// `struct btrfs_ioctl_defrag_range_args` with the `compress` union member
++/// that carries a level (Linux 6.15 and later).
++#[repr(C)]
++struct DefragRangeArgs {
++    start: u64,
++    len: u64,
++    flags: u64,
++    extent_thresh: u32,
++    compress_type: u8,
++    compress_level: i8,
++    _pad: u16,
++    _unused: [u32; 4],
++}
++
++const _: () = assert!(std::mem::size_of::<DefragRangeArgs>() == 48);
++
++fn btrfs_compress_type(algorithm: crate::CompressionAlgorithm) -> u8 {
++    match algorithm {
++        crate::CompressionAlgorithm::Zlib => 1,
++        crate::CompressionAlgorithm::Lzo => 2,
++        crate::CompressionAlgorithm::Zstd => 3,
++    }
++}
++
++fn defrag_compress(file: &File, compression: crate::Compression) -> io::Result<()> {
++    let mut flags = BTRFS_DEFRAG_RANGE_COMPRESS | BTRFS_DEFRAG_RANGE_START_IO;
++    if compression.level.is_some() {
++        flags |= BTRFS_DEFRAG_RANGE_COMPRESS_LEVEL;
++    }
++    let args = DefragRangeArgs {
++        start: 0,
++        len: u64::MAX,
++        flags,
++        // Rewrite every extent, however large: the point is to compress.
++        extent_thresh: 1,
++        compress_type: btrfs_compress_type(compression.algorithm),
++        compress_level: compression.level.unwrap_or(0),
++        _pad: 0,
++        _unused: [0; 4],
++    };
++    // SAFETY: `args` matches the kernel's 48-byte argument struct and lives
++    // for the duration of the call; the kernel only reads it.
++    let rc = unsafe {
++        libc::ioctl(
++            file.as_raw_fd(),
++            BTRFS_IOC_DEFRAG_RANGE as _,
++            &raw const args,
++        )
++    };
++    if rc == 0 {
++        Ok(())
++    } else {
++        Err(io::Error::last_os_error())
++    }
++}
++
++fn is_btrfs(file: &File) -> io::Result<bool> {
++    let mut stats = std::mem::MaybeUninit::<libc::statfs>::uninit();
++    // SAFETY: `fstatfs` fills the provided buffer on success.
++    let rc = unsafe { libc::fstatfs(file.as_raw_fd(), stats.as_mut_ptr()) };
++    if rc != 0 {
++        return Err(io::Error::last_os_error());
++    }
++    // SAFETY: initialized by the successful call above.
++    let stats = unsafe { stats.assume_init() };
++    Ok(stats.f_type as libc::c_long == BTRFS_SUPER_MAGIC)
++}
++
++pub(crate) fn compress_in_place(
++    path: &Path,
++    compression: crate::Compression,
++) -> io::Result<crate::CompressOutcome> {
++    let metadata = std::fs::symlink_metadata(path)?;
++    if !metadata.file_type().is_file() {
++        return Ok(crate::CompressOutcome::Unsupported);
++    }
++    if metadata.len() < crate::MIN_COMPRESS_BYTES {
++        return Ok(crate::CompressOutcome::TooSmall);
++    }
++    // Defragmentation needs a writable descriptor; it does not change content.
++    let file = OpenOptions::new()
++        .read(true)
++        .write(true)
++        .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
++        .open(path)?;
++    if !is_btrfs(&file)? {
++        return Ok(crate::CompressOutcome::Unsupported);
++    }
++    // Btrfs skips ranges still waiting for writeback, so flush them first.
++    file.sync_data()?;
++    // An unknown extent state counts as shared: leave the file alone.
++    match fiemap(&file)?.map(|accounting| accounting.sharing()) {
++        Some(crate::Sharing::None) => {}
++        _ => return Ok(crate::CompressOutcome::Shared),
++    }
++    match defrag_compress(&file, compression) {
++        // Kernels before 6.15 reject the level flag; use the default level.
++        Err(error)
++            if compression.level.is_some()
++                && matches!(error.raw_os_error(), Some(libc::EOPNOTSUPP | libc::EINVAL)) =>
++        {
++            defrag_compress(
++                &file,
++                crate::Compression {
++                    level: None,
++                    ..compression
++                },
++            )?;
++        }
++        result => result?,
++    }
++    Ok(crate::CompressOutcome::Compressed)
++}
++
+ pub(crate) fn measure_file(path: &Path) -> io::Result<FileSizing> {
+     LinuxProbe { supported: true }.measure_file(path)
+ }
+--- a/crates/kache-store/src/store/tests.rs
++++ b/crates/kache-store/src/store/tests.rs
+@@ -3336,6 +3336,7 @@
+         upload_spool_max_jobs: 65_536,
+         deferred_durability: false,
+         index_mode: IndexMode::default(),
++        store_compression: None,
+     }
+ }
+ 
+--- a/crates/kache-store/src/store.rs
++++ b/crates/kache-store/src/store.rs
+@@ -426,6 +426,36 @@
+     materialize_blob_with_durability(source, blob, allow_hardlink, true)
+ }
+ 
++/// Rewrite a fresh output through Btrfs compression before the store
++/// reflinks it, so the build tree and the store share compressed extents.
++/// Best-effort: an output that cannot be compressed is stored as it is.
++fn compress_output_for_store(
++    source: &Path,
++    compression: kache_core::store_config::StoreCompression,
++) {
++    use kache_core::store_config::StoreCompressionAlgorithm as Algorithm;
++    let compression = kache_fs::Compression {
++        algorithm: match compression.algorithm {
++            Algorithm::Zstd => kache_fs::CompressionAlgorithm::Zstd,
++            Algorithm::Zlib => kache_fs::CompressionAlgorithm::Zlib,
++            Algorithm::Lzo => kache_fs::CompressionAlgorithm::Lzo,
++        },
++        level: compression.level,
++    };
++    match kache_fs::compress_in_place(source, compression) {
++        Ok(outcome) => {
++            tracing::trace!(path = %source.display(), ?outcome, "store compression");
++        }
++        Err(error) => {
++            tracing::debug!(
++                path = %source.display(),
++                %error,
++                "store compression failed; storing the output uncompressed"
++            );
++        }
++    }
++}
++
+ fn materialize_blob_with_durability(
+     source: &Path,
+     blob: &Path,
+@@ -4032,6 +4062,10 @@
+         let tmp = free_staging_path(|nonce| dir.join(format!("stage-{pid}-{nonce}.tmp")))
+             .with_context(|| format!("reserving a staging name in {}", dir.display()))?;
+ 
++        if let Some(compression) = self.config.store_compression {
++            compress_output_for_store(source, compression);
++        }
++
+         let stage = |tmp: &Path, allow_hardlink: bool| -> Result<(StoreIngest, bool)> {
+             // Short-circuit: the real reflink is only attempted when no test
+             // emulation claimed the staging slot, and never when the
+--- a/src/cli/tests.rs
++++ b/src/cli/tests.rs
+@@ -3835,6 +3835,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: false,
+         trust_daemon_execution: false,
+         native_runtime_warmup: true,
+--- a/src/compiler_store.rs
++++ b/src/compiler_store.rs
+@@ -126,6 +126,7 @@
+             gc_evict_shared: false,
+             upload_spool_max_jobs: 128,
+             deferred_durability: false,
++            store_compression: None,
+             index_mode: Default::default(),
+         })
+         .unwrap();
+--- a/src/config_tui.rs
++++ b/src/config_tui.rs
+@@ -2169,6 +2169,8 @@
+                 out_dir_alias: None,
+                 out_dir_alias_root: None,
+                 deferred_durability: None,
++                store_compression: None,
++                store_compression_level: None,
+                 daemon_publish: None,
+                 trust_daemon_execution: None,
+                 native_runtime_warmup: Some(false),
+--- a/src/daemon/tests.rs
++++ b/src/daemon/tests.rs
+@@ -1457,6 +1457,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: false,
+         trust_daemon_execution: false,
+         daemon_execution_concurrency: None,
+--- a/src/fallback_planner.rs
++++ b/src/fallback_planner.rs
+@@ -520,6 +520,7 @@
+             out_dir_alias: true,
+             out_dir_alias_root: None,
+             deferred_durability: false,
++            store_compression: None,
+             daemon_publish: false,
+             trust_daemon_execution: false,
+             native_runtime_warmup: true,
+--- a/src/remote_layout.rs
++++ b/src/remote_layout.rs
+@@ -1061,6 +1061,7 @@
+             out_dir_alias: true,
+             out_dir_alias_root: None,
+             deferred_durability: false,
++            store_compression: None,
+             daemon_publish: false,
+             trust_daemon_execution: false,
+             native_runtime_warmup: true,
+@@ -1186,6 +1187,7 @@
+             out_dir_alias: true,
+             out_dir_alias_root: None,
+             deferred_durability: false,
++            store_compression: None,
+             daemon_publish: false,
+             trust_daemon_execution: false,
+             native_runtime_warmup: true,
+@@ -1516,6 +1518,7 @@
+             out_dir_alias: true,
+             out_dir_alias_root: None,
+             deferred_durability: false,
++            store_compression: None,
+             daemon_publish: false,
+             trust_daemon_execution: false,
+             native_runtime_warmup: true,
+@@ -1698,6 +1701,7 @@
+             out_dir_alias: true,
+             out_dir_alias_root: None,
+             deferred_durability: false,
++            store_compression: None,
+             daemon_publish: false,
+             trust_daemon_execution: false,
+             native_runtime_warmup: true,
+--- a/src/remote_plan.rs
++++ b/src/remote_plan.rs
+@@ -85,6 +85,7 @@
+             out_dir_alias: true,
+             out_dir_alias_root: None,
+             deferred_durability: false,
++            store_compression: None,
+             daemon_publish: false,
+             trust_daemon_execution: false,
+             native_runtime_warmup: true,
+--- a/src/report/tests.rs
++++ b/src/report/tests.rs
+@@ -652,6 +652,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: false,
+         native_runtime_warmup: true,
+         trust_daemon_execution: false,
+@@ -2140,6 +2141,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: false,
+         native_runtime_warmup: true,
+         trust_daemon_execution: false,
+@@ -2252,6 +2254,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: false,
+         native_runtime_warmup: true,
+         trust_daemon_execution: false,
+@@ -2363,6 +2366,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: false,
+         native_runtime_warmup: true,
+         trust_daemon_execution: false,
+@@ -2475,6 +2479,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: false,
+         native_runtime_warmup: true,
+         trust_daemon_execution: false,
+@@ -2592,6 +2597,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: false,
+         native_runtime_warmup: true,
+         trust_daemon_execution: false,
+@@ -3112,6 +3118,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: false,
+         native_runtime_warmup: true,
+         trust_daemon_execution: false,
+@@ -3605,6 +3612,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: false,
+         native_runtime_warmup: true,
+         trust_daemon_execution: false,
+--- a/src/test_support.rs
++++ b/src/test_support.rs
+@@ -97,6 +97,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: true,
+         trust_daemon_execution: false,
+         native_runtime_warmup: true,
+--- a/src/tui/tests.rs
++++ b/src/tui/tests.rs
+@@ -121,6 +121,7 @@
+         out_dir_alias: true,
+         out_dir_alias_root: None,
+         deferred_durability: false,
++        store_compression: None,
+         daemon_publish: false,
+         trust_daemon_execution: false,
+         native_runtime_warmup: true,
