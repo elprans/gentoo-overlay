@@ -7,7 +7,7 @@ inherit go-module
 DESCRIPTION="The easiest way to access your cloud."
 HOMEPAGE="https://docs.commonfate.io/granted/"
 SRC_URI="https://github.com/common-fate/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
-SRC_URI+=" https://storage.googleapis.com/ep-overlay-distfiles/${P}-deps.tar.xz"
+SRC_URI+=" https://github.com/elprans/gentoo-overlay/releases/download/${P}/${P}-deps.tar.xz"
 
 LICENSE="Apache-2.0 BSD BSD-2 MIT"
 SLOT="0"

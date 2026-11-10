@@ -8,7 +8,7 @@ inherit go-module
 DESCRIPTION="Unclutter your .profile with directory-local environment switching"
 HOMEPAGE="https://direnv.net/ https://github.com/direnv/direnv"
 SRC_URI="https://github.com/direnv/direnv/archive/refs/tags/v${PV}.tar.gz -> ${P}.tar.gz"
-SRC_URI+=" https://storage.googleapis.com/ep-overlay-distfiles/${P}-deps.tar.xz"
+SRC_URI+=" https://github.com/elprans/gentoo-overlay/releases/download/${P}/${P}-deps.tar.xz"
 
 LICENSE="MIT"
 # Dependent module licenses

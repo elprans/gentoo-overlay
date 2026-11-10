@@ -7,7 +7,7 @@ inherit go-module
 DESCRIPTION="A tool for building, changing, and combining infrastructure safely"
 HOMEPAGE="https://www.terraform.io/"
 SRC_URI="https://github.com/hashicorp/${PN}/archive/v${PV}.tar.gz -> ${P}.tar.gz"
-SRC_URI+=" https://storage.googleapis.com/ep-overlay-distfiles/${P}-deps.tar.xz"
+SRC_URI+=" https://github.com/elprans/gentoo-overlay/releases/download/${P}/${P}-deps.tar.xz"
 
 LICENSE="Apache-2.0 BSD BSD-2 MPL-2.0 MIT ISC"
 SLOT="0"
