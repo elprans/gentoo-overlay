@@ -673,7 +673,7 @@ src_install() {
 	dofishcomp kache.fish
 	newzshcomp kache.zsh _kache
 
-	# Compiler-name farm, like ccache's: put /usr/lib/kache ahead of the real
+	# Compiler-name farm, like ccache's: /usr/lib/kache precedes the real
 	# compilers in PATH to route them through kache. The marker tells kache to
 	# skip this directory when it looks for the real compiler.
 	local name
@@ -681,14 +681,20 @@ src_install() {
 		dosym -r /usr/bin/kache "/usr/lib/kache/${name}"
 	done
 	: > "${ED}/usr/lib/kache/.kache-shims" || die
+	# env-update joins PATH entries in file-name order; sorting before
+	# 50baselayout places the shims ahead of /usr/bin for every login. ROOTPATH
+	# is left alone, so root shells bypass kache.
+	newenvd - 10kache <<< 'PATH="/usr/lib/kache"'
 
 	einstalldocs
 }
 
 pkg_postinst() {
-	elog "Run 'kache init' as each user to configure Cargo's compiler wrapper,"
-	elog "the systemd user service and shell startup. 'kache init --shims"
-	elog "/usr/lib/kache' reuses this package's shim directory, and"
+	elog "/etc/env.d/10kache puts the shim directory ahead of the compilers in"
+	elog "every login PATH; run 'env-update' and log in again to apply it."
+	elog "Run 'kache init' as each user to configure Cargo's compiler wrapper"
+	elog "and the systemd user service; 'kache init --shims /usr/lib/kache'"
+	elog "reuses this package's shim directory, and"
 	elog "'kache doctor --probe' checks compile, store and restore locally."
 	elog
 	elog "The store reflinks compiler outputs, so a compressed store directory"
