@@ -1,0 +1,17 @@
+#!/bin/sh
+# Run the native Vercel CLI with its login in the OS keyring (Secret Service),
+# loading its native addons from the root-owned copies installed beside it.
+: "${VERCEL_TOKEN_STORAGE:=keyring}"
+export VERCEL_TOKEN_STORAGE
+if [ -z "${PKG_NATIVE_CACHE_PATH-}" ] && [ -n "${HOME-}" ]; then
+	for addon in /opt/vercel/native/pkg/*; do
+		[ -d "${addon}" ] || continue
+		link="${HOME}/.cache/pkg/${addon##*/}"
+		if [ "$(readlink "${link}" 2>/dev/null)" != "${addon}" ]; then
+			mkdir -p "${HOME}/.cache/pkg" &&
+				rm -rf "${link}" &&
+				ln -s "${addon}" "${link}" || :
+		fi
+	done
+fi
+exec /opt/vercel/bin/vercel "$@"
