@@ -10,7 +10,7 @@ The package builds `kache`, `kache-engine`, `kache-cl`, and `kache-clang-cl` for
 
 Run `kache init` per user to configure Cargo and the user service. `kache init --shims /usr/lib/kache` reuses the installed shims, and `kache doctor --probe` checks compilation, storage, and restoration. Upstream 2.1.1 changes cache keys; entries refill without manually clearing the cache.
 
-Registry dependencies and their licenses come from the upstream lockfile through `pycargoebuild --fill-crates`. Cargo builds offline using the individually fetched crates listed in the Manifest. The ebuild removes the root manifest's blanket warning denial so new compiler warnings do not break packaging.
+Registry dependencies and their licenses come from the patched workspace lockfile through [[kache#Dependency bundle]]. The ebuild fetches the source archive and one dependency bundle, then builds offline. It removes the root manifest's blanket warning denial so new compiler warnings do not break packaging.
 
 ## Local patches
 
@@ -30,4 +30,34 @@ The `kache` external source resolves [[kache:README.md|upstream documentation]] 
 
 [[lat.md/lat.md]] pins upstream v2.1.1. The ignored `lat.md/config.local.yaml` selects the local checkout and patched commit on `elprans/patches-2.1.1`. The repository's local `.codex/config.toml` includes the mirror in `sandbox_workspace_write.writable_roots`; a new Codex session loads this permission setting.
 
-Follow [[ebuilds#Patch maintenance]] when bumping: review upstream behavior, rebase each local feature and its tests together, and export the source commits as versioned patches. Refresh the new ebuild with `pycargoebuild --fill-crates --no-manifest --input <ebuild> ~/dev/mirrors/kache`, regenerate the Manifest, and validate preparation, build, installation, and workspace unit tests.
+Follow [[ebuilds#Patch maintenance]] when bumping: review upstream behavior, rebase each local feature and its tests together, and export the source commits as versioned patches. Refresh [[kache#Dependency bundle]], regenerate the Manifest, and validate preparation, build, installation, and workspace unit tests.
+
+## Dependency bundle
+
+Registry crates are bundled with `pycargoebuild` and published as a versioned GitHub release asset, following [[codex#Dependency bundle]].
+
+The bundle contains all 603 registry crates from the 2.1.1 lockfile, including Cargo checksum metadata, under `cargo_home/gentoo`. The cargo eclass unpacks them into its offline vendor directory. `CRATES` stays empty, and `pycargoebuild` refreshes dependency licenses in the existing ebuild.
+
+Generate the bundle from the patched source checkout using a writable distfiles directory:
+
+```sh
+pycargoebuild --write-crate-tarball --no-manifest \
+  --distdir /tmp/kache-2.1.1-distfiles \
+  --input dev-util/kache/kache-2.1.1.ebuild \
+  --crate-tarball-path /tmp/kache-2.1.1-distfiles/kache-2.1.1-deps.tar.xz \
+  ~/dev/mirrors/kache
+```
+
+[The release](https://github.com/elprans/gentoo-overlay/releases/tag/kache-2.1.1) uses tag and title `kache-2.1.1`, targets `master`, and carries `kache-2.1.1-deps.tar.xz`. Publish each new version's bundle before updating the ebuild URL and Manifest:
+
+```sh
+gh release create kache-2.1.1 --repo elprans/gentoo-overlay \
+  --target master --title kache-2.1.1 \
+  --notes "Vendored dependency tarball for the kache 2.1.1 ebuild." \
+  /tmp/kache-2.1.1-distfiles/kache-2.1.1-deps.tar.xz
+gh release view kache-2.1.1 --repo elprans/gentoo-overlay --json assets
+DISTDIR=/tmp/kache-2.1.1-distfiles \
+  ebuild dev-util/kache/kache-2.1.1.ebuild manifest
+```
+
+Verify the uploaded asset digest against the local SHA256 before regenerating the Manifest. The ebuild fetches `https://github.com/elprans/gentoo-overlay/releases/download/${P}/${P}-deps.tar.xz`; every version has its own bundle.
