@@ -1,0 +1,33 @@
+# kache
+
+Kache 2.1.1 builds from upstream source with local Btrfs store compression and a rustdoc probe test fix.
+
+## Packaging
+
+[[dev-util/kache/kache-2.1.1.ebuild]] installs the compiler cache, its matching engine, native compiler launchers, shell completions, and a system compiler shim directory.
+
+The package builds `kache`, `kache-engine`, `kache-cl`, and `kache-clang-cl` for amd64 and arm64. `/usr/lib/kache` contains the canonical compiler, Cargo, and rustdoc shims with the upstream marker that prevents recursive compiler discovery. `/etc/env.d/10kache` puts these shims ahead of compilers in login PATHs; root's ROOTPATH is unaffected.
+
+Run `kache init` per user to configure Cargo and the user service. `kache init --shims /usr/lib/kache` reuses the installed shims, and `kache doctor --probe` checks compilation, storage, and restoration. Upstream 2.1.1 changes cache keys; entries refill without manually clearing the cache.
+
+Registry dependencies and their licenses come from the upstream lockfile through `pycargoebuild --fill-crates`. Cargo builds offline using the individually fetched crates listed in the Manifest. The ebuild removes the root manifest's blanket warning denial so new compiler warnings do not break packaging.
+
+## Local patches
+
+The versioned patches in [[dev-util/kache/files]] preserve opt-in store compression and serialize a test that depends on the process environment.
+
+Store compression rewrites fresh, unshared Btrfs outputs before the store reflinks them, allowing the build tree and cache to share compressed extents. It leaves shared extents untouched and stores outputs normally if compression is unsupported or fails. Compression is off by default.
+
+Configure `[cache] store_compression` and `store_compression_level` in `~/.config/kache/config.toml`, or use `KACHE_STORE_COMPRESSION` and `KACHE_STORE_COMPRESSION_LEVEL`. Environment settings take precedence unless environment overrides are disabled. Algorithms are zstd, zlib, and lzo; older kernels that reject explicit levels fall back to the filesystem default.
+
+The rustdoc probe memo test takes the process-state lock while it observes environment-dependent memo keys. Workspace library and binary unit tests cover the patched configuration parser, compression policy, filesystem behavior, and compiler path. Daemon-driven integration tests remain outside the ebuild test phase because they are unreliable under Portage's sandbox.
+
+For source tests, use an isolated `RUSTUP_HOME`: receipt-evidence tests reject symlinked compiler files in host Rustup registrations. Set `KACHE_TEST_BTRFS_DIR` to a writable Btrfs scratch directory with automatic compression disabled so fixtures start uncompressed. This exercises compression and shared-extent checks; tmpfs only covers unsupported-filesystem behavior.
+
+## Source checkout
+
+The `kache` external source resolves [[kache:README.md|upstream documentation]] through `~/dev/mirrors/kache` on this machine.
+
+[[lat.md/lat.md]] pins upstream v2.1.1. The ignored `lat.md/config.local.yaml` selects the local checkout and patched commit on `elprans/patches-2.1.1`. The repository's local `.codex/config.toml` includes the mirror in `sandbox_workspace_write.writable_roots`; a new Codex session loads this permission setting.
+
+Follow [[ebuilds#Patch maintenance]] when bumping: review upstream behavior, rebase each local feature and its tests together, and export the source commits as versioned patches. Refresh the new ebuild with `pycargoebuild --fill-crates --no-manifest --input <ebuild> ~/dev/mirrors/kache`, regenerate the Manifest, and validate preparation, build, installation, and workspace unit tests.

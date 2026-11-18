@@ -3,6 +3,7 @@
 Local package customizations can use overlay ebuilds or Portage user patches applied to an ebuild supplied by another repository.
 
 - [[codex]] — Codex ebuild, source patches, and dependency bundle
+- [[kache]] — Compiler cache, store compression, and compiler shims
 
 ## Patch maintenance
 

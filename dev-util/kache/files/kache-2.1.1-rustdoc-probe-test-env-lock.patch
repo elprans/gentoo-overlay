@@ -1,3 +1,12 @@
+From 4dbd5007edb4ac87780a807893f0578a81c07dd3 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <el@prans.net>
+Date: Wed, 18 Nov 2026 17:52:14 +0000
+Subject: [PATCH] Serialize rustdoc probe memo test environment access
+
+---
+ src/compiler/rustdoc.rs | 4 ++++
+ 1 file changed, 4 insertions(+)
+
 diff --git a/src/compiler/rustdoc.rs b/src/compiler/rustdoc.rs
 index 08b4252d..754667ef 100644
 --- a/src/compiler/rustdoc.rs

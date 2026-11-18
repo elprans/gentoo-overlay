@@ -9,7 +9,7 @@ CRATES="
 	aho-corasick@1.1.5
 	allocator-api2@0.2.21
 	android_system_properties@0.1.6
-	annotate-snippets@0.12.17
+	annotate-snippets@0.12.18
 	anstream@1.0.0
 	anstyle-parse@1.0.0
 	anstyle-query@1.1.5
@@ -17,16 +17,17 @@ CRATES="
 	anstyle@1.0.14
 	anyhow@1.0.104
 	approx@0.5.1
+	ar_archive_writer@0.5.5
 	arraydeque@0.5.1
 	arrayvec@0.7.8
 	assert_cmd@2.2.2
 	async-trait@0.1.92
-	asyncband@0.7.3
+	asyncband@0.7.4
 	atomic-waker@1.1.2
 	atomic@0.6.1
 	autocfg@1.5.1
-	aws-lc-rs@1.18.2
-	aws-lc-sys@0.46.0
+	aws-lc-rs@1.19.0
+	aws-lc-sys@0.47.0
 	axum-core@0.5.6
 	axum@0.8.9
 	backon@1.6.0
@@ -53,7 +54,7 @@ CRATES="
 	bytesize@2.7.0
 	castaway@0.2.4
 	cbc@0.1.2
-	cc@1.9.0
+	cc@1.11.1
 	cfg-if@1.0.5
 	cfg_aliases@0.2.2
 	chacha20@0.10.2
@@ -69,12 +70,12 @@ CRATES="
 	colorchoice@1.0.5
 	combine@4.6.9
 	compact_str@0.9.1
-	const-oid@0.10.2
+	const-oid@0.10.3
 	const-oid@0.9.6
 	const-random-macro@0.1.16
 	const-random@0.1.18
-	const_format@0.2.36
-	const_format_proc_macros@0.2.34
+	const_format@0.2.37
+	const_format_proc_macros@0.2.37
 	constant_time_eq@0.4.2
 	convert_case@0.10.0
 	core-foundation-sys@0.8.7
@@ -89,11 +90,11 @@ CRATES="
 	crossterm_winapi@0.9.1
 	crunchy@0.2.4
 	crypto-bigint@0.5.5
-	crypto-bigint@0.7.9
-	crypto-common@0.1.6
+	crypto-bigint@0.7.11
+	crypto-common@0.1.7
 	crypto-common@0.2.2
 	csscolorparser@0.6.2
-	ctutils@0.4.5
+	ctutils@0.4.8
 	curve25519-dalek-derive@0.1.1
 	curve25519-dalek@4.1.3
 	curve25519-dalek@5.0.0
@@ -103,9 +104,6 @@ CRATES="
 	darling_core@0.24.1
 	darling_macro@0.20.11
 	darling_macro@0.24.1
-	defmt-macros@1.2.0
-	defmt-parser@1.1.0
-	defmt@1.2.0
 	deltae@0.3.2
 	der@0.7.10
 	der@0.8.3
@@ -135,11 +133,11 @@ CRATES="
 	ed25519@3.0.0
 	either@1.19.0
 	elliptic-curve@0.13.8
-	elliptic-curve@0.14.2
-	encoding_rs@0.8.42
+	elliptic-curve@0.14.3
+	encoding_rs@0.8.44
 	encoding_rs_io@0.1.8
 	equivalent@1.0.3
-	errno@0.3.14
+	errno@0.3.15
 	euclid@0.22.14
 	fallible-iterator@0.3.0
 	fallible-streaming-iterator@0.1.9
@@ -152,7 +150,7 @@ CRATES="
 	filedescriptor@0.8.3
 	filetime@0.2.29
 	find-msvc-tools@0.1.15
-	finl_unicode@1.5.0
+	finl_unicode@1.5.1
 	fixedbitset@0.4.2
 	float-cmp@0.10.0
 	fnv@1.0.7
@@ -170,7 +168,7 @@ CRATES="
 	futures-util@0.3.34
 	futures@0.3.34
 	generator@0.8.11
-	generic-array@0.14.9
+	generic-array@0.14.7
 	getrandom@0.2.17
 	getrandom@0.3.4
 	getrandom@0.4.3
@@ -183,7 +181,6 @@ CRATES="
 	hashbrown@0.12.3
 	hashbrown@0.14.5
 	hashbrown@0.15.5
-	hashbrown@0.16.1
 	hashbrown@0.17.1
 	hashlink@0.12.2
 	heck@0.5.0
@@ -219,25 +216,25 @@ CRATES="
 	indoc@2.0.8
 	inout@0.1.4
 	instability@0.3.14
-	interprocess@2.4.7
+	interprocess@2.4.8
 	ipnet@2.12.2
 	is-docker@0.2.0
 	is-wsl@0.4.0
 	is_terminal_polyfill@1.70.2
 	itertools@0.14.0
 	itertools@0.15.0
-	itoa@1.0.18
-	jiff-core@0.1.1
-	jiff-static@0.2.38
+	itoa@1.0.19
+	jiff-core@0.1.5
+	jiff-static@0.2.43
 	jiff-tzdb-platform@0.1.3
 	jiff-tzdb@0.1.9
-	jiff@0.2.38
+	jiff@0.2.43
 	jni-macros@0.22.4
 	jni-sys-macros@0.4.1
 	jni-sys@0.4.1
 	jni@0.22.4
 	jobserver@0.1.35
-	js-sys@0.3.106
+	js-sys@0.3.107
 	jsonpath-rust@1.0.12
 	jsonwebtoken@11.1.0
 	k8s-openapi@0.28.0
@@ -257,14 +254,14 @@ CRATES="
 	libc@0.2.191
 	libm@0.2.16
 	libredox@0.1.25
-	libsqlite3-sys@0.38.2
+	libsqlite3-sys@0.40.0
 	line-clipping@0.3.8
 	linux-raw-sys@0.12.1
 	litemap@0.8.3
 	litrs@1.0.1
 	lock_api@0.4.14
-	log@0.4.34
-	loom@0.7.2
+	log@0.4.35
+	loom@0.7.3
 	lru-slab@0.1.3
 	lru@0.18.5
 	mac_address@1.2.1
@@ -274,7 +271,7 @@ CRATES="
 	memchr@2.8.3
 	memmem@0.1.1
 	memoffset@0.9.1
-	mime@0.3.17
+	mime@0.3.18
 	minimal-lexical@0.2.1
 	mio@1.2.4
 	multiversion_no_op@1.0.0
@@ -297,6 +294,7 @@ CRATES="
 	oauth2@5.0.0
 	objc2-core-foundation@0.3.2
 	objc2-io-kit@0.3.2
+	object@0.39.1
 	oci-client@0.18.0
 	oci-spec@0.10.0
 	olpc-cjson@0.1.4
@@ -309,7 +307,7 @@ CRATES="
 	opendal-service-fs@0.59.5
 	opendal-service-gcs@0.59.5
 	opendal-service-s3@0.59.5
-	openssl-probe@0.2.1
+	openssl-probe@0.2.2
 	option-ext@0.2.0
 	ordered-float@2.10.1
 	ordered-float@4.6.0
@@ -329,10 +327,11 @@ CRATES="
 	pem-rfc7468@1.0.0
 	pem@3.0.6
 	percent-encoding@2.3.2
-	pest@2.9.4
-	pest_derive@2.9.4
-	pest_generator@2.9.4
-	pest_meta@2.9.4
+	pest@2.9.6
+	pest_derive@2.9.6
+	pest_generator@2.9.6
+	pest_meta@2.9.6
+	pest_stack_guard@1.0.1
 	phf@0.11.3
 	phf_codegen@0.11.3
 	phf_generator@0.11.3
@@ -360,7 +359,7 @@ CRATES="
 	proptest@1.12.0
 	protobuf-support@3.7.2
 	protobuf@3.7.2
-	psm@0.1.24
+	psm@0.1.32
 	quick-xml@0.42.0
 	quinn-proto@0.11.19
 	quinn-udp@0.5.16
@@ -401,14 +400,14 @@ CRATES="
 	rfc6979@0.6.0
 	ring@0.17.14
 	rsa@0.9.10
-	rsqlite-vfs@0.1.1
-	rusqlite@0.40.2
+	rsqlite-vfs@0.2.0
+	rusqlite@0.42.0
 	rust-ini@0.21.3
 	rustc-hash@2.1.3
 	rustc_version@0.4.1
-	rustix@1.1.5
+	rustix@1.1.6
 	rustls-native-certs@0.8.5
-	rustls-pki-types@1.15.1
+	rustls-pki-types@1.16.0
 	rustls-platform-verifier-android@0.2.0
 	rustls-platform-verifier@0.7.1
 	rustls-webpki@0.103.16
@@ -437,7 +436,7 @@ CRATES="
 	serde_json@1.0.154
 	serde_path_to_error@0.1.20
 	serde_plain@1.0.2
-	serde_spanned@1.1.2
+	serde_spanned@1.1.3
 	serde_urlencoded@0.7.1
 	serde_with@3.24.0
 	serde_with_macros@3.24.0
@@ -464,7 +463,7 @@ CRATES="
 	spin@0.9.9
 	spki@0.7.3
 	spki@0.8.1
-	sqlite-wasm-rs@0.5.5
+	sqlite-wasm-rs@0.6.3
 	ssh-cipher@0.2.0
 	ssh-encoding@0.2.0
 	ssh-key@0.6.7
@@ -479,7 +478,7 @@ CRATES="
 	subtle@2.6.1
 	syn@1.0.109
 	syn@2.0.119
-	syn@3.0.9
+	syn@3.0.10
 	sync_wrapper@1.0.2
 	synstructure@0.14.0
 	sysinfo@0.39.6
@@ -505,11 +504,11 @@ CRATES="
 	tokio-rustls@0.26.6
 	tokio-util@0.7.20
 	tokio@1.54.1
-	toml@1.1.8+spec-1.1.0
-	toml_datetime@1.1.2+spec-1.1.0
-	toml_edit@0.25.17+spec-1.1.0
+	toml@1.2.1+spec-1.1.0
+	toml_datetime@1.1.3+spec-1.1.0
+	toml_edit@0.25.19+spec-1.1.0
 	toml_parser@1.1.5+spec-1.1.0
-	toml_writer@1.1.3+spec-1.1.0
+	toml_writer@1.2.0+spec-1.1.0
 	tower-http@0.6.11
 	tower-layer@0.3.3
 	tower-service@0.3.3
@@ -528,13 +527,14 @@ CRATES="
 	unicode-normalization@0.1.25
 	unicode-segmentation@1.13.3
 	unicode-truncate@2.0.1
-	unicode-width@0.2.2
+	unicode-width@0.2.3
 	unicode-xid@0.2.6
 	untrusted@0.9.0
 	url@2.5.8
-	utf8_iter@1.0.4
+	utf8_iter@1.1.0
 	utf8parse@0.2.2
-	uuid@1.28.0
+	utf_types@1.0.0
+	uuid@1.29.2
 	valuable@0.1.1
 	vcpkg@0.2.15
 	version_check@0.9.5
@@ -544,16 +544,16 @@ CRATES="
 	want@0.3.2
 	wasi@0.11.1+wasi-snapshot-preview1
 	wasip2@1.0.4+wasi-0.2.12
-	wasm-bindgen-futures@0.4.79
-	wasm-bindgen-macro-support@0.2.129
-	wasm-bindgen-macro@0.2.129
-	wasm-bindgen-shared@0.2.129
-	wasm-bindgen@0.2.129
+	wasm-bindgen-futures@0.4.80
+	wasm-bindgen-macro-support@0.2.130
+	wasm-bindgen-macro@0.2.130
+	wasm-bindgen-shared@0.2.130
+	wasm-bindgen@0.2.130
 	wasm-streams@0.5.0
-	web-sys@0.3.106
+	web-sys@0.3.107
 	web-time@1.1.0
-	webpki-root-certs@1.0.11
-	webpki-roots@1.0.11
+	webpki-root-certs@1.0.12
+	webpki-roots@1.0.12
 	wezterm-bidi@0.2.3
 	wezterm-blob-leases@0.1.1
 	wezterm-color-types@0.3.0
@@ -587,11 +587,11 @@ CRATES="
 	windows_x86_64_gnu@0.52.6
 	windows_x86_64_gnullvm@0.52.6
 	windows_x86_64_msvc@0.52.6
-	winnow@1.0.4
+	winnow@1.0.5
 	wit-bindgen@0.57.1
 	wnaf@0.14.1
 	writeable@0.6.4
-	xattr@1.6.1
+	xattr@1.7.0
 	yoke-derive@0.8.4
 	yoke@0.8.4
 	zerocopy-derive@0.8.63
@@ -626,13 +626,17 @@ SRC_URI="
 LICENSE="Apache-2.0"
 # Dependent crate licenses
 LICENSE+="
-	0BSD Apache-2.0 BSD CC0-1.0 CDLA-Permissive-2.0 ISC MIT MPL-2.0
-	Unicode-3.0 Unicode-DFS-2016 WTFPL-2 ZLIB
+	0BSD Apache-2.0 Apache-2.0-with-LLVM-exceptions BSD CC0-1.0
+	CDLA-Permissive-2.0 ISC MIT MPL-2.0 Unicode-3.0 Unicode-DFS-2016
+	WTFPL-2 ZLIB
 "
 SLOT="0"
 KEYWORDS="~amd64 ~arm64"
 
-QA_FLAGS_IGNORED="usr/bin/kache usr/bin/kache-engine"
+QA_FLAGS_IGNORED="
+	usr/bin/kache usr/bin/kache-engine
+	usr/bin/kache-cl usr/bin/kache-clang-cl
+"
 
 PATCHES=(
 	# Upstream race: this test does not hold the lock that serializes
@@ -659,7 +663,7 @@ src_test() {
 	# Run the unit tests. The integration tests drive real Cargo builds
 	# through a background daemon; under Portage's sandbox several fail
 	# intermittently on timing, although they pass in a normal environment.
-	cargo_src_test --lib --bins
+	cargo_src_test --workspace --lib --bins
 }
 
 src_install() {

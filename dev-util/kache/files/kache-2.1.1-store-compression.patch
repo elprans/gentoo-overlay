@@ -1,9 +1,147 @@
+From 3fdda8ae65b3f701ce269186ed0e314ba64ba08c Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <el@prans.net>
+Date: Wed, 18 Nov 2026 17:59:16 +0000
+Subject: [PATCH] Compress unshared Btrfs outputs before storing reflinks
+
+---
+ crates/kache-config/src/config.rs       |  47 +++++++++
+ crates/kache-config/src/config/tests.rs |  54 +++++++++++
+ crates/kache-core/src/store_config.rs   | 110 +++++++++++++++++++++
+ crates/kache-fs/Cargo.toml              |   1 +
+ crates/kache-fs/src/compress.rs         | 118 +++++++++++++++++++++++
+ crates/kache-fs/src/lib.rs              |   5 +
+ crates/kache-fs/src/linux.rs            | 121 ++++++++++++++++++++++++
+ crates/kache-store/src/store.rs         |  34 +++++++
+ crates/kache-store/src/store/tests.rs   |   1 +
+ src/cli/tests.rs                        |   1 +
+ src/compiler_store.rs                   |   1 +
+ src/config_tui.rs                       |   2 +
+ src/daemon/tests.rs                     |   1 +
+ src/fallback_planner.rs                 |   1 +
+ src/remote_layout.rs                    |   4 +
+ src/remote_plan.rs                      |   1 +
+ src/report/tests.rs                     |   8 ++
+ src/test_support.rs                     |   1 +
+ src/tui/tests.rs                        |   1 +
+ 19 files changed, 512 insertions(+)
+ create mode 100644 crates/kache-fs/src/compress.rs
+
+diff --git a/crates/kache-config/src/config.rs b/crates/kache-config/src/config.rs
+index adcfb8df..5ba6c184 100644
+--- a/crates/kache-config/src/config.rs
++++ b/crates/kache-config/src/config.rs
+@@ -553,6 +553,12 @@ pub struct Config {
+     /// `[cache] deferred_durability = false` flushes every entry inside the
+     /// compile or download that stored it.
+     pub deferred_durability: bool,
++    /// Btrfs compression for outputs entering the local store: `zstd`,
++    /// `zlib`, `lzo`, or off (default). Set via `KACHE_STORE_COMPRESSION` or
++    /// `[cache] store_compression`; the level via
++    /// `KACHE_STORE_COMPRESSION_LEVEL` or `[cache] store_compression_level`
++    /// (zstd -15..=15, default 3; zlib 1..=9, default 3; lzo has none).
++    pub store_compression: Option<kache_core::store_config::StoreCompression>,
+     /// Local index policy: `auto` (default), `conservative`, or `off`.
+     /// Auto currently resolves to conservative (WAL + NORMAL). Off disables
+     /// index fsync and must be selected explicitly for disposable storage.
+@@ -1019,6 +1025,10 @@ pub struct CacheFileConfig {
+     pub out_dir_alias_root: Option<String>,
+     /// Deferred store flush toggle. See [`Config::deferred_durability`].
+     pub deferred_durability: Option<bool>,
++    /// Store compression algorithm. See [`Config::store_compression`].
++    pub store_compression: Option<String>,
++    /// Store compression level. See [`Config::store_compression`].
++    pub store_compression_level: Option<i64>,
+     /// Local index policy. See [`Config::index_mode`].
+     pub index_mode: Option<String>,
+     /// Daemon hand-off toggle. See [`Config::daemon_publish`].
+@@ -1494,6 +1504,8 @@ const IGNORE_ENV_GATED_VARS: &[&str] = &[
+     "KACHE_OUT_DIR_ALIAS",
+     "KACHE_OUT_DIR_ALIAS_ROOT",
+     "KACHE_DEFERRED_DURABILITY",
++    "KACHE_STORE_COMPRESSION",
++    "KACHE_STORE_COMPRESSION_LEVEL",
+     "KACHE_INDEX_MODE",
+     "KACHE_AUTO_GC",
+     "KACHE_INDEX_AUTO_COMPACT",
+@@ -1623,6 +1635,11 @@ const ENV_FILE_KEYS: &[(&str, &str)] = &[
+     ("KACHE_OUT_DIR_ALIAS", "cache.out_dir_alias"),
+     ("KACHE_OUT_DIR_ALIAS_ROOT", "cache.out_dir_alias_root"),
+     ("KACHE_DEFERRED_DURABILITY", "cache.deferred_durability"),
++    ("KACHE_STORE_COMPRESSION", "cache.store_compression"),
++    (
++        "KACHE_STORE_COMPRESSION_LEVEL",
++        "cache.store_compression_level",
++    ),
+     ("KACHE_INDEX_MODE", "cache.index_mode"),
+     ("KACHE_DAEMON_PUBLISH", "cache.daemon_publish"),
+     ("KACHE_NATIVE_RUNTIME_WARMUP", "cache.native_runtime_warmup"),
+@@ -2482,6 +2499,7 @@ impl Config {
+             );
+         }
+         let deferred_durability = Self::deferred_durability_enabled_for(invocation, &file_config);
++        let store_compression = Self::store_compression_for(invocation, &file_config)?;
+         let index_mode = Self::index_mode_for(invocation, &file_config);
+         let daemon_publish = Self::daemon_publish_enabled_for(invocation, &file_config);
+         let native_runtime_warmup =
+@@ -2637,6 +2655,7 @@ impl Config {
+             out_dir_alias,
+             out_dir_alias_root,
+             deferred_durability,
++            store_compression,
+             index_mode,
+             daemon_publish,
+             native_runtime_warmup,
+@@ -3424,6 +3443,33 @@ impl Config {
+             .unwrap_or(true)
+     }
+ 
++    /// `KACHE_STORE_COMPRESSION[_LEVEL]` (env wins), else the `[cache]`
++    /// keys. See [`Config::store_compression`].
++    fn store_compression_for(
++        invocation: &InvocationEnv,
++        file_config: &Result<FileConfig>,
++    ) -> Result<Option<kache_core::store_config::StoreCompression>> {
++        let ignore_env = Self::ignore_env_enabled(file_config);
++        let cache = file_config.as_ref().ok().and_then(|c| c.cache.as_ref());
++        let algorithm = env_or_ignored_for(invocation, "KACHE_STORE_COMPRESSION", ignore_env)
++            .ok()
++            .or_else(|| cache.and_then(|c| c.store_compression.clone()));
++        let Some(algorithm) = algorithm else {
++            return Ok(None);
++        };
++        let level =
++            match env_or_ignored_for(invocation, "KACHE_STORE_COMPRESSION_LEVEL", ignore_env) {
++                Ok(value) if !value.trim().is_empty() => {
++                    Some(value.trim().parse::<i64>().map_err(|_| {
++                        anyhow::anyhow!("KACHE_STORE_COMPRESSION_LEVEL must be an integer")
++                    })?)
++                }
++                _ => cache.and_then(|c| c.store_compression_level),
++            };
++        kache_core::store_config::StoreCompression::parse(&algorithm, level)
++            .map_err(|error| anyhow::anyhow!("cache.store_compression: {error}"))
++    }
++
+     /// `KACHE_INDEX_MODE` (env wins), else `[cache] index_mode`,
+     /// else `auto`. See [`Config::index_mode`].
+     fn index_mode_for(invocation: &InvocationEnv, file_config: &Result<FileConfig>) -> IndexMode {
+@@ -5486,6 +5532,7 @@ impl From<&Config> for kache_core::store_config::Config {
+             upload_spool_max_jobs: UPLOAD_SPOOL_MAX_JOBS,
+             deferred_durability: config.deferred_durability,
+             index_mode: config.index_mode,
++            store_compression: config.store_compression,
+         }
+     }
+ }
+diff --git a/crates/kache-config/src/config/tests.rs b/crates/kache-config/src/config/tests.rs
+index 88566506..88f191f1 100644
 --- a/crates/kache-config/src/config/tests.rs
 +++ b/crates/kache-config/src/config/tests.rs
-@@ -2694,6 +2694,52 @@
+@@ -2929,6 +2929,52 @@ fn deferred_durability_is_on_unless_switched_off() {
+     unsafe { std::env::remove_var("KACHE_DEFERRED_DURABILITY") };
  }
  
- #[test]
++#[test]
 +fn store_compression_is_off_unless_configured_and_env_wins() {
 +    use kache_core::store_config::{StoreCompression, StoreCompressionAlgorithm};
 +    let _lock = config_path_lock();
@@ -49,11 +187,10 @@
 +    unsafe { std::env::remove_var("KACHE_STORE_COMPRESSION") };
 +}
 +
-+#[test]
+ #[test]
  fn out_dir_alias_root_follows_invocation_file_and_ignore_env() {
      let tmp = tempfile::tempdir().unwrap();
-     let root = tmp.path();
-@@ -3105,6 +3151,8 @@
+@@ -3341,6 +3387,8 @@ fn test_file_config_roundtrip() {
              out_dir_alias: None,
              out_dir_alias_root: None,
              deferred_durability: None,
@@ -62,7 +199,7 @@
              daemon_publish: None,
              trust_daemon_execution: None,
              native_runtime_warmup: None,
-@@ -3768,6 +3816,7 @@
+@@ -4011,6 +4059,7 @@ fn test_config_store_dir() {
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
@@ -70,7 +207,7 @@
          daemon_publish: false,
          trust_daemon_execution: false,
          native_runtime_warmup: true,
-@@ -3860,6 +3909,7 @@
+@@ -4110,6 +4159,7 @@ fn test_config_index_db_path() {
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
@@ -78,7 +215,7 @@
          daemon_publish: false,
          trust_daemon_execution: false,
          native_runtime_warmup: true,
-@@ -3948,6 +3998,7 @@
+@@ -4205,6 +4255,7 @@ fn test_config_event_log_path() {
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
@@ -86,7 +223,7 @@
          daemon_publish: false,
          trust_daemon_execution: false,
          native_runtime_warmup: true,
-@@ -4055,6 +4106,7 @@
+@@ -4319,6 +4370,7 @@ fn test_config_socket_path() {
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
@@ -94,7 +231,7 @@
          daemon_publish: false,
          trust_daemon_execution: false,
          native_runtime_warmup: true,
-@@ -4799,6 +4851,8 @@
+@@ -5070,6 +5122,8 @@ fn test_save_and_load_file_config() {
              out_dir_alias: None,
              out_dir_alias_root: None,
              deferred_durability: None,
@@ -103,114 +240,11 @@
              daemon_publish: None,
              trust_daemon_execution: None,
              native_runtime_warmup: None,
---- a/crates/kache-config/src/config.rs
-+++ b/crates/kache-config/src/config.rs
-@@ -515,6 +515,12 @@
-     /// `[cache] deferred_durability = false` flushes every entry inside the
-     /// compile or download that stored it.
-     pub deferred_durability: bool,
-+    /// Btrfs compression for outputs entering the local store: `zstd`,
-+    /// `zlib`, `lzo`, or off (default). Set via `KACHE_STORE_COMPRESSION` or
-+    /// `[cache] store_compression`; the level via
-+    /// `KACHE_STORE_COMPRESSION_LEVEL` or `[cache] store_compression_level`
-+    /// (zstd -15..=15, default 3; zlib 1..=9, default 3; lzo has none).
-+    pub store_compression: Option<kache_core::store_config::StoreCompression>,
-     /// Local index policy: `auto` (default), `conservative`, or `off`.
-     /// Auto currently resolves to conservative (WAL + NORMAL). Off disables
-     /// index fsync and must be selected explicitly for disposable storage.
-@@ -975,6 +981,10 @@
-     pub out_dir_alias_root: Option<String>,
-     /// Deferred store flush toggle. See [`Config::deferred_durability`].
-     pub deferred_durability: Option<bool>,
-+    /// Store compression algorithm. See [`Config::store_compression`].
-+    pub store_compression: Option<String>,
-+    /// Store compression level. See [`Config::store_compression`].
-+    pub store_compression_level: Option<i64>,
-     /// Local index policy. See [`Config::index_mode`].
-     pub index_mode: Option<String>,
-     /// Daemon hand-off toggle. See [`Config::daemon_publish`].
-@@ -1433,6 +1443,8 @@
-     "KACHE_OUT_DIR_ALIAS",
-     "KACHE_OUT_DIR_ALIAS_ROOT",
-     "KACHE_DEFERRED_DURABILITY",
-+    "KACHE_STORE_COMPRESSION",
-+    "KACHE_STORE_COMPRESSION_LEVEL",
-     "KACHE_INDEX_MODE",
-     "KACHE_AUTO_GC",
-     "KACHE_INDEX_AUTO_COMPACT",
-@@ -1544,6 +1556,11 @@
-     ("KACHE_OUT_DIR_ALIAS", "cache.out_dir_alias"),
-     ("KACHE_OUT_DIR_ALIAS_ROOT", "cache.out_dir_alias_root"),
-     ("KACHE_DEFERRED_DURABILITY", "cache.deferred_durability"),
-+    ("KACHE_STORE_COMPRESSION", "cache.store_compression"),
-+    (
-+        "KACHE_STORE_COMPRESSION_LEVEL",
-+        "cache.store_compression_level",
-+    ),
-     ("KACHE_INDEX_MODE", "cache.index_mode"),
-     ("KACHE_DAEMON_PUBLISH", "cache.daemon_publish"),
-     ("KACHE_NATIVE_RUNTIME_WARMUP", "cache.native_runtime_warmup"),
-@@ -2304,6 +2321,7 @@
-             );
-         }
-         let deferred_durability = Self::deferred_durability_enabled_for(invocation, &file_config);
-+        let store_compression = Self::store_compression_for(invocation, &file_config)?;
-         let index_mode = Self::index_mode_for(invocation, &file_config);
-         let daemon_publish = Self::daemon_publish_enabled_for(invocation, &file_config);
-         let native_runtime_warmup =
-@@ -2456,6 +2474,7 @@
-             out_dir_alias,
-             out_dir_alias_root,
-             deferred_durability,
-+            store_compression,
-             index_mode,
-             daemon_publish,
-             native_runtime_warmup,
-@@ -3236,6 +3255,33 @@
-             .unwrap_or(true)
-     }
- 
-+    /// `KACHE_STORE_COMPRESSION[_LEVEL]` (env wins), else the `[cache]`
-+    /// keys. See [`Config::store_compression`].
-+    fn store_compression_for(
-+        invocation: &InvocationEnv,
-+        file_config: &Result<FileConfig>,
-+    ) -> Result<Option<kache_core::store_config::StoreCompression>> {
-+        let ignore_env = Self::ignore_env_enabled(file_config);
-+        let cache = file_config.as_ref().ok().and_then(|c| c.cache.as_ref());
-+        let algorithm = env_or_ignored_for(invocation, "KACHE_STORE_COMPRESSION", ignore_env)
-+            .ok()
-+            .or_else(|| cache.and_then(|c| c.store_compression.clone()));
-+        let Some(algorithm) = algorithm else {
-+            return Ok(None);
-+        };
-+        let level =
-+            match env_or_ignored_for(invocation, "KACHE_STORE_COMPRESSION_LEVEL", ignore_env) {
-+                Ok(value) if !value.trim().is_empty() => {
-+                    Some(value.trim().parse::<i64>().map_err(|_| {
-+                        anyhow::anyhow!("KACHE_STORE_COMPRESSION_LEVEL must be an integer")
-+                    })?)
-+                }
-+                _ => cache.and_then(|c| c.store_compression_level),
-+            };
-+        kache_core::store_config::StoreCompression::parse(&algorithm, level)
-+            .map_err(|error| anyhow::anyhow!("cache.store_compression: {error}"))
-+    }
-+
-     /// `KACHE_INDEX_MODE` (env wins), else `[cache] index_mode`,
-     /// else `auto`. See [`Config::index_mode`].
-     fn index_mode_for(invocation: &InvocationEnv, file_config: &Result<FileConfig>) -> IndexMode {
-@@ -5255,6 +5301,7 @@
-             upload_spool_max_jobs: UPLOAD_SPOOL_MAX_JOBS,
-             deferred_durability: config.deferred_durability,
-             index_mode: config.index_mode,
-+            store_compression: config.store_compression,
-         }
-     }
- }
+diff --git a/crates/kache-core/src/store_config.rs b/crates/kache-core/src/store_config.rs
+index c6daabfd..5f7b42a2 100644
 --- a/crates/kache-core/src/store_config.rs
 +++ b/crates/kache-core/src/store_config.rs
-@@ -61,6 +61,70 @@
+@@ -97,6 +97,70 @@ impl ResolvedIndexMode {
      }
  }
  
@@ -281,7 +315,7 @@
  /// Options needed by local storage; remote and compiler settings stay with the caller.
  #[derive(Clone, Debug)]
  pub struct Config {
-@@ -72,6 +136,9 @@
+@@ -110,6 +174,9 @@ pub struct Config {
      /// later; a hit on an entry still pending verifies its bytes first.
      pub deferred_durability: bool,
      pub index_mode: IndexMode,
@@ -291,10 +325,11 @@
  }
  
  impl From<&Config> for Config {
-@@ -99,6 +166,48 @@
-     use super::*;
+@@ -157,6 +224,48 @@ mod tests {
+         }
+     }
  
-     #[test]
++    #[test]
 +    fn store_compression_parses_algorithms_and_defaults_levels() {
 +        let zstd = |level| StoreCompression {
 +            algorithm: StoreCompressionAlgorithm::Zstd,
@@ -336,11 +371,10 @@
 +        assert!(StoreCompression::parse("brotli", None).is_err());
 +    }
 +
-+    #[test]
+     #[test]
      fn index_mode_parses_each_mode_and_rejects_the_rest() {
          for (value, expected) in [
-             ("auto", IndexMode::Auto),
-@@ -156,6 +265,7 @@
+@@ -216,6 +325,7 @@ mod tests {
              upload_spool_max_jobs: 2,
              deferred_durability: false,
              index_mode: IndexMode::default(),
@@ -348,9 +382,11 @@
          };
          let second = Config {
              cache_dir: PathBuf::from("second/cache"),
+diff --git a/crates/kache-fs/Cargo.toml b/crates/kache-fs/Cargo.toml
+index bb849e40..ba21b493 100644
 --- a/crates/kache-fs/Cargo.toml
 +++ b/crates/kache-fs/Cargo.toml
-@@ -19,6 +19,7 @@
+@@ -19,6 +19,7 @@ tempfile = { version = "3", optional = true }
  
  [dev-dependencies]
  serde_json = "1"
@@ -358,7 +394,10 @@
  
  [features]
  default = []
---- a/crates/kache-fs/src/compress.rs
+diff --git a/crates/kache-fs/src/compress.rs b/crates/kache-fs/src/compress.rs
+new file mode 100644
+index 00000000..40c1dc4b
+--- /dev/null
 +++ b/crates/kache-fs/src/compress.rs
 @@ -0,0 +1,118 @@
 +//! Filesystem compression of a fresh output before it is shared.
@@ -479,9 +518,11 @@
 +        assert_eq!(std::fs::read(&clone).unwrap(), vec![b'k'; 1 << 20]);
 +    }
 +}
+diff --git a/crates/kache-fs/src/lib.rs b/crates/kache-fs/src/lib.rs
+index d7e42678..c79b99b3 100644
 --- a/crates/kache-fs/src/lib.rs
 +++ b/crates/kache-fs/src/lib.rs
-@@ -22,6 +22,11 @@
+@@ -24,6 +24,11 @@ pub use clock::mtime_written_now;
  #[cfg(feature = "staging")]
  pub use clock::sample_write_clock;
  
@@ -493,9 +534,11 @@
  mod copy;
  #[cfg(windows)]
  pub use copy::windows_cluster_size;
+diff --git a/crates/kache-fs/src/linux.rs b/crates/kache-fs/src/linux.rs
+index 6b6a48b9..ca597e3a 100644
 --- a/crates/kache-fs/src/linux.rs
 +++ b/crates/kache-fs/src/linux.rs
-@@ -98,6 +98,127 @@
+@@ -98,6 +98,127 @@ fn fiemap(file: &File) -> io::Result<Option<Accounting>> {
      })
  }
  
@@ -623,19 +666,11 @@
  pub(crate) fn measure_file(path: &Path) -> io::Result<FileSizing> {
      LinuxProbe { supported: true }.measure_file(path)
  }
---- a/crates/kache-store/src/store/tests.rs
-+++ b/crates/kache-store/src/store/tests.rs
-@@ -3336,6 +3336,7 @@
-         upload_spool_max_jobs: 65_536,
-         deferred_durability: false,
-         index_mode: IndexMode::default(),
-+        store_compression: None,
-     }
- }
- 
+diff --git a/crates/kache-store/src/store.rs b/crates/kache-store/src/store.rs
+index f06c3818..0a801041 100644
 --- a/crates/kache-store/src/store.rs
 +++ b/crates/kache-store/src/store.rs
-@@ -426,6 +426,36 @@
+@@ -426,6 +426,36 @@ fn materialize_blob(source: &Path, blob: &Path, allow_hardlink: bool) -> Result<
      materialize_blob_with_durability(source, blob, allow_hardlink, true)
  }
  
@@ -672,7 +707,7 @@
  fn materialize_blob_with_durability(
      source: &Path,
      blob: &Path,
-@@ -4032,6 +4062,10 @@
+@@ -4108,6 +4138,10 @@ impl<P: ArtifactPolicy> ArtifactStore<P> {
          let tmp = free_staging_path(|nonce| dir.join(format!("stage-{pid}-{nonce}.tmp")))
              .with_context(|| format!("reserving a staging name in {}", dir.display()))?;
  
@@ -683,9 +718,23 @@
          let stage = |tmp: &Path, allow_hardlink: bool| -> Result<(StoreIngest, bool)> {
              // Short-circuit: the real reflink is only attempted when no test
              // emulation claimed the staging slot, and never when the
+diff --git a/crates/kache-store/src/store/tests.rs b/crates/kache-store/src/store/tests.rs
+index ea44f915..7604b8e9 100644
+--- a/crates/kache-store/src/store/tests.rs
++++ b/crates/kache-store/src/store/tests.rs
+@@ -3444,6 +3444,7 @@ fn test_config(dir: &Path) -> Config {
+         upload_spool_max_jobs: 65_536,
+         deferred_durability: false,
+         index_mode: IndexMode::default(),
++        store_compression: None,
+     }
+ }
+ 
+diff --git a/src/cli/tests.rs b/src/cli/tests.rs
+index bee0e845..9e9f9308 100644
 --- a/src/cli/tests.rs
 +++ b/src/cli/tests.rs
-@@ -3835,6 +3835,7 @@
+@@ -3890,6 +3890,7 @@ fn save_manifest_config(
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
@@ -693,19 +742,23 @@
          daemon_publish: false,
          trust_daemon_execution: false,
          native_runtime_warmup: true,
+diff --git a/src/compiler_store.rs b/src/compiler_store.rs
+index 9c47a484..6b38dda6 100644
 --- a/src/compiler_store.rs
 +++ b/src/compiler_store.rs
-@@ -126,6 +126,7 @@
-             gc_evict_shared: false,
+@@ -127,6 +127,7 @@ mod tests {
+             held_bytes_budget: Default::default(),
              upload_spool_max_jobs: 128,
              deferred_durability: false,
 +            store_compression: None,
              index_mode: Default::default(),
          })
          .unwrap();
+diff --git a/src/config_tui.rs b/src/config_tui.rs
+index fdf4c120..f98c5ff9 100644
 --- a/src/config_tui.rs
 +++ b/src/config_tui.rs
-@@ -2169,6 +2169,8 @@
+@@ -2169,6 +2169,8 @@ mod tests {
                  out_dir_alias: None,
                  out_dir_alias_root: None,
                  deferred_durability: None,
@@ -714,9 +767,11 @@
                  daemon_publish: None,
                  trust_daemon_execution: None,
                  native_runtime_warmup: Some(false),
+diff --git a/src/daemon/tests.rs b/src/daemon/tests.rs
+index 678ae600..66ba5000 100644
 --- a/src/daemon/tests.rs
 +++ b/src/daemon/tests.rs
-@@ -1457,6 +1457,7 @@
+@@ -1586,6 +1586,7 @@ pub(super) fn test_config(dir: &Path) -> Config {
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
@@ -724,9 +779,11 @@
          daemon_publish: false,
          trust_daemon_execution: false,
          daemon_execution_concurrency: None,
+diff --git a/src/fallback_planner.rs b/src/fallback_planner.rs
+index 28dd8767..63459cbd 100644
 --- a/src/fallback_planner.rs
 +++ b/src/fallback_planner.rs
-@@ -520,6 +520,7 @@
+@@ -525,6 +525,7 @@ mod tests {
              out_dir_alias: true,
              out_dir_alias_root: None,
              deferred_durability: false,
@@ -734,9 +791,11 @@
              daemon_publish: false,
              trust_daemon_execution: false,
              native_runtime_warmup: true,
+diff --git a/src/remote_layout.rs b/src/remote_layout.rs
+index cc945c93..0cb5b380 100644
 --- a/src/remote_layout.rs
 +++ b/src/remote_layout.rs
-@@ -1061,6 +1061,7 @@
+@@ -1195,6 +1195,7 @@ pub(crate) mod tests {
              out_dir_alias: true,
              out_dir_alias_root: None,
              deferred_durability: false,
@@ -744,7 +803,7 @@
              daemon_publish: false,
              trust_daemon_execution: false,
              native_runtime_warmup: true,
-@@ -1186,6 +1187,7 @@
+@@ -1327,6 +1328,7 @@ pub(crate) mod tests {
              out_dir_alias: true,
              out_dir_alias_root: None,
              deferred_durability: false,
@@ -752,7 +811,7 @@
              daemon_publish: false,
              trust_daemon_execution: false,
              native_runtime_warmup: true,
-@@ -1516,6 +1518,7 @@
+@@ -1668,6 +1670,7 @@ pub(crate) mod tests {
              out_dir_alias: true,
              out_dir_alias_root: None,
              deferred_durability: false,
@@ -760,7 +819,7 @@
              daemon_publish: false,
              trust_daemon_execution: false,
              native_runtime_warmup: true,
-@@ -1698,6 +1701,7 @@
+@@ -1857,6 +1860,7 @@ pub(crate) mod tests {
              out_dir_alias: true,
              out_dir_alias_root: None,
              deferred_durability: false,
@@ -768,9 +827,11 @@
              daemon_publish: false,
              trust_daemon_execution: false,
              native_runtime_warmup: true,
+diff --git a/src/remote_plan.rs b/src/remote_plan.rs
+index 4b5fbca1..3e0f0348 100644
 --- a/src/remote_plan.rs
 +++ b/src/remote_plan.rs
-@@ -85,6 +85,7 @@
+@@ -85,6 +85,7 @@ mod tests {
              out_dir_alias: true,
              out_dir_alias_root: None,
              deferred_durability: false,
@@ -778,9 +839,11 @@
              daemon_publish: false,
              trust_daemon_execution: false,
              native_runtime_warmup: true,
+diff --git a/src/report/tests.rs b/src/report/tests.rs
+index a363f164..5006cf0b 100644
 --- a/src/report/tests.rs
 +++ b/src/report/tests.rs
-@@ -652,6 +652,7 @@
+@@ -656,6 +656,7 @@ fn write_test_events(dir: &std::path::Path) -> Config {
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
@@ -788,7 +851,7 @@
          daemon_publish: false,
          native_runtime_warmup: true,
          trust_daemon_execution: false,
-@@ -2140,6 +2141,7 @@
+@@ -2161,6 +2162,7 @@ fn test_missing_transfer_data() {
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
@@ -796,7 +859,7 @@
          daemon_publish: false,
          native_runtime_warmup: true,
          trust_daemon_execution: false,
-@@ -2252,6 +2254,7 @@
+@@ -2280,6 +2282,7 @@ fn test_suggestion_high_miss_share() {
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
@@ -804,7 +867,7 @@
          daemon_publish: false,
          native_runtime_warmup: true,
          trust_daemon_execution: false,
-@@ -2363,6 +2366,7 @@
+@@ -2398,6 +2401,7 @@ fn test_suggestion_high_hit_overhead() {
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
@@ -812,7 +875,7 @@
          daemon_publish: false,
          native_runtime_warmup: true,
          trust_daemon_execution: false,
-@@ -2475,6 +2479,7 @@
+@@ -2517,6 +2521,7 @@ fn test_suggestion_network_download_failures_and_fanout() {
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
@@ -820,7 +883,7 @@
          daemon_publish: false,
          native_runtime_warmup: true,
          trust_daemon_execution: false,
-@@ -2592,6 +2597,7 @@
+@@ -2641,6 +2646,7 @@ fn test_suggestion_network_latency_thresholds() {
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
@@ -828,7 +891,7 @@
          daemon_publish: false,
          native_runtime_warmup: true,
          trust_daemon_execution: false,
-@@ -3112,6 +3118,7 @@
+@@ -3168,6 +3174,7 @@ fn test_empty_report() {
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
@@ -836,7 +899,7 @@
          daemon_publish: false,
          native_runtime_warmup: true,
          trust_daemon_execution: false,
-@@ -3605,6 +3612,7 @@
+@@ -3668,6 +3675,7 @@ fn report_counts_each_download_transfer_format() {
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
@@ -844,9 +907,11 @@
          daemon_publish: false,
          native_runtime_warmup: true,
          trust_daemon_execution: false,
+diff --git a/src/test_support.rs b/src/test_support.rs
+index 8eceb187..8ca4bf21 100644
 --- a/src/test_support.rs
 +++ b/src/test_support.rs
-@@ -97,6 +97,7 @@
+@@ -97,6 +97,7 @@ pub(crate) fn test_config(cache_dir: PathBuf) -> crate::config::Config {
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
@@ -854,9 +919,11 @@
          daemon_publish: true,
          trust_daemon_execution: false,
          native_runtime_warmup: true,
+diff --git a/src/tui/tests.rs b/src/tui/tests.rs
+index 2a993c9d..324171c7 100644
 --- a/src/tui/tests.rs
 +++ b/src/tui/tests.rs
-@@ -121,6 +121,7 @@
+@@ -121,6 +121,7 @@ fn test_config() -> Config {
          out_dir_alias: true,
          out_dir_alias_root: None,
          deferred_durability: false,
