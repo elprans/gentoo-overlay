@@ -1,0 +1,66 @@
+From 153e212d2ef7bef457b26245bf9adb15cc9fbc37 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <el@prans.net>
+Date: Tue, 29 Sep 2026 13:26:55 -0700
+Subject: [PATCH] Allow daemon packages to use system ripgrep
+
+---
+ app-server-daemon/src/prepare_install.rs      | 11 +--------
+ .../src/prepare_install_tests.rs              | 23 +++++++++++++++++++
+ 2 files changed, 24 insertions(+), 10 deletions(-)
+
+diff --git a/app-server-daemon/src/prepare_install.rs b/app-server-daemon/src/prepare_install.rs
+index ef09b6dab1..cb5f156088 100644
+--- a/app-server-daemon/src/prepare_install.rs
++++ b/app-server-daemon/src/prepare_install.rs
+@@ -511,16 +511,7 @@ fn validate_package(root: &Path, entrypoint: &str) -> Result<()> {
+         "codex-code-mode-host"
+     });
+     let code_mode_host = code_mode_host.to_string_lossy();
+-    let mut names = vec![
+-        "codex-package.json",
+-        entrypoint,
+-        code_mode_host.as_ref(),
+-        if cfg!(windows) {
+-            "codex-path/rg.exe"
+-        } else {
+-            "codex-path/rg"
+-        },
+-    ];
++    let mut names = vec!["codex-package.json", entrypoint, code_mode_host.as_ref()];
+     if cfg!(windows) {
+         names.extend([
+             "codex-resources/codex-command-runner.exe",
+diff --git a/app-server-daemon/src/prepare_install_tests.rs b/app-server-daemon/src/prepare_install_tests.rs
+index 9180bf6bc1..9b123f70d5 100644
+--- a/app-server-daemon/src/prepare_install_tests.rs
++++ b/app-server-daemon/src/prepare_install_tests.rs
+@@ -175,6 +175,29 @@ async fn incomplete_source_fails_without_selecting_it() {
+     assert!(!home.join("packages/app-server-daemon/current").exists());
+ }
+ 
++#[tokio::test]
++async fn package_without_bundled_ripgrep_is_accepted() {
++    let temp = tempfile::TempDir::new().expect("temp");
++    let source = temp.path().join("package");
++    let bin = package(&source, "0.152.0");
++    std::fs::remove_file(source.join("codex-path/rg")).expect("remove bundled ripgrep");
++    let home = temp.path().join("home");
++    prepare_from_package(
++        &daemon(&home),
++        &DaemonSettings::default(),
++        InstallMode::Missing,
++        Some(&source),
++        &bin,
++        |_| Ok(true),
++    )
++    .await
++    .expect("seed package without bundled ripgrep");
++    let selected = std::fs::canonicalize(home.join("packages/app-server-daemon/current"))
++        .expect("selected release");
++    assert!(validate_package(&selected, "bin/codex").is_ok());
++    assert!(!selected.join("codex-path/rg").exists());
++}
++
+ #[cfg(target_os = "macos")]
+ #[tokio::test]
+ async fn provisioned_macos_bundle_seeds_from_its_running_executable() {

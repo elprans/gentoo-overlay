@@ -1,0 +1,534 @@
+From 63aee5e957e825b273f662e38a0b06331c5c6ff7 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <el@prans.net>
+Date: Tue, 29 Sep 2026 14:32:52 -0700
+Subject: [PATCH] Run packaged Codex daemon from shipped binary
+
+The managed daemon can replace locally patched code with an upstream release, losing provider keyring and other port-specific behavior. Disable automatic updates by default and use the packaged CLI executable directly for daemon starts and restarts. Existing managed processes are replaced once their PID record shows a different path; legacy managed installations keep their original lifecycle.
+---
+ app-server-daemon/src/backend/pid.rs          | 11 ++++++
+ .../src/backend/pid_identity_tests.rs         |  1 +
+ app-server-daemon/src/backend/pid_start.rs    |  1 +
+ app-server-daemon/src/backend/pid_tests.rs    | 21 +++++++++++
+ app-server-daemon/src/backend/pid_windows.rs  |  1 +
+ app-server-daemon/src/lib.rs                  | 37 +++++++++++++++++--
+ app-server-daemon/src/prepare_install.rs      |  8 ++++
+ .../src/prepare_install_tests.rs              | 34 +++++++++++++++++
+ app-server-daemon/src/settings.rs             |  4 +-
+ app-server-daemon/src/settings_tests.rs       |  8 ++--
+ app-server-daemon/src/update_loop_tests.rs    | 21 +++++++++++
+ 11 files changed, 139 insertions(+), 8 deletions(-)
+
+diff --git a/app-server-daemon/src/backend/pid.rs b/app-server-daemon/src/backend/pid.rs
+index 97738dd8e2..abeb125674 100644
+--- a/app-server-daemon/src/backend/pid.rs
++++ b/app-server-daemon/src/backend/pid.rs
+@@ -55,6 +55,8 @@ struct PidRecord {
+     process_identity: Option<identity::ProcessIdentity>,
+     #[serde(default, skip_serializing_if = "Option::is_none")]
+     executable_identity: Option<ExecutableIdentity>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    executable_path: Option<PathBuf>,
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq)]
+@@ -91,6 +93,15 @@ enum PidCommandKind {
+ }
+ 
+ impl PidBackend {
++    pub(crate) async fn running_executable_path(&self) -> Result<Option<PathBuf>> {
++        match self.read_pid_file_state().await? {
++            PidFileState::Running(record) if self.record_is_active(&record).await? => {
++                Ok(record.executable_path)
++            }
++            _ => Ok(None),
++        }
++    }
++
+     pub(crate) async fn running_executable_identity(&self) -> Result<Option<ExecutableIdentity>> {
+         match self.read_pid_file_state().await? {
+             PidFileState::Running(record) if self.record_is_active(&record).await? => {
+diff --git a/app-server-daemon/src/backend/pid_identity_tests.rs b/app-server-daemon/src/backend/pid_identity_tests.rs
+index 0454e529e0..3d60453a12 100644
+--- a/app-server-daemon/src/backend/pid_identity_tests.rs
++++ b/app-server-daemon/src/backend/pid_identity_tests.rs
+@@ -73,6 +73,7 @@ async fn promotes_timestamp_only_macos_record() {
+         process_start_time: "unused legacy text".into(),
+         process_identity: Some(serde_json::from_value(legacy).unwrap()),
+         executable_identity: None,
++        executable_path: None,
+     };
+     std::fs::write(&path, serde_json::to_vec(&record).unwrap()).unwrap();
+     let backend = PidBackend::new(
+diff --git a/app-server-daemon/src/backend/pid_start.rs b/app-server-daemon/src/backend/pid_start.rs
+index e6a3998a05..be4dbe9454 100644
+--- a/app-server-daemon/src/backend/pid_start.rs
++++ b/app-server-daemon/src/backend/pid_start.rs
+@@ -254,6 +254,7 @@ impl PidBackend {
+                 process_start_time,
+                 process_identity,
+                 executable_identity: launched_identity,
++                executable_path: Some(codex_bin.clone()),
+             })
+         }
+         .await;
+diff --git a/app-server-daemon/src/backend/pid_tests.rs b/app-server-daemon/src/backend/pid_tests.rs
+index 928192bd35..422ca00cbf 100644
+--- a/app-server-daemon/src/backend/pid_tests.rs
++++ b/app-server-daemon/src/backend/pid_tests.rs
+@@ -323,12 +323,14 @@ async fn stale_record_cleanup_preserves_replacement_record() {
+         process_start_time: "old".to_string(),
+         process_identity: None,
+         executable_identity: None,
++        executable_path: None,
+     };
+     let replacement = PidRecord {
+         pid: 2,
+         process_start_time: "new".to_string(),
+         process_identity: None,
+         executable_identity: None,
++        executable_path: None,
+     };
+     tokio::fs::write(
+         &pid_file,
+@@ -369,6 +371,10 @@ async fn pid_record_captures_the_resolved_launch_binary() {
+     let record: PidRecord =
+         serde_json::from_slice(&std::fs::read(&backend.pid_file).expect("PID record"))
+             .expect("parse PID record");
++    assert_eq!(
++        record.executable_path,
++        Some(original.canonicalize().expect("canonical binary"))
++    );
+     assert_eq!(
+         record.executable_identity,
+         Some(
+@@ -393,6 +399,12 @@ async fn pid_record_captures_the_resolved_launch_binary() {
+             .executable_identity,
+         None
+     );
++    assert_eq!(
++        serde_json::from_str::<PidRecord>(r#"{"pid":1,"processStartTime":"old"}"#)
++            .expect("legacy PID record")
++            .executable_path,
++        None
++    );
+     backend.stop().await.expect("stop daemon");
+ }
+ 
+@@ -446,6 +458,7 @@ async fn stop_reaps_untracked_app_server_child() {
+         process_start_time: read_process_start_time(pid).await.expect("start time"),
+         process_identity: None,
+         executable_identity: None,
++        executable_path: None,
+     };
+     tokio::fs::write(
+         &pid_file,
+@@ -539,6 +552,7 @@ async fn shutdown_grace_handles_process_exit() {
+                 .expect("start time"),
+             process_identity: None,
+             executable_identity: None,
++            executable_path: None,
+         };
+         tokio::fs::write(
+             &pid_file,
+@@ -621,6 +635,7 @@ async fn stopping_updater_signals_its_installer_process_group() {
+             process_start_time: read_process_start_time(pid).await.expect("start time"),
+             process_identity: None,
+             executable_identity: None,
++            executable_path: None,
+         })
+         .expect("serialize pid"),
+     )
+@@ -668,6 +683,7 @@ async fn exited_unreaped_updater_is_reaped() {
+             .expect("start time"),
+         process_identity,
+         executable_identity: None,
++        executable_path: None,
+     };
+     let backend = PidBackend::new_update_loop(
+         temp.path().join("codex"),
+@@ -815,6 +831,7 @@ async fn stale_creation_time_never_stops_reused_pid() {
+             process_start_time: "stale".into(),
+             process_identity,
+             executable_identity: None,
++            executable_path: None,
+         };
+         let contents = serde_json::to_vec(&record).unwrap();
+         std::fs::write(&backend.pid_file, &contents).unwrap();
+@@ -900,6 +917,7 @@ async fn failed_updater_handoff_preserves_predecessor_record() {
+             .unwrap(),
+         process_identity: None,
+         executable_identity: None,
++        executable_path: None,
+     };
+     for record in [
+         record.clone(),
+@@ -974,6 +992,7 @@ async fn updater_readiness_and_post_publication_failure_preserve_ownership() {
+             .expect("creation time"),
+         process_identity: None,
+         executable_identity: None,
++        executable_path: None,
+     };
+     let predecessor = PidRecord {
+         pid: std::process::id(),
+@@ -982,6 +1001,7 @@ async fn updater_readiness_and_post_publication_failure_preserve_ownership() {
+             .expect("creation time"),
+         process_identity: None,
+         executable_identity: None,
++        executable_path: None,
+     };
+     tokio::fs::write(&backend.pid_file, serde_json::to_vec(&successor).unwrap())
+         .await
+@@ -1091,6 +1111,7 @@ fn inaccessible_pid_preserves_identity_check_error() {
+             process_start_time: "stale".into(),
+             process_identity: None,
+             executable_identity: None,
++            executable_path: None,
+         };
+         assert!(
+             crate::backend::windows::Process::open(record.pid)
+diff --git a/app-server-daemon/src/backend/pid_windows.rs b/app-server-daemon/src/backend/pid_windows.rs
+index eaae6a6ec5..3e9ad7981a 100644
+--- a/app-server-daemon/src/backend/pid_windows.rs
++++ b/app-server-daemon/src/backend/pid_windows.rs
+@@ -51,6 +51,7 @@ impl PidBackend {
+             process_start_time: read_process_start_time(std::process::id()).await?,
+             process_identity: None,
+             executable_identity: None,
++            executable_path: None,
+         };
+         *pruning_enabled = false;
+         let result = self.start_inner(Some(record.clone())).await;
+diff --git a/app-server-daemon/src/lib.rs b/app-server-daemon/src/lib.rs
+index ce7d58e04d..28acab2460 100644
+--- a/app-server-daemon/src/lib.rs
++++ b/app-server-daemon/src/lib.rs
+@@ -40,6 +40,7 @@ use backend::BackendPaths;
+ use codex_app_server_protocol::RemoteControlConnectionStatus;
+ use codex_app_server_protocol::RemoteControlPairingStartResponse;
+ use codex_app_server_transport::app_server_control_socket_path;
++use codex_install_context::InstallContext;
+ use codex_utils_home_dir::find_codex_home;
+ use managed_install::managed_codex_bin;
+ #[cfg(any(unix, windows))]
+@@ -351,6 +352,7 @@ struct Daemon {
+     operation_lock_file: PathBuf,
+     settings_file: PathBuf,
+     managed_codex_bin: PathBuf,
++    shipped_codex_bin: Option<PathBuf>,
+ }
+ 
+ impl Daemon {
+@@ -360,7 +362,15 @@ impl Daemon {
+             .as_path()
+             .to_path_buf();
+         let state_dir = codex_home.as_path().join(STATE_DIR_NAME);
+-        let managed_codex_bin = managed_codex_bin(codex_home.as_path());
++        let shipped_codex_bin = InstallContext::current()
++            .package_layout
++            .as_ref()
++            .and_then(|_| std::env::current_exe().ok())
++            .and_then(|path| path.canonicalize().ok())
++            .filter(|path| !path.starts_with(codex_home.as_path().join("packages")));
++        let managed_codex_bin = shipped_codex_bin
++            .clone()
++            .unwrap_or_else(|| managed_codex_bin(codex_home.as_path()));
+         // Old CLIs must not mistake a daemon-owned installation for their backend.
+         let (pid_file, update_pid_file) =
+             if managed_codex_bin.starts_with(codex_home.as_path().join("packages/standalone")) {
+@@ -376,6 +386,7 @@ impl Daemon {
+             operation_lock_file: state_dir.join(OPERATION_LOCK_FILE_NAME),
+             settings_file: state_dir.join(SETTINGS_FILE_NAME),
+             managed_codex_bin,
++            shipped_codex_bin,
+         })
+     }
+ 
+@@ -449,6 +460,18 @@ impl Daemon {
+     ) -> Result<LifecycleOutput, StartError> {
+         let mut managed = self.clone();
+         let mut settings = self.load_settings().await?;
++        if let Some(shipped_bin) = &self.shipped_codex_bin
++            && let Some(backend) = self.running_backend_instance(&settings).await?
++            && backend.running_executable_path().await?.as_deref() != Some(shipped_bin.as_path())
++        {
++            if !feature_overrides.is_empty() {
++                settings.feature_overrides = feature_overrides.clone();
++            }
++            return self
++                .restart_with_settings(settings)
++                .await
++                .map_err(StartError::from);
++        }
+         let (status, backend, pid, info) = if let Ok(info) = client::probe(&self.socket_path).await
+         {
+             (
+@@ -517,7 +540,7 @@ impl Daemon {
+         prepare_install::prepare(self, &settings).await?;
+         let mut managed = self.clone();
+         managed.managed_codex_bin = self.current_managed_codex_bin()?;
+-        if !settings.auto_update_enabled {
++        if !settings.auto_update_enabled || self.shipped_codex_bin.is_some() {
+             backend::pid_update_loop_backend(self.backend_paths(&settings))
+                 .stop()
+                 .await?;
+@@ -1016,7 +1039,7 @@ impl Daemon {
+ 
+     async fn ensure_managed_updater(&self, settings: &DaemonSettings) -> Result<bool> {
+         let updater = backend::pid_update_loop_backend(self.backend_paths(settings));
+-        if !settings.auto_update_enabled {
++        if !settings.auto_update_enabled || self.shipped_codex_bin.is_some() {
+             updater.stop().await?;
+             return Ok(false);
+         }
+@@ -1066,6 +1089,9 @@ impl Daemon {
+     }
+ 
+     fn current_managed_codex_bin(&self) -> Result<PathBuf> {
++        if let Some(shipped_codex_bin) = &self.shipped_codex_bin {
++            return Ok(shipped_codex_bin.clone());
++        }
+         // An installer can move a legacy binary into bin/ while this updater runs.
+         let home = self
+             .settings_file
+@@ -1423,6 +1449,7 @@ mod tests {
+             operation_lock_file: state.join("daemon.lock"),
+             settings_file: state.join("settings.json"),
+             managed_codex_bin: super::managed_codex_bin(home.path()),
++            shipped_codex_bin: None,
+         };
+         let lock = daemon.acquire_operation_lock().await.expect("lock");
+         let stop = daemon.run(super::LifecycleCommand::Stop);
+@@ -1457,6 +1484,7 @@ mod tests {
+             operation_lock_file: state.join("daemon.lock"),
+             settings_file: state.join("settings.json"),
+             managed_codex_bin: state.join("missing-codex"),
++            shipped_codex_bin: None,
+         };
+         assert_eq!(
+             daemon
+@@ -1483,6 +1511,7 @@ mod tests {
+             operation_lock_file: state.join("daemon.lock"),
+             settings_file: state.join("settings.json"),
+             managed_codex_bin: home.path().join("codex"),
++            shipped_codex_bin: None,
+         };
+         codex_app_server_transport::daemon_recovery::write_candidates(
+             &daemon.recovery_file().expect("recovery path"),
+@@ -1537,6 +1566,7 @@ mod tests {
+             operation_lock_file: state.join("daemon.lock"),
+             settings_file: state.join("settings.json"),
+             managed_codex_bin: standalone.join("current/bin/codex"),
++            shipped_codex_bin: None,
+         };
+         let settings = DaemonSettings::default();
+         assert!(
+@@ -1563,6 +1593,7 @@ mod tests {
+             operation_lock_file: temp_dir.path().join("daemon.lock"),
+             settings_file: temp_dir.path().join("settings.json"),
+             managed_codex_bin: temp_dir.path().join("missing-codex"),
++            shipped_codex_bin: None,
+         };
+         let stderr_log = daemon.pid_file.with_extension("stderr.log");
+         tokio::fs::write(&stderr_log, "unexpected argument")
+diff --git a/app-server-daemon/src/prepare_install.rs b/app-server-daemon/src/prepare_install.rs
+index cb5f156088..dac1293322 100644
+--- a/app-server-daemon/src/prepare_install.rs
++++ b/app-server-daemon/src/prepare_install.rs
+@@ -28,6 +28,9 @@ pub struct InstallRequest {
+ 
+ /// Prepare a missing package while the caller holds the daemon operation lock.
+ pub(super) async fn prepare(daemon: &Daemon, settings: &DaemonSettings) -> Result<()> {
++    if daemon.shipped_codex_bin.is_some() {
++        return Ok(());
++    }
+     let source = InstallContext::current().package_layout.as_ref();
+     // Keep package replacement state out of the CLI dispatcher's async stack frame.
+     Box::pin(prepare_from_package(
+@@ -51,6 +54,11 @@ pub async fn update_from_cli(
+     #[cfg(windows)]
+     crate::backend::windows::ensure_not_elevated()?;
+     let daemon = Daemon::from_environment()?;
++    if daemon.shipped_codex_bin.is_some() {
++        return Err(anyhow!(
++            "this CLI runs its shipped app server; update it through its package manager"
++        ));
++    }
+     let settings = daemon.load_settings().await?;
+     let source = InstallContext::current().package_layout.as_ref();
+     if !Box::pin(prepare_from_package(
+diff --git a/app-server-daemon/src/prepare_install_tests.rs b/app-server-daemon/src/prepare_install_tests.rs
+index 9b123f70d5..d55ffdcd99 100644
+--- a/app-server-daemon/src/prepare_install_tests.rs
++++ b/app-server-daemon/src/prepare_install_tests.rs
+@@ -3,6 +3,7 @@
+ use std::collections::BTreeMap;
+ 
+ use super::InstallMode;
++use super::prepare;
+ use super::prepare_from_package;
+ use super::validate_package;
+ use crate::release_pruning;
+@@ -21,6 +22,7 @@ fn daemon(home: &std::path::Path) -> crate::Daemon {
+         operation_lock_file: state.join("daemon.lock"),
+         settings_file: state.join("settings.json"),
+         managed_codex_bin: crate::managed_install::managed_codex_bin(home),
++        shipped_codex_bin: None,
+     }
+ }
+ 
+@@ -52,6 +54,38 @@ fn package(root: &Path, version: &str) -> PathBuf {
+     bin
+ }
+ 
++#[tokio::test]
++async fn shipped_cli_ignores_existing_managed_release() {
++    let temp = tempfile::TempDir::new().expect("temp");
++    let home = temp.path().join("home");
++    let managed = package(
++        &home.join("packages/app-server-daemon/releases/0.159.1-aarch64-apple-darwin"),
++        "0.159.1",
++    );
++    std::os::unix::fs::symlink(
++        managed.parent().expect("bin").parent().expect("release"),
++        home.join("packages/app-server-daemon/current"),
++    )
++    .expect("managed selection");
++    let shipped = temp.path().join("port/bin/codex");
++    std::fs::create_dir_all(shipped.parent().expect("bin")).expect("shipped directory");
++    std::fs::write(&shipped, b"shipped codex").expect("shipped binary");
++    let mut daemon = daemon(&home);
++    daemon.managed_codex_bin = shipped.clone();
++    daemon.shipped_codex_bin = Some(shipped.clone());
++
++    let selected = daemon.current_installation().expect("installation");
++    assert_eq!(selected.managed_codex_bin, shipped);
++    prepare(&selected, &DaemonSettings::default())
++        .await
++        .expect("shipped CLI needs no managed copy");
++    assert_eq!(
++        std::fs::read_to_string(home.join("packages/app-server-daemon/current/bin/codex"))
++            .expect("managed release"),
++        "#!/bin/sh\necho 'codex 0.159.1'\n"
++    );
++}
++
+ #[tokio::test]
+ async fn seeds_full_package() {
+     let temp = tempfile::TempDir::new().expect("temp");
+diff --git a/app-server-daemon/src/settings.rs b/app-server-daemon/src/settings.rs
+index 49d89cfaba..836788663c 100644
+--- a/app-server-daemon/src/settings.rs
++++ b/app-server-daemon/src/settings.rs
+@@ -29,7 +29,7 @@ impl Default for DaemonSettings {
+         Self {
+             remote_control_enabled: false,
+             feature_overrides: BTreeMap::new(),
+-            auto_update_enabled: true,
++            auto_update_enabled: false,
+             update_interval_minutes: DEFAULT_UPDATE_INTERVAL_MINUTES,
+             shutdown_grace_seconds: DEFAULT_SHUTDOWN_GRACE_SECONDS,
+         }
+@@ -85,7 +85,7 @@ impl Default for UpdaterSettings {
+ }
+ 
+ fn default_auto_update_enabled() -> bool {
+-    true
++    false
+ }
+ 
+ fn default_update_interval_minutes() -> u32 {
+diff --git a/app-server-daemon/src/settings_tests.rs b/app-server-daemon/src/settings_tests.rs
+index c8d81fb8db..639fe62deb 100644
+--- a/app-server-daemon/src/settings_tests.rs
++++ b/app-server-daemon/src/settings_tests.rs
+@@ -13,6 +13,7 @@ async fn remote_control_save_preserves_updater_settings() {
+         .expect("write legacy settings");
+ 
+     let settings = DaemonSettings::load(&path).await.expect("load settings");
++    assert!(!settings.auto_update_enabled);
+     assert_eq!(
+         settings,
+         DaemonSettings {
+@@ -136,10 +137,11 @@ async fn telemetry_distinguishes_presence_from_default_values() -> anyhow::Resul
+     let dir = home.path().join("app-server-daemon");
+     tokio::fs::create_dir(&dir).await?;
+     let path = dir.join("settings.json");
+-    for (contents, presence) in [
+-        ("{}", "default"),
++    for (contents, enabled, presence) in [
++        ("{}", "disabled", "default"),
+         (
+             r#"{"updater":{"autoUpdateEnabled":true,"updateIntervalMinutes":60},"shutdownGraceSeconds":60}"#,
++            "enabled",
+             "configured",
+         ),
+     ] {
+@@ -148,7 +150,7 @@ async fn telemetry_distinguishes_presence_from_default_values() -> anyhow::Resul
+             crate::telemetry::settings_tags(home.path())
+                 .await
+                 .map(|(_, value)| value),
+-            ["enabled", presence, presence, presence]
++            [enabled, presence, presence, presence]
+         );
+     }
+     Ok(())
+diff --git a/app-server-daemon/src/update_loop_tests.rs b/app-server-daemon/src/update_loop_tests.rs
+index 97c8248081..0206f7d5d3 100644
+--- a/app-server-daemon/src/update_loop_tests.rs
++++ b/app-server-daemon/src/update_loop_tests.rs
+@@ -200,6 +200,11 @@ async fn explicit_update_migrates_running_and_stopped_installations() {
+     for (running, local) in [(false, false), (true, false), (false, true), (true, true)] {
+         let home = TempDir::new().unwrap();
+         let (legacy, release) = manual_update_daemon(&home);
++        std::fs::write(
++            &legacy.settings_file,
++            r#"{"updater":{"autoUpdateEnabled":true}}"#,
++        )
++        .expect("enable scheduled updates");
+         let root = home.path().join("packages/standalone");
+         if local {
+             let package = root.join("releases/local-development");
+@@ -448,6 +453,7 @@ fn manual_update_daemon(home: &TempDir) -> (Daemon, String) {
+             operation_lock_file: state.join("daemon.lock"),
+             settings_file: state.join("settings.json"),
+             managed_codex_bin: standalone.join("current/codex"),
++            shipped_codex_bin: None,
+         },
+         release,
+     )
+@@ -599,6 +605,11 @@ async fn unsupported_request_preserves_updater_schedule() {
+ 
+     let home = TempDir::new().expect("home");
+     let (daemon, _) = manual_update_daemon(&home);
++    std::fs::write(
++        &daemon.settings_file,
++        r#"{"updater":{"autoUpdateEnabled":true}}"#,
++    )
++    .expect("enable scheduled updates");
+     let daemon = std::sync::Arc::new(daemon);
+     let identity = executable_identity(&daemon.managed_codex_bin)
+         .await
+@@ -740,6 +751,11 @@ async fn scheduled_no_op_preserves_daemon_and_hands_off_stale_updater() {
+     )
+     .unwrap();
+     crate::release_pruning::record_selection(&root, /*previous*/ None).unwrap();
++    std::fs::write(
++        &daemon.settings_file,
++        r#"{"updater":{"autoUpdateEnabled":true}}"#,
++    )
++    .expect("enable scheduled updates");
+     let settings = crate::settings::DaemonSettings::default();
+     let backend = crate::backend::pid_backend(daemon.backend_paths(&settings));
+     backend.start().await.expect("start daemon");
+@@ -781,6 +797,11 @@ async fn scheduled_no_op_preserves_daemon_and_hands_off_stale_updater() {
+ async fn scheduled_resource_only_update_restarts_daemon() {
+     let home = TempDir::new().expect("home");
+     let (daemon, release) = manual_update_daemon(&home);
++    std::fs::write(
++        &daemon.settings_file,
++        r#"{"updater":{"autoUpdateEnabled":true}}"#,
++    )
++    .expect("enable scheduled updates");
+     let settings = crate::settings::DaemonSettings::default();
+     let backend = crate::backend::pid_backend(daemon.backend_paths(&settings));
+     backend.start().await.expect("start daemon");
