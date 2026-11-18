@@ -1,0 +1,9 @@
+{
+  "init_version": 6,
+  "file_hashes": {
+    "AGENTS.md": "4a2db49e281a7b010b425af36ca84f7c8373b186cb1d347379aa746a2596c3e7",
+    ".claude/skills/lat-md/SKILL.md": "75e94a4ddb6dc51229ea1b24860376952821953d4162669fe5a78815b68a687b",
+    ".agents/skills/lat-md/SKILL.md": "75e94a4ddb6dc51229ea1b24860376952821953d4162669fe5a78815b68a687b",
+    ".codex/skills/lat-md/SKILL.md": "75e94a4ddb6dc51229ea1b24860376952821953d4162669fe5a78815b68a687b"
+  }
+}
