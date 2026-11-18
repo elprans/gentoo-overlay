@@ -12,6 +12,14 @@ Run `kache init` per user to configure Cargo and the user service. `kache init -
 
 Registry dependencies and their licenses come from the patched workspace lockfile through [[kache#Dependency bundle]]. The ebuild fetches the source archive and one dependency bundle, then builds offline. It removes the root manifest's blanket warning denial so new compiler warnings do not break packaging.
 
+### Daemon upgrades
+
+Installation prints restart guidance; daemon replacement runs in the owning user's cache context through Kache's lifecycle protocol.
+
+The next newer-release client [[kache:src/daemon_lifecycle.rs#ensure_outcome|drains and replaces an older daemon]], using its service manager when that manager owns the instance. Release comparisons ignore same-version rebuilds and build metadata. After a local rebuild, finish active builds and run `kache daemon restart` as the owning user with the affected cache's configuration; [[kache:src/daemon.rs#restart|explicit restart]] also replaces a daemon whose version is unknown.
+
+There is no reload or re-exec signal. [[kache:src/platform.rs#wait_for_shutdown|SIGTERM and SIGINT]] request shutdown; [[kache:src/daemon.rs#accept_loop|request draining]] permits 30 seconds before aborting remaining handlers. A clean exit leaves a user service stopped until another client starts it. The post-install phase therefore does not signal processes or run Kache as root to restart user caches.
+
 ## Local patches
 
 The versioned patches in [[dev-util/kache/files]] preserve opt-in store compression and serialize a test that depends on the process environment.
@@ -23,6 +31,8 @@ Configure `[cache] store_compression` and `store_compression_level` in `~/.confi
 The rustdoc probe memo test takes the process-state lock while it observes environment-dependent memo keys. Workspace library and binary unit tests cover the patched configuration parser, compression policy, filesystem behavior, and compiler path. Daemon-driven integration tests remain outside the ebuild test phase because they are unreliable under Portage's sandbox.
 
 For source tests, use an isolated `RUSTUP_HOME`: receipt-evidence tests reject symlinked compiler files in host Rustup registrations. Set `KACHE_TEST_BTRFS_DIR` to a writable Btrfs scratch directory with automatic compression disabled so fixtures start uncompressed. This exercises compression and shared-extent checks; tmpfs only covers unsupported-filesystem behavior.
+
+Unit tests can also auto-start the installed engine with temporary home or cache directories. Detached daemons survive test exit, and idle shutdown is disabled by default. Check for test-owned processes after source tests and stop them before deleting their fixtures. Identify each by its executable, temporary cache paths, and start time; SIGTERM drains a leftover whose control socket has already been removed.
 
 ## Source checkout
 

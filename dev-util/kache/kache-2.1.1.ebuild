@@ -99,6 +99,10 @@ pkg_postinst() {
 	elog "reuses this package's shim directory, and"
 	elog "'kache doctor --probe' checks compile, store and restore locally."
 	elog
+	elog "Newer clients automatically replace older release daemons on use."
+	elog "For same-version rebuilds, finish active builds, then run"
+	elog "'kache daemon restart' as the owning user with that cache's config."
+	elog
 	elog "The store reflinks compiler outputs, so a compressed store directory"
 	elog "alone does not compress them. On Btrfs, set in ~/.config/kache/config.toml:"
 	elog "  [cache]"
